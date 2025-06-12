@@ -93,7 +93,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
 
   // Enhanced loading logic to properly sync with database
   useEffect(() => {
-    console.log('DropZone effect - syncing zone', zoneNumber, 'with database state');
+    console.log('DropZone effect - loading existing state for zone:', zoneNumber);
     console.log('Distribution schedules:', distributionSchedules);
     console.log('Orders:', orders);
     console.log('Returns:', returns);
@@ -102,19 +102,14 @@ export const DropZone: React.FC<DropZoneProps> = ({
     setSelectedGroupId(null);
     setCurrentScheduleId(null);
 
-    // Get all items that have schedule assignments
-    const assignedOrders = orders.filter(order => order.schedule_id);
-    const assignedReturns = returns.filter(returnItem => returnItem.schedule_id);
-    const allAssignedItems = [...assignedOrders, ...assignedReturns];
+    // Method 1: Check if this zone already has orders or returns assigned
+    const zoneOrders = orders.filter(order => order.schedule_id);
+    const zoneReturns = returns.filter(returnItem => returnItem.schedule_id);
+    const allAssignedItems = [...zoneOrders, ...zoneReturns];
 
     console.log('All assigned items:', allAssignedItems);
 
-    if (allAssignedItems.length === 0) {
-      console.log('No assigned items found');
-      return;
-    }
-
-    // Group items by schedule_id and count zones needed for each schedule
+    // Group items by schedule_id to see which schedules have items
     const scheduleItemsMap = new Map();
     allAssignedItems.forEach(item => {
       const scheduleId = item.schedule_id;
@@ -128,7 +123,8 @@ export const DropZone: React.FC<DropZoneProps> = ({
 
     console.log('Schedule items map:', scheduleItemsMap);
 
-    // Sort schedule IDs to ensure consistent assignment
+    // Find which zone this should be based on existing assignments
+    // We'll assign schedules to zones in order of their schedule_id
     const sortedScheduleIds = Array.from(scheduleItemsMap.keys()).sort((a, b) => a - b);
     console.log('Sorted schedule IDs with items:', sortedScheduleIds);
 
@@ -150,18 +146,54 @@ export const DropZone: React.FC<DropZoneProps> = ({
       }
     }
 
-    console.log(`Zone ${zoneNumber} has no assigned items`);
+    // Method 2: If no items assigned, check for existing empty schedules
+    // Only for zone 1, and only if there are unassigned schedules
+    if (zoneNumber === 1) {
+      const unassignedSchedules = distributionSchedules.filter(schedule => {
+        return !scheduleItemsMap.has(schedule.schedule_id);
+      });
+
+      console.log('Unassigned schedules:', unassignedSchedules);
+
+      if (unassignedSchedules.length > 0) {
+        // Take the first unassigned schedule
+        const firstUnassigned = unassignedSchedules[0];
+        console.log('Assigning first unassigned schedule to zone 1:', firstUnassigned.schedule_id);
+        setSelectedGroupId(firstUnassigned.groups_id);
+        setCurrentScheduleId(firstUnassigned.schedule_id);
+      }
+    }
   }, [distributionSchedules, orders, returns, zoneNumber]);
 
-  // Update current schedule when group selection changes
+  // Create schedule immediately when group is selected
   useEffect(() => {
-    if (selectedGroupId && scheduleId) {
+    if (selectedGroupId && !scheduleId) {
+      const createSchedule = async () => {
+        try {
+          console.log('Creating schedule for group:', selectedGroupId);
+          const { data: newScheduleId, error } = await supabase
+            .rpc('get_or_create_schedule_for_group', { group_id: selectedGroupId });
+
+          if (error) {
+            console.error('Error creating schedule:', error);
+            return;
+          }
+
+          console.log('Created schedule ID:', newScheduleId);
+          setCurrentScheduleId(newScheduleId);
+          
+          // Trigger refresh of schedules in parent
+          onScheduleDeleted(); // This will refresh all data including schedules
+        } catch (error) {
+          console.error('Error creating schedule:', error);
+        }
+      };
+
+      createSchedule();
+    } else if (scheduleId) {
       setCurrentScheduleId(scheduleId);
-    } else if (selectedGroupId && !scheduleId) {
-      // Group selected but no schedule exists yet - this will be created on first drop
-      setCurrentScheduleId(null);
     }
-  }, [selectedGroupId, scheduleId]);
+  }, [selectedGroupId, scheduleId, onScheduleDeleted]);
 
   const handleGroupSelection = (value: string) => {
     const groupId = value ? parseInt(value) : null;
@@ -279,14 +311,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
             </div>
           ) : selectedGroupId ? (
             <div className="text-sm text-muted-foreground">
-              {selectedGroup && (
-                <div className="font-medium text-primary">
-                  אזור נבחר: {selectedGroup.separation}
-                </div>
-              )}
-              <div className="text-xs">
-                מזהה לוח זמנים יווצר עם הפריט הראשון
-              </div>
+              יוצר מזהה לוח זמנים...
             </div>
           ) : (
             <div className="text-sm text-muted-foreground">
