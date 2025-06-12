@@ -1,4 +1,6 @@
+
 import React from 'react';
+import { useDrop } from 'react-dnd';
 import { CalendarCard } from './CalendarCard';
 
 interface Order {
@@ -40,6 +42,7 @@ interface HorizontalKanbanProps {
   orders: Order[];
   returns: Return[];
   onUpdateDestinations?: (scheduleId: number) => void;
+  onDropToKanban?: (scheduleId: number) => void;
 }
 
 export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
@@ -48,8 +51,21 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
   drivers,
   orders,
   returns,
-  onUpdateDestinations
+  onUpdateDestinations,
+  onDropToKanban
 }) => {
+  const [{ isOver }, drop] = useDrop(() => ({
+    accept: 'calendar-card',
+    drop: (item: { scheduleId: number }) => {
+      if (onDropToKanban) {
+        onDropToKanban(item.scheduleId);
+      }
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+    }),
+  }));
+
   // Filter schedules that have assigned items (orders or returns)
   const schedulesWithItems = distributionSchedules.filter(schedule => {
     const hasOrders = orders.some(order => order.schedule_id === schedule.schedule_id);
@@ -59,10 +75,12 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
 
   // Separate unscheduled and scheduled items
   const unscheduledSchedules = schedulesWithItems.filter(schedule => !schedule.distribution_date);
-  // Don't show scheduled items in the horizontal kanban anymore
 
   return (
-    <div className="mb-8">
+    <div
+      ref={drop}
+      className={`mb-8 ${isOver ? 'bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg' : ''}`}
+    >
       <h2 className="text-xl font-semibold mb-4">קווי חלוקה</h2>
       
       {/* Only show unscheduled items */}
@@ -87,7 +105,7 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
         </div>
       ) : (
         <div className="text-center py-8 text-gray-500">
-          אין קווי חלוקה לא מתוזמנים
+          {isOver ? 'שחרר כאן כדי להחזיר לקווי חלוקה לא מתוזמנים' : 'אין קווי חלוקה לא מתוזמנים'}
         </div>
       )}
     </div>

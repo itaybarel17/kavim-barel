@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { supabase } from '@/integrations/supabase/client';
@@ -148,6 +147,48 @@ const Calendar = () => {
     }
   });
 
+  // Add useEffect to automatically update destinations count when orders/returns change
+  useEffect(() => {
+    const updateAllDestinationsCount = async () => {
+      // Only update for schedules that have assigned items
+      const schedulesWithItems = distributionSchedules.filter(schedule => {
+        const hasOrders = orders.some(order => order.schedule_id === schedule.schedule_id);
+        const hasReturns = returns.some(returnItem => returnItem.schedule_id === schedule.schedule_id);
+        return hasOrders || hasReturns;
+      });
+
+      for (const schedule of schedulesWithItems) {
+        const scheduleOrders = orders.filter(order => order.schedule_id === schedule.schedule_id);
+        const scheduleReturns = returns.filter(returnItem => returnItem.schedule_id === schedule.schedule_id);
+        
+        const uniqueCustomers = new Set([
+          ...scheduleOrders.map(order => order.customername),
+          ...scheduleReturns.map(returnItem => returnItem.customername)
+        ]);
+
+        // Only update if the destinations count has changed
+        if (schedule.destinations !== uniqueCustomers.size) {
+          try {
+            const { error } = await supabase
+              .from('distribution_schedule')
+              .update({ destinations: uniqueCustomers.size })
+              .eq('schedule_id', schedule.schedule_id);
+            
+            if (error) {
+              console.error('Error updating destinations count:', error);
+            }
+          } catch (error) {
+            console.error('Error updating destinations count:', error);
+          }
+        }
+      }
+    };
+
+    if (distributionSchedules.length > 0 && (orders.length > 0 || returns.length > 0)) {
+      updateAllDestinationsCount();
+    }
+  }, [orders, returns, distributionSchedules]);
+
   const handleDropToDate = async (scheduleId: number, date: Date) => {
     try {
       console.log('Dropping schedule', scheduleId, 'to date', date);
@@ -178,6 +219,27 @@ const Calendar = () => {
       refetchSchedules();
     } catch (error) {
       console.error('Error updating schedule date:', error);
+    }
+  };
+
+  const handleDropToKanban = async (scheduleId: number) => {
+    try {
+      console.log('Returning schedule', scheduleId, 'to kanban');
+      
+      const { error } = await supabase
+        .from('distribution_schedule')
+        .update({ distribution_date: null })
+        .eq('schedule_id', scheduleId);
+      
+      if (error) {
+        console.error('Error returning schedule to kanban:', error);
+        throw error;
+      }
+      
+      console.log('Schedule returned to kanban successfully');
+      refetchSchedules();
+    } catch (error) {
+      console.error('Error returning schedule to kanban:', error);
     }
   };
 
@@ -250,6 +312,7 @@ const Calendar = () => {
           orders={orders}
           returns={returns}
           onUpdateDestinations={updateDestinationsCount}
+          onDropToKanban={handleDropToKanban}
         />
 
         {/* Calendar Navigation */}
