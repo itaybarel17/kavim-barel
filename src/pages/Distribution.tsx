@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -43,6 +42,7 @@ const Distribution = () => {
   const { data: orders = [], refetch: refetchOrders } = useQuery({
     queryKey: ['orders'],
     queryFn: async () => {
+      console.log('Fetching orders...');
       const { data, error } = await supabase
         .from('mainorder')
         .select('ordernumber, customername, address, city, totalorder, schedule_id')
@@ -50,6 +50,7 @@ const Distribution = () => {
         .limit(50);
       
       if (error) throw error;
+      console.log('Orders fetched:', data);
       return data as Order[];
     }
   });
@@ -58,6 +59,7 @@ const Distribution = () => {
   const { data: returns = [], refetch: refetchReturns } = useQuery({
     queryKey: ['returns'],
     queryFn: async () => {
+      console.log('Fetching returns...');
       const { data, error } = await supabase
         .from('mainreturns')
         .select('returnnumber, customername, address, city, totalreturn, schedule_id')
@@ -65,6 +67,7 @@ const Distribution = () => {
         .limit(50);
       
       if (error) throw error;
+      console.log('Returns fetched:', data);
       return data as Return[];
     }
   });
@@ -73,11 +76,13 @@ const Distribution = () => {
   const { data: distributionGroups = [] } = useQuery({
     queryKey: ['distribution-groups'],
     queryFn: async () => {
+      console.log('Fetching distribution groups...');
       const { data, error } = await supabase
         .from('distribution_groups')
         .select('groups_id, zone_id, separation');
       
       if (error) throw error;
+      console.log('Distribution groups fetched:', data);
       return data as DistributionGroup[];
     }
   });
@@ -86,11 +91,13 @@ const Distribution = () => {
   const { data: distributionSchedules = [] } = useQuery({
     queryKey: ['distribution-schedules'],
     queryFn: async () => {
+      console.log('Fetching distribution schedules...');
       const { data, error } = await supabase
         .from('distribution_schedule')
         .select('schedule_id, groups_id');
       
       if (error) throw error;
+      console.log('Distribution schedules fetched:', data);
       return data as DistributionSchedule[];
     }
   });
@@ -132,6 +139,10 @@ const Distribution = () => {
 
   // Create 12 drop zones (3 rows x 4 columns)
   const dropZones = Array.from({ length: 12 }, (_, index) => index + 1);
+
+  console.log('Unassigned orders:', unassignedOrders.length);
+  console.log('Unassigned returns:', unassignedReturns.length);
+  console.log('Distribution groups:', distributionGroups.length);
 
   return (
     <DndProvider backend={HTML5Backend}>
