@@ -170,9 +170,10 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
   };
 
   const allDays = getWorkDaysForTwoWeeks();
-  // Hebrew order: Sunday (rightmost) to Friday (leftmost) - reverse natural order
-  const firstWeekDays = allDays.slice(0, 6).reverse(); // Sunday to Friday reversed
-  const secondWeekDays = allDays.slice(6, 12).reverse(); // Sunday to Friday reversed
+  // For Hebrew RTL layout, display Sunday to Friday from right to left
+  // So we take the natural order but use dir="rtl" in the grid
+  const firstWeekDays = allDays.slice(0, 6); // Sunday to Friday in natural order
+  const secondWeekDays = allDays.slice(6, 12); // Sunday to Friday in natural order
 
   // Group schedules by date
   const getSchedulesForDate = (date: Date) => {
@@ -189,11 +190,11 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
     <div>
       <h2 className="text-xl font-semibold mb-4">לוח שנה - שבועיים</h2>
       
-      {/* Week 1 - Hebrew order: Sunday (rightmost) to Friday (leftmost) */}
-      <div className="grid grid-cols-6 gap-4 mb-6">
+      {/* Week 1 - Hebrew RTL order */}
+      <div className="grid grid-cols-6 gap-4 mb-6" dir="rtl">
         {firstWeekDays.map((date, index) => (
           <CalendarDay
-            key={index}
+            key={`week1-${date.toISOString()}`}
             date={date}
             schedulesForDate={getSchedulesForDate(date)}
             distributionGroups={distributionGroups}
@@ -206,11 +207,11 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
         ))}
       </div>
 
-      {/* Week 2 - Hebrew order: Sunday (rightmost) to Friday (leftmost) */}
-      <div className="grid grid-cols-6 gap-4">
+      {/* Week 2 - Hebrew RTL order */}
+      <div className="grid grid-cols-6 gap-4" dir="rtl">
         {secondWeekDays.map((date, index) => (
           <CalendarDay
-            key={index + 6}
+            key={`week2-${date.toISOString()}`}
             date={date}
             schedulesForDate={getSchedulesForDate(date)}
             distributionGroups={distributionGroups}
