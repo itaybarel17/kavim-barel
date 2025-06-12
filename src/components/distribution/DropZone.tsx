@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { useDrop } from 'react-dnd';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -90,69 +91,79 @@ export const DropZone: React.FC<DropZoneProps> = ({
     displayScheduleId && returnItem.schedule_id === displayScheduleId
   );
 
-  // Load previously selected group - now with proper zone-to-schedule mapping
+  // Enhanced loading logic to properly sync with database
   useEffect(() => {
     console.log('DropZone effect - loading existing state for zone:', zoneNumber);
     console.log('Distribution schedules:', distributionSchedules);
     console.log('Orders:', orders);
     console.log('Returns:', returns);
 
-    // Skip if already have a selection
-    if (selectedGroupId) {
-      console.log('Already have selected group:', selectedGroupId);
-      return;
-    }
+    // Reset state first
+    setSelectedGroupId(null);
+    setCurrentScheduleId(null);
 
-    // Method 1: Check if this zone has orders or returns assigned
+    // Method 1: Check if this zone already has orders or returns assigned
     const zoneOrders = orders.filter(order => order.schedule_id);
     const zoneReturns = returns.filter(returnItem => returnItem.schedule_id);
     const allAssignedItems = [...zoneOrders, ...zoneReturns];
 
     console.log('All assigned items:', allAssignedItems);
 
-    if (allAssignedItems.length > 0) {
-      // Find the first schedule_id that has assignments
-      const scheduleWithItems = allAssignedItems[0]?.schedule_id;
-      console.log('Schedule with items:', scheduleWithItems);
-      
-      if (scheduleWithItems) {
-        // Find the corresponding group for this schedule
-        const correspondingSchedule = distributionSchedules.find(
-          schedule => schedule.schedule_id === scheduleWithItems
-        );
-        console.log('Corresponding schedule:', correspondingSchedule);
-
-        if (correspondingSchedule) {
-          console.log('Setting selected group ID from assigned items:', correspondingSchedule.groups_id);
-          setSelectedGroupId(correspondingSchedule.groups_id);
-          setCurrentScheduleId(scheduleWithItems);
-          return; // Exit early since we found a match
+    // Group items by schedule_id to see which schedules have items
+    const scheduleItemsMap = new Map();
+    allAssignedItems.forEach(item => {
+      const scheduleId = item.schedule_id;
+      if (scheduleId) {
+        if (!scheduleItemsMap.has(scheduleId)) {
+          scheduleItemsMap.set(scheduleId, []);
         }
+        scheduleItemsMap.get(scheduleId).push(item);
+      }
+    });
+
+    console.log('Schedule items map:', scheduleItemsMap);
+
+    // Find which zone this should be based on existing assignments
+    // We'll assign schedules to zones in order of their schedule_id
+    const sortedScheduleIds = Array.from(scheduleItemsMap.keys()).sort((a, b) => a - b);
+    console.log('Sorted schedule IDs with items:', sortedScheduleIds);
+
+    // Check if this zone should get one of the assigned schedules
+    if (sortedScheduleIds.length >= zoneNumber) {
+      const targetScheduleId = sortedScheduleIds[zoneNumber - 1];
+      console.log(`Zone ${zoneNumber} should get schedule ${targetScheduleId}`);
+
+      // Find the corresponding group for this schedule
+      const correspondingSchedule = distributionSchedules.find(
+        schedule => schedule.schedule_id === targetScheduleId
+      );
+
+      if (correspondingSchedule) {
+        console.log('Setting selected group ID from assigned items:', correspondingSchedule.groups_id);
+        setSelectedGroupId(correspondingSchedule.groups_id);
+        setCurrentScheduleId(targetScheduleId);
+        return;
       }
     }
 
-    // Method 2: If no assigned items, check for existing schedules
-    // Only assign the FIRST available schedule to zone 1, leave others empty
+    // Method 2: If no items assigned, check for existing empty schedules
+    // Only for zone 1, and only if there are unassigned schedules
     if (zoneNumber === 1) {
-      const availableSchedules = distributionSchedules.filter(schedule => {
-        // Check if this schedule already has assigned items
-        const hasAssignedOrders = orders.some(order => order.schedule_id === schedule.schedule_id);
-        const hasAssignedReturns = returns.some(returnItem => returnItem.schedule_id === schedule.schedule_id);
-        return !hasAssignedOrders && !hasAssignedReturns;
+      const unassignedSchedules = distributionSchedules.filter(schedule => {
+        return !scheduleItemsMap.has(schedule.schedule_id);
       });
 
-      console.log('Available schedules without assignments:', availableSchedules);
+      console.log('Unassigned schedules:', unassignedSchedules);
 
-      // Only assign to zone 1 if there's an available schedule
-      if (availableSchedules.length > 0) {
-        const firstAvailableSchedule = availableSchedules[0];
-        console.log('Assigning first available schedule to zone 1:', firstAvailableSchedule.schedule_id);
-        setSelectedGroupId(firstAvailableSchedule.groups_id);
-        setCurrentScheduleId(firstAvailableSchedule.schedule_id);
+      if (unassignedSchedules.length > 0) {
+        // Take the first unassigned schedule
+        const firstUnassigned = unassignedSchedules[0];
+        console.log('Assigning first unassigned schedule to zone 1:', firstUnassigned.schedule_id);
+        setSelectedGroupId(firstUnassigned.groups_id);
+        setCurrentScheduleId(firstUnassigned.schedule_id);
       }
     }
-    // For zones 2-12, don't auto-assign any existing schedules - leave them empty
-  }, [distributionSchedules, orders, returns, selectedGroupId, zoneNumber]);
+  }, [distributionSchedules, orders, returns, zoneNumber]);
 
   // Create schedule immediately when group is selected
   useEffect(() => {
