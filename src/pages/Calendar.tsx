@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -199,11 +200,16 @@ const Calendar = () => {
     try {
       console.log('Dropping schedule', scheduleId, 'to date', date);
       
-      // Create a new date object to avoid timezone issues
-      const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-      const dateString = localDate.toISOString().split('T')[0];
+      // Get the exact date string as it appears in the calendar
+      // Format: YYYY-MM-DD using the local date components
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
       
-      console.log('Date being saved to database:', dateString);
+      console.log('Original date object:', date);
+      console.log('Date components - Year:', year, 'Month:', month, 'Day:', day);
+      console.log('Final date string being saved to database:', dateString);
       
       // Calculate unique destinations count for this schedule
       const scheduleOrders = orders.filter(order => order.schedule_id === scheduleId);
