@@ -37,6 +37,7 @@ interface CalendarCardProps {
   driverId?: number;
   showAllCustomers?: boolean;
   onUpdateDestinations?: (scheduleId: number) => void;
+  isCalendarMode?: boolean;
 }
 
 export const CalendarCard: React.FC<CalendarCardProps> = ({
@@ -48,7 +49,8 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   returns,
   driverId,
   showAllCustomers = false,
-  onUpdateDestinations
+  onUpdateDestinations,
+  isCalendarMode = false
 }) => {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'calendar-card',
@@ -79,47 +81,61 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   const totalOrders = scheduleOrders.length;
   const totalReturns = scheduleReturns.length;
 
+  // Conditional styling for calendar mode
+  const cardClasses = isCalendarMode 
+    ? "w-full max-w-none cursor-move border-blue-200 bg-blue-50"
+    : "min-w-[250px] max-w-[280px] cursor-move border-blue-200 bg-blue-50";
+
+  const contentPadding = isCalendarMode ? "p-2" : "p-3";
+  const titleSize = isCalendarMode ? "text-xs" : "text-sm";
+  const textSize = isCalendarMode ? "text-[10px]" : "text-xs";
+  const spacing = isCalendarMode ? "mb-1" : "mb-2";
+  const maxHeight = isCalendarMode ? "max-h-12" : "max-h-20";
+
   return (
     <Card
       ref={drag}
-      className={`min-w-[250px] max-w-[280px] cursor-move border-blue-200 bg-blue-50 ${
-        isDragging ? 'opacity-50' : ''
-      }`}
+      className={`${cardClasses} ${isDragging ? 'opacity-50' : ''}`}
     >
-      <CardContent className="p-3">
-        <div className="mb-2">
-          <h3 className="font-semibold text-sm text-blue-800">{group?.separation || 'אזור לא מוגדר'}</h3>
-          <div className="flex justify-between items-center text-xs text-muted-foreground">
+      <CardContent className={contentPadding}>
+        <div className={spacing}>
+          <h3 className={`font-semibold ${titleSize} text-blue-800`}>{group?.separation || 'אזור לא מוגדר'}</h3>
+          <div className={`flex justify-between items-center ${textSize} text-muted-foreground`}>
             <span>מזהה: {scheduleId}</span>
-            <span>נהג: {driver?.nahag || 'לא מוגדר'}</span>
+            {!isCalendarMode && <span>נהג: {driver?.nahag || 'לא מוגדר'}</span>}
           </div>
         </div>
 
-        <div className="mb-2">
-          <div className="text-xs font-medium text-gray-700 mb-1">נקודות:</div>
-          <div className="max-h-20 overflow-y-auto text-xs space-y-0.5">
-            {uniqueCustomersList.map((customer, index) => (
+        <div className={spacing}>
+          <div className={`${textSize} font-medium text-gray-700 mb-1`}>נקודות:</div>
+          <div className={`${maxHeight} overflow-y-auto ${textSize} space-y-0.5`}>
+            {uniqueCustomersList.slice(0, isCalendarMode ? 3 : undefined).map((customer, index) => (
               <div key={index} className="text-gray-600">• {customer}</div>
             ))}
+            {isCalendarMode && uniqueCustomersList.length > 3 && (
+              <div className="text-gray-500">...ועוד {uniqueCustomersList.length - 3}</div>
+            )}
           </div>
         </div>
 
-        <div className="border-t pt-2 space-y-1 text-xs">
+        <div className={`border-t pt-1 space-y-0.5 ${textSize}`}>
           <div className="flex justify-between">
             <span>סה"כ נקודות:</span>
             <span className="font-medium">{uniqueCustomersList.length}</span>
           </div>
           <div className="flex justify-between text-green-600">
-            <span>סה"כ הזמנות:</span>
+            <span>הזמנות:</span>
             <span className="font-medium">₪{totalOrdersAmount.toLocaleString()}</span>
           </div>
           <div className="flex justify-between text-red-600">
-            <span>סה"כ החזרות:</span>
+            <span>החזרות:</span>
             <span className="font-medium">₪{totalReturnsAmount.toLocaleString()}</span>
           </div>
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>({totalOrders} הזמנות, {totalReturns} החזרות)</span>
-          </div>
+          {!isCalendarMode && (
+            <div className={`flex justify-between ${textSize} text-gray-500 mt-1`}>
+              <span>({totalOrders} הזמנות, {totalReturns} החזרות)</span>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
