@@ -39,6 +39,12 @@ interface ZoneReportData {
   returns: Return[];
 }
 
+interface CombinedItem {
+  type: 'order' | 'return' | 'returns-header';
+  data?: Order | Return;
+  index?: number;
+}
+
 const ZoneReport = () => {
   const { zoneId } = useParams();
   const navigate = useNavigate();
@@ -67,6 +73,18 @@ const ZoneReport = () => {
   const totalOrdersAmount = orders.reduce((sum, order) => sum + order.totalorder, 0);
   const totalReturnsAmount = returns.reduce((sum, returnItem) => sum + returnItem.totalreturn, 0);
   const netTotal = totalOrdersAmount - totalReturnsAmount;
+
+  // Create combined items list - orders first, then returns header, then returns
+  const combinedItems: CombinedItem[] = [
+    ...orders.map((order, index) => ({ type: 'order' as const, data: order, index: index + 1 })),
+    ...(returns.length > 0 ? [{ type: 'returns-header' as const }] : []),
+    ...returns.map((returnItem, index) => ({ type: 'return' as const, data: returnItem, index: index + 1 }))
+  ];
+
+  // Split combined items into two columns
+  const midPoint = Math.ceil(combinedItems.length / 2);
+  const leftColumn = combinedItems.slice(0, midPoint);
+  const rightColumn = combinedItems.slice(midPoint);
 
   const handleExportToPDF = async () => {
     if (!reportRef.current) return;
@@ -125,6 +143,51 @@ const ZoneReport = () => {
     window.print();
   };
 
+  const renderItem = (item: CombinedItem) => {
+    if (item.type === 'returns-header') {
+      return (
+        <div key="returns-header" className="mb-2">
+          <h3 className="text-sm font-bold text-red-700 border-b border-red-300 pb-1">
+            החזרות ({returns.length})
+          </h3>
+        </div>
+      );
+    }
+
+    const isOrder = item.type === 'order';
+    const data = item.data!;
+    const order = data as Order;
+    const returnItem = data as Return;
+    
+    return (
+      <div
+        key={`${item.type}-${isOrder ? order.ordernumber : returnItem.returnnumber}`}
+        className={`p-1 border rounded text-xs mb-1 ${
+          isOrder ? 'border-blue-300' : 'border-red-300'
+        }`}
+      >
+        <div className="flex items-start justify-between mb-1">
+          <span className={`font-medium text-xs ${
+            isOrder ? 'text-blue-900' : 'text-red-900'
+          }`}>
+            {item.index}. {data.customername}
+          </span>
+          <span className={`font-bold text-xs ${
+            isOrder ? 'text-blue-700' : 'text-red-700'
+          }`}>
+            ₪{isOrder ? order.totalorder.toLocaleString('he-IL') : returnItem.totalreturn.toLocaleString('he-IL')}
+          </span>
+        </div>
+        <div className={`text-xs ${isOrder ? 'text-blue-800' : 'text-red-800'}`}>
+          <div>{data.address}, {data.city}</div>
+          <div>
+            {isOrder ? 'הזמנה' : 'החזרה'}: {isOrder ? order.ordernumber : returnItem.returnnumber}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Action buttons - visible only on screen */}
@@ -161,20 +224,17 @@ const ZoneReport = () => {
 
       {/* Report content - optimized for single page */}
       <div ref={reportRef} className="p-3 max-w-4xl mx-auto bg-white text-xs">
-        {/* Header - compact */}
-        <div className="text-center mb-3 border-b pb-2">
-          <h1 className="text-xl font-bold text-primary mb-1">
-            דוח אזור {zoneNumber}
-          </h1>
-          <h2 className="text-base text-muted-foreground">
-            {groupName || 'לא מוגדר'}
-          </h2>
-        </div>
-
-        {/* Schedule Info - compact */}
+        {/* Header merged with Schedule Info - compact */}
         <Card className="mb-3 border">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">פרטי לוח זמנים</CardTitle>
+            <div className="text-center mb-2">
+              <CardTitle className="text-lg font-bold text-primary mb-1">
+                דוח אזור {zoneNumber}
+              </CardTitle>
+              <div className="text-sm text-muted-foreground">
+                {groupName || 'לא מוגדר'}
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="grid grid-cols-4 gap-2 text-xs">
@@ -199,75 +259,29 @@ const ZoneReport = () => {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-2 gap-3 mb-3">
-          {/* Orders Section - compact */}
-          {orders.length > 0 && (
-            <Card className="border-blue-300">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-blue-700">
-                  הזמנות ({orders.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
+        {/* Combined Orders and Returns in Two Columns */}
+        {combinedItems.length > 0 && (
+          <Card className="mb-3 border">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">
+                הזמנות וחזרות - סה"כ {orders.length + returns.length} פריטים
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-2 gap-3">
+                {/* Left Column */}
                 <div className="space-y-1">
-                  {orders.map((order, index) => (
-                    <div
-                      key={`order-${order.ordernumber}`}
-                      className="p-1 border border-blue-300 rounded text-xs"
-                    >
-                      <div className="flex items-start justify-between mb-1">
-                        <span className="font-medium text-blue-900 text-xs">
-                          {index + 1}. {order.customername}
-                        </span>
-                        <span className="font-bold text-blue-700 text-xs">
-                          ₪{order.totalorder.toLocaleString('he-IL')}
-                        </span>
-                      </div>
-                      <div className="text-xs text-blue-800">
-                        <div>{order.address}, {order.city}</div>
-                        <div>הזמנה: {order.ordernumber}</div>
-                      </div>
-                    </div>
-                  ))}
+                  {leftColumn.map(renderItem)}
                 </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Returns Section - compact */}
-          {returns.length > 0 && (
-            <Card className="border-red-300">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-red-700">
-                  החזרות ({returns.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
+                
+                {/* Right Column */}
                 <div className="space-y-1">
-                  {returns.map((returnItem, index) => (
-                    <div
-                      key={`return-${returnItem.returnnumber}`}
-                      className="p-1 border border-red-300 rounded text-xs"
-                    >
-                      <div className="flex items-start justify-between mb-1">
-                        <span className="font-medium text-red-900 text-xs">
-                          {index + 1}. {returnItem.customername}
-                        </span>
-                        <span className="font-bold text-red-700 text-xs">
-                          ₪{returnItem.totalreturn.toLocaleString('he-IL')}
-                        </span>
-                      </div>
-                      <div className="text-xs text-red-800">
-                        <div>{returnItem.address}, {returnItem.city}</div>
-                        <div>החזרה: {returnItem.returnnumber}</div>
-                      </div>
-                    </div>
-                  ))}
+                  {rightColumn.map(renderItem)}
                 </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Summary - compact, no page break */}
         <Card className="border-green-400">
