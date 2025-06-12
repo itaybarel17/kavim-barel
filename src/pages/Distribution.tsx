@@ -110,37 +110,28 @@ const Distribution = () => {
     }
   });
 
-  const handleDrop = async (groupId: number, item: { type: 'order' | 'return'; data: Order | Return }) => {
+  const handleDrop = async (zoneNumber: number, item: { type: 'order' | 'return'; data: Order | Return }) => {
     try {
-      console.log('handleDrop called with groupId:', groupId, 'item:', item);
+      console.log('handleDrop called with zoneNumber:', zoneNumber, 'item:', item);
       
-      // Find the latest schedule for this group
-      const groupSchedules = distributionSchedules
-        .filter(schedule => schedule.groups_id === groupId)
-        .sort((a, b) => b.schedule_id - a.schedule_id);
-
-      let scheduleId;
-      if (groupSchedules.length > 0) {
-        scheduleId = groupSchedules[0].schedule_id;
-        console.log('Using existing schedule ID:', scheduleId);
-      } else {
-        // Fallback: create a new schedule if none exists
-        const { data: newScheduleId, error: scheduleError } = await supabase
-          .rpc('get_or_create_schedule_for_group', { group_id: groupId });
-
-        if (scheduleError) {
-          console.error('Error creating schedule:', scheduleError);
-          return;
-        }
-        scheduleId = newScheduleId;
-        console.log('Created fallback schedule ID:', scheduleId);
+      // Get the current zone state to find the target schedule ID
+      const currentZoneState = getZoneState(zoneNumber);
+      
+      let targetScheduleId = currentZoneState.scheduleId;
+      
+      // If the zone doesn't have a schedule ID, we need to create one
+      if (!targetScheduleId) {
+        console.log('Zone has no schedule, cannot drop item');
+        return;
       }
 
+      console.log('Using target schedule ID:', targetScheduleId);
+
       if (item.type === 'order') {
-        console.log('Updating order', (item.data as Order).ordernumber, 'with schedule_id:', scheduleId);
+        console.log('Updating order', (item.data as Order).ordernumber, 'with schedule_id:', targetScheduleId);
         const { error } = await supabase
           .from('mainorder')
-          .update({ schedule_id: scheduleId })
+          .update({ schedule_id: targetScheduleId })
           .eq('ordernumber', (item.data as Order).ordernumber);
         
         if (error) {
@@ -150,10 +141,10 @@ const Distribution = () => {
         console.log('Order updated successfully');
         refetchOrders();
       } else {
-        console.log('Updating return', (item.data as Return).returnnumber, 'with schedule_id:', scheduleId);
+        console.log('Updating return', (item.data as Return).returnnumber, 'with schedule_id:', targetScheduleId);
         const { error } = await supabase
           .from('mainreturns')
-          .update({ schedule_id: scheduleId })
+          .update({ schedule_id: targetScheduleId })
           .eq('returnnumber', (item.data as Return).returnnumber);
         
         if (error) {
@@ -222,6 +213,59 @@ const Distribution = () => {
 
   const handleRemoveFromZone = async (item: { type: 'order' | 'return'; data: Order | Return }) => {
     await handleDropToUnassigned(item);
+  };
+
+  // Helper function to get the current state of a zone
+  const getZoneState = (zoneNumber: number) => {
+    // Find items that are assigned to any schedule
+    const assignedOrders = orders.filter(order => order.schedule_id);
+    const assignedReturns = returns.filter(returnItem => returnItem.schedule_id);
+    const allAssignedItems = [...assignedOrders, ...assignedReturns];
+
+    // Group items by schedule_id
+    const scheduleItemsMap = new Map();
+    allAssignedItems.forEach(item => {
+      const scheduleId = item.schedule_id;
+      if (scheduleId) {
+        if (!scheduleItemsMap.has(scheduleId)) {
+          scheduleItemsMap.set(scheduleId, []);
+        }
+        scheduleItemsMap.get(scheduleId).push(item);
+      }
+    });
+
+    // Get schedules with items, sorted by creation time
+    const schedulesWithItems = distributionSchedules
+      .filter(schedule => scheduleItemsMap.has(schedule.schedule_id))
+      .sort((a, b) => a.schedule_id - b.schedule_id);
+
+    // Check if this zone should handle one of the assigned schedules
+    if (schedulesWithItems.length >= zoneNumber) {
+      const targetSchedule = schedulesWithItems[zoneNumber - 1];
+      return {
+        selectedGroupId: targetSchedule.groups_id,
+        scheduleId: targetSchedule.schedule_id
+      };
+    }
+
+    // Check for empty schedules
+    const emptySchedules = distributionSchedules
+      .filter(schedule => !scheduleItemsMap.has(schedule.schedule_id))
+      .sort((a, b) => a.schedule_id - b.schedule_id);
+
+    const emptyScheduleIndex = zoneNumber - 1 - schedulesWithItems.length;
+    if (emptyScheduleIndex >= 0 && emptyScheduleIndex < emptySchedules.length) {
+      const targetSchedule = emptySchedules[emptyScheduleIndex];
+      return {
+        selectedGroupId: targetSchedule.groups_id,
+        scheduleId: targetSchedule.schedule_id
+      };
+    }
+
+    return {
+      selectedGroupId: null,
+      scheduleId: null
+    };
   };
 
   // Filter unassigned items (those without schedule_id)

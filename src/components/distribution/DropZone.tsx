@@ -41,7 +41,7 @@ interface DropZoneProps {
   zoneNumber: number;
   distributionGroups: DistributionGroup[];
   distributionSchedules: DistributionSchedule[];
-  onDrop: (groupId: number, item: { type: 'order' | 'return'; data: Order | Return }) => void;
+  onDrop: (zoneNumber: number, item: { type: 'order' | 'return'; data: Order | Return }) => void;
   orders: Order[];
   returns: Return[];
   onScheduleDeleted: () => void;
@@ -66,18 +66,18 @@ export const DropZone: React.FC<DropZoneProps> = ({
   const [{ isOver }, drop] = useDrop(() => ({
     accept: 'card',
     drop: (item: { type: 'order' | 'return'; data: Order | Return }) => {
-      console.log('Drop triggered with scheduleId:', scheduleId);
+      console.log('Drop triggered in zone', zoneNumber, 'with scheduleId:', scheduleId);
       console.log('Drop item:', item);
-      if (scheduleId && selectedGroupId) {
-        onDrop(selectedGroupId, item);
+      if (scheduleId) {
+        onDrop(zoneNumber, item);
       } else {
-        console.warn('No schedule ID available for drop');
+        console.warn('No schedule ID available for drop in zone', zoneNumber);
       }
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
     }),
-  }), [scheduleId, selectedGroupId]);
+  }), [scheduleId, zoneNumber]);
 
   // Get assigned items for this zone based on schedule_id
   const assignedOrders = orders.filter(order => 
@@ -100,7 +100,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
     const assignedReturns = returns.filter(returnItem => returnItem.schedule_id);
     const allAssignedItems = [...assignedOrders, ...assignedReturns];
 
-    // Group items by schedule_id
+    // Group items by schedule_id and maintain the zone mapping
     const scheduleItemsMap = new Map();
     allAssignedItems.forEach(item => {
       const scheduleId = item.schedule_id;
@@ -112,46 +112,34 @@ export const DropZone: React.FC<DropZoneProps> = ({
       }
     });
 
-    // Get schedules with items, sorted by creation time (schedule_id order)
+    // Get schedules with items, sorted by creation time (schedule_id order) to maintain consistent assignment
     const schedulesWithItems = distributionSchedules
       .filter(schedule => scheduleItemsMap.has(schedule.schedule_id))
       .sort((a, b) => a.schedule_id - b.schedule_id);
 
-    // Check if this zone should handle one of the assigned schedules
+    // Each zone gets assigned to a specific position based on zoneNumber
+    // Zone 1 gets the first schedule with items, Zone 2 gets the second, etc.
     if (schedulesWithItems.length >= zoneNumber) {
       const targetSchedule = schedulesWithItems[zoneNumber - 1];
-      console.log(`Zone ${zoneNumber} should handle schedule ${targetSchedule.schedule_id}`);
+      console.log(`Zone ${zoneNumber} assigned to schedule ${targetSchedule.schedule_id} (position-based)`);
 
       setSelectedGroupId(targetSchedule.groups_id);
       setScheduleId(targetSchedule.schedule_id);
       return;
     }
 
-    // If this is zone 1 and no assignments exist, check for any existing empty schedules
-    if (zoneNumber === 1) {
-      const emptySchedules = distributionSchedules
-        .filter(schedule => !scheduleItemsMap.has(schedule.schedule_id))
-        .sort((a, b) => a.schedule_id - b.schedule_id);
+    // If this zone doesn't have assigned items, check for empty schedules
+    const emptySchedules = distributionSchedules
+      .filter(schedule => !scheduleItemsMap.has(schedule.schedule_id))
+      .sort((a, b) => a.schedule_id - b.schedule_id);
 
-      if (emptySchedules.length > 0) {
-        const firstEmpty = emptySchedules[0];
-        console.log('Assigning first empty schedule to zone 1:', firstEmpty.schedule_id);
-        setSelectedGroupId(firstEmpty.groups_id);
-        setScheduleId(firstEmpty.schedule_id);
-      }
-    } else {
-      // For other zones, check if there are enough empty schedules
-      const emptySchedules = distributionSchedules
-        .filter(schedule => !scheduleItemsMap.has(schedule.schedule_id))
-        .sort((a, b) => a.schedule_id - b.schedule_id);
-
-      const emptyScheduleIndex = zoneNumber - 1 - schedulesWithItems.length;
-      if (emptyScheduleIndex >= 0 && emptyScheduleIndex < emptySchedules.length) {
-        const targetSchedule = emptySchedules[emptyScheduleIndex];
-        console.log(`Zone ${zoneNumber} should handle empty schedule ${targetSchedule.schedule_id}`);
-        setSelectedGroupId(targetSchedule.groups_id);
-        setScheduleId(targetSchedule.schedule_id);
-      }
+    // Calculate which empty schedule this zone should get
+    const emptyScheduleIndex = zoneNumber - 1 - schedulesWithItems.length;
+    if (emptyScheduleIndex >= 0 && emptyScheduleIndex < emptySchedules.length) {
+      const targetSchedule = emptySchedules[emptyScheduleIndex];
+      console.log(`Zone ${zoneNumber} assigned to empty schedule ${targetSchedule.schedule_id}`);
+      setSelectedGroupId(targetSchedule.groups_id);
+      setScheduleId(targetSchedule.schedule_id);
     }
   }, [distributionSchedules, orders, returns, zoneNumber]);
 
