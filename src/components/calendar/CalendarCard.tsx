@@ -129,19 +129,19 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
             <span>החזרות:</span>
             <span className="font-medium">₪{totalReturnsAmount.toLocaleString()}</span>
           </div>
-          {isCalendarMode && (
-            <>
-              <div className={`${textSize} text-gray-700 font-medium`}>
-                נהג: {driver?.nahag || 'לא מוגדר'}
-              </div>
-              <div className={`${textSize} text-gray-500`}>
-                {totalOrders} הזמנות, {totalReturns} החזרות
-              </div>
-            </>
-          )}
-          {!isCalendarMode && (
-            <div className={`flex justify-between ${textSize} text-gray-500 mt-1`}>
-              <span>({totalOrders} הזמנות, {totalReturns} החזרות)</span>
+          
+          {/* Show driver information for both modes */}
+          <div className={`${textSize} text-gray-700 font-medium`}>
+            נהג: {driver?.nahag || 'לא מוגדר'}
+          </div>
+          
+          {isCalendarMode ? (
+            <div className={`${textSize} text-gray-500`}>
+              {totalOrders} הזמנות, {totalReturns} החזרות
+            </div>
+          ) : (
+            <div className={`${textSize} text-gray-500`}>
+              {totalOrders} הזמנות, {totalReturns} החזרות
             </div>
           )}
         </div>
