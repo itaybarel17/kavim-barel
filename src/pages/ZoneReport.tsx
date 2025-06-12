@@ -169,7 +169,7 @@ const ZoneReport = () => {
         </div>
 
         {/* Schedule Info */}
-        <Card className="mb-8">
+        <Card className="mb-8 border-2">
           <CardHeader>
             <CardTitle className="text-xl">פרטי לוח זמנים</CardTitle>
           </CardHeader>
@@ -203,7 +203,7 @@ const ZoneReport = () => {
 
         {/* Orders Section */}
         {orders.length > 0 && (
-          <Card className="mb-8">
+          <Card className="mb-8 border-2 border-blue-300">
             <CardHeader>
               <CardTitle className="text-xl text-blue-700">
                 הזמנות ({orders.length})
@@ -214,7 +214,7 @@ const ZoneReport = () => {
                 {orders.map((order, index) => (
                   <div
                     key={`order-${order.ordernumber}`}
-                    className="p-4 border border-blue-200 rounded-lg bg-blue-50"
+                    className="p-4 border-2 border-blue-300 rounded-lg"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <h3 className="text-lg font-semibold text-blue-900">
@@ -246,7 +246,7 @@ const ZoneReport = () => {
 
         {/* Returns Section */}
         {returns.length > 0 && (
-          <Card className="mb-8">
+          <Card className="mb-8 border-2 border-red-300">
             <CardHeader>
               <CardTitle className="text-xl text-red-700">
                 החזרות ({returns.length})
@@ -257,7 +257,7 @@ const ZoneReport = () => {
                 {returns.map((returnItem, index) => (
                   <div
                     key={`return-${returnItem.returnnumber}`}
-                    className="p-4 border border-red-200 rounded-lg bg-red-50"
+                    className="p-4 border-2 border-red-300 rounded-lg"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <h3 className="text-lg font-semibold text-red-900">
@@ -282,30 +282,32 @@ const ZoneReport = () => {
           </Card>
         )}
 
-        {/* Summary */}
-        <Card className="bg-green-50 border-green-200">
-          <CardHeader>
-            <CardTitle className="text-xl text-green-800">
-              סיכום אזור {zoneNumber}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-lg">
-              <div className="text-blue-700">
-                <span className="font-semibold">סך הכל הזמנות:</span><br />
-                {orders.length} פריטים • ₪{totalOrdersAmount.toLocaleString('he-IL')}
+        {/* Summary - Always on one page */}
+        <div className="page-break-before">
+          <Card className="border-2 border-green-400">
+            <CardHeader>
+              <CardTitle className="text-xl text-green-800">
+                סיכום אזור {zoneNumber}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-lg">
+                <div className="text-blue-700 p-4 border-2 border-blue-300 rounded-lg">
+                  <span className="font-semibold">סך הכל הזמנות:</span><br />
+                  {orders.length} פריטים • ₪{totalOrdersAmount.toLocaleString('he-IL')}
+                </div>
+                <div className="text-red-700 p-4 border-2 border-red-300 rounded-lg">
+                  <span className="font-semibold">סך הכל החזרות:</span><br />
+                  {returns.length} פריטים • ₪{totalReturnsAmount.toLocaleString('he-IL')}
+                </div>
+                <div className="text-green-800 font-bold text-xl p-4 border-2 border-green-400 rounded-lg">
+                  <span className="font-semibold">סך הכל נטו:</span><br />
+                  ₪{netTotal.toLocaleString('he-IL')}
+                </div>
               </div>
-              <div className="text-red-700">
-                <span className="font-semibold">סך הכל החזרות:</span><br />
-                {returns.length} פריטים • ₪{totalReturnsAmount.toLocaleString('he-IL')}
-              </div>
-              <div className="text-green-800 font-bold text-xl">
-                <span className="font-semibold">סך הכל נטו:</span><br />
-                ₪{netTotal.toLocaleString('he-IL')}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Print styles */}
@@ -318,8 +320,14 @@ const ZoneReport = () => {
             margin: 0;
             padding: 0;
           }
-          .print-break {
+          .page-break-before {
             page-break-before: always;
+          }
+          .page-break-after {
+            page-break-after: always;
+          }
+          .page-break-inside {
+            page-break-inside: avoid;
           }
         }
       `}</style>
