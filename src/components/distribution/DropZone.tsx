@@ -1,12 +1,12 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { useDrop } from 'react-dnd';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
+import { X, Printer } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderCard } from './OrderCard';
+import jsPDF from 'jspdf';
 
 interface Order {
   ordernumber: number;
@@ -103,7 +103,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
     scheduleId && returnItem.schedule_id === scheduleId
   );
 
-  // Load existing state for this zone
+  // Load existing state for this zone - FIXED to include driver_id
   useEffect(() => {
     console.log('DropZone effect - loading existing state for zone:', zoneNumber);
 
@@ -126,7 +126,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
 
       setSelectedGroupId(targetSchedule.groups_id);
       setScheduleId(targetSchedule.schedule_id);
-      setSelectedDriverId(targetSchedule.driver_id || null);
+      setSelectedDriverId(targetSchedule.driver_id || null); // FIX: Load driver_id from schedule
       return;
     }
 
@@ -144,9 +144,95 @@ export const DropZone: React.FC<DropZoneProps> = ({
       console.log(`Zone ${zoneNumber} assigned to empty schedule ${targetSchedule.schedule_id}`);
       setSelectedGroupId(targetSchedule.groups_id);
       setScheduleId(targetSchedule.schedule_id);
-      setSelectedDriverId(targetSchedule.driver_id || null);
+      setSelectedDriverId(targetSchedule.driver_id || null); // FIX: Load driver_id from schedule
     }
   }, [distributionSchedules, orders, returns, zoneNumber]);
+
+  // NEW: Print function
+  const handlePrint = () => {
+    if (!scheduleId) return;
+
+    const selectedGroup = distributionGroups.find(group => group.groups_id === selectedGroupId);
+    const selectedDriver = drivers.find(driver => driver.id === selectedDriverId);
+
+    // Create PDF
+    const doc = new jsPDF();
+    
+    // Configure font (Hebrew support)
+    doc.setFont('helvetica');
+    
+    // Title
+    doc.setFontSize(20);
+    doc.text(`אזור ${zoneNumber} - ${selectedGroup?.separation || 'לא מוגדר'}`, 105, 20, { align: 'center' });
+    
+    // Schedule info
+    doc.setFontSize(12);
+    let yPos = 40;
+    doc.text(`מזהה לוח זמנים: ${scheduleId}`, 20, yPos);
+    yPos += 10;
+    doc.text(`נהג: ${selectedDriver?.nahag || 'לא מוגדר'}`, 20, yPos);
+    yPos += 20;
+
+    // Orders section
+    if (assignedOrders.length > 0) {
+      doc.setFontSize(14);
+      doc.text('הזמנות:', 20, yPos);
+      yPos += 15;
+      
+      doc.setFontSize(10);
+      assignedOrders.forEach((order, index) => {
+        if (yPos > 270) { // New page if needed
+          doc.addPage();
+          yPos = 20;
+        }
+        doc.text(`${index + 1}. ${order.customername} - ${order.address}, ${order.city}`, 20, yPos);
+        yPos += 5;
+        doc.text(`   הזמנה #${order.ordernumber} - ₪${order.totalorder.toLocaleString()}`, 20, yPos);
+        yPos += 10;
+      });
+      yPos += 10;
+    }
+
+    // Returns section
+    if (assignedReturns.length > 0) {
+      if (yPos > 250) { // New page if needed
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      doc.setFontSize(14);
+      doc.text('החזרות:', 20, yPos);
+      yPos += 15;
+      
+      doc.setFontSize(10);
+      assignedReturns.forEach((returnItem, index) => {
+        if (yPos > 270) { // New page if needed
+          doc.addPage();
+          yPos = 20;
+        }
+        doc.text(`${index + 1}. ${returnItem.customername} - ${returnItem.address}, ${returnItem.city}`, 20, yPos);
+        yPos += 5;
+        doc.text(`   החזרה #${returnItem.returnnumber} - ₪${returnItem.totalreturn.toLocaleString()}`, 20, yPos);
+        yPos += 10;
+      });
+    }
+
+    // Summary
+    const totalOrdersAmount = assignedOrders.reduce((sum, order) => sum + order.totalorder, 0);
+    const totalReturnsAmount = assignedReturns.reduce((sum, returnItem) => sum + returnItem.totalreturn, 0);
+    
+    yPos += 20;
+    doc.setFontSize(12);
+    doc.text('סיכום:', 20, yPos);
+    yPos += 10;
+    doc.text(`סה"כ הזמנות: ${assignedOrders.length} (₪${totalOrdersAmount.toLocaleString()})`, 20, yPos);
+    yPos += 8;
+    doc.text(`סה"כ החזרות: ${assignedReturns.length} (₪${totalReturnsAmount.toLocaleString()})`, 20, yPos);
+
+    // Open print dialog
+    doc.autoPrint();
+    window.open(doc.output('bloburl'), '_blank');
+  };
 
   const handleGroupSelection = async (value: string) => {
     const groupId = value ? parseInt(value) : null;
@@ -277,16 +363,29 @@ export const DropZone: React.FC<DropZoneProps> = ({
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">אזור {zoneNumber}</CardTitle>
-          {scheduleId && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleDeleteSchedule}
-              className="h-6 w-6 text-muted-foreground hover:text-destructive"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {scheduleId && (assignedOrders.length > 0 || assignedReturns.length > 0) && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handlePrint}
+                className="h-6 w-6 text-muted-foreground hover:text-blue-600"
+                title="הדפס"
+              >
+                <Printer className="h-4 w-4" />
+              </Button>
+            )}
+            {scheduleId && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleDeleteSchedule}
+                className="h-6 w-6 text-muted-foreground hover:text-destructive"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
         <div className="space-y-2">
           <Select

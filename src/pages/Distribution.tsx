@@ -46,6 +46,7 @@ interface DistributionSchedule {
   schedule_id: number;
   groups_id: number;
   create_at_schedule: string;
+  driver_id?: number;
 }
 
 interface Driver {
@@ -111,14 +112,14 @@ const Distribution = () => {
     }
   });
 
-  // Fetch distribution schedules
+  // Fetch distribution schedules - NOW INCLUDING driver_id
   const { data: distributionSchedules = [], refetch: refetchSchedules, isLoading: schedulesLoading } = useQuery({
     queryKey: ['distribution-schedules'],
     queryFn: async () => {
       console.log('Fetching distribution schedules...');
       const { data, error } = await supabase
         .from('distribution_schedule')
-        .select('schedule_id, groups_id, create_at_schedule');
+        .select('schedule_id, groups_id, create_at_schedule, driver_id');
       
       if (error) throw error;
       console.log('Distribution schedules fetched:', data);
