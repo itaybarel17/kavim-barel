@@ -199,6 +199,12 @@ const Calendar = () => {
     try {
       console.log('Dropping schedule', scheduleId, 'to date', date);
       
+      // Create a new date object to avoid timezone issues
+      const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const dateString = localDate.toISOString().split('T')[0];
+      
+      console.log('Date being saved to database:', dateString);
+      
       // Calculate unique destinations count for this schedule
       const scheduleOrders = orders.filter(order => order.schedule_id === scheduleId);
       const scheduleReturns = returns.filter(returnItem => returnItem.schedule_id === scheduleId);
@@ -211,7 +217,7 @@ const Calendar = () => {
       const { error } = await supabase
         .from('distribution_schedule')
         .update({ 
-          distribution_date: date.toISOString().split('T')[0],
+          distribution_date: dateString,
           destinations: uniqueCustomers.size
         })
         .eq('schedule_id', scheduleId);
@@ -221,7 +227,7 @@ const Calendar = () => {
         throw error;
       }
       
-      console.log('Schedule date updated successfully');
+      console.log('Schedule date updated successfully to:', dateString);
       refetchSchedules();
     } catch (error) {
       console.error('Error updating schedule date:', error);
