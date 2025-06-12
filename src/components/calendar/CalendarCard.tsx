@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
@@ -89,7 +90,7 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   const titleSize = isCalendarMode ? "text-[10px]" : "text-sm";
   const textSize = isCalendarMode ? "text-[9px]" : "text-xs";
   const spacing = isCalendarMode ? "mb-1" : "mb-2";
-  const maxHeight = isCalendarMode ? "max-h-8" : "max-h-20";
+  const maxHeight = isCalendarMode ? "max-h-20" : "max-h-20";
 
   return (
     <Card
@@ -107,12 +108,9 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
         <div className={spacing}>
           <div className={`${textSize} font-medium text-gray-700 mb-0.5`}>נקודות:</div>
           <div className={`${maxHeight} overflow-y-auto ${textSize} space-y-0.5`}>
-            {uniqueCustomersList.slice(0, isCalendarMode ? 2 : undefined).map((customer, index) => (
+            {uniqueCustomersList.map((customer, index) => (
               <div key={index} className="text-gray-600 truncate">• {customer}</div>
             ))}
-            {isCalendarMode && uniqueCustomersList.length > 2 && (
-              <div className="text-gray-500">...ועוד {uniqueCustomersList.length - 2}</div>
-            )}
           </div>
         </div>
 
