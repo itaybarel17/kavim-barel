@@ -80,6 +80,53 @@ export const DropZone: React.FC<DropZoneProps> = ({
     return schedule?.schedule_id || null;
   }, [selectedGroupId, distributionSchedules]);
 
+  // Get the actual schedule ID to display
+  const displayScheduleId = scheduleId || currentScheduleId;
+
+  // Get assigned items for this zone based on schedule_id
+  const assignedOrders = orders.filter(order => 
+    displayScheduleId && order.schedule_id === displayScheduleId
+  );
+  const assignedReturns = returns.filter(returnItem => 
+    displayScheduleId && returnItem.schedule_id === displayScheduleId
+  );
+
+  // Load previously selected group based on existing assignments
+  useEffect(() => {
+    console.log('DropZone effect - checking for existing assignments');
+    console.log('Zone number:', zoneNumber);
+    console.log('Distribution schedules:', distributionSchedules);
+    console.log('Orders:', orders);
+    console.log('Returns:', returns);
+
+    // Check if this zone already has orders or returns assigned
+    const zoneOrders = orders.filter(order => order.schedule_id);
+    const zoneReturns = returns.filter(returnItem => returnItem.schedule_id);
+    const allAssignedItems = [...zoneOrders, ...zoneReturns];
+
+    console.log('All assigned items:', allAssignedItems);
+
+    if (allAssignedItems.length > 0) {
+      // Find the first schedule_id that has assignments
+      const scheduleWithItems = allAssignedItems[0]?.schedule_id;
+      console.log('Schedule with items:', scheduleWithItems);
+      
+      if (scheduleWithItems) {
+        // Find the corresponding group for this schedule
+        const correspondingSchedule = distributionSchedules.find(
+          schedule => schedule.schedule_id === scheduleWithItems
+        );
+        console.log('Corresponding schedule:', correspondingSchedule);
+
+        if (correspondingSchedule && !selectedGroupId) {
+          console.log('Setting selected group ID to:', correspondingSchedule.groups_id);
+          setSelectedGroupId(correspondingSchedule.groups_id);
+          setCurrentScheduleId(scheduleWithItems);
+        }
+      }
+    }
+  }, [distributionSchedules, orders, returns, selectedGroupId, zoneNumber]);
+
   // Create schedule immediately when group is selected
   useEffect(() => {
     if (selectedGroupId && !scheduleId) {
@@ -109,17 +156,6 @@ export const DropZone: React.FC<DropZoneProps> = ({
       setCurrentScheduleId(scheduleId);
     }
   }, [selectedGroupId, scheduleId, onScheduleDeleted]);
-
-  // Get the actual schedule ID to display
-  const displayScheduleId = scheduleId || currentScheduleId;
-
-  // Get assigned items for this zone based on schedule_id
-  const assignedOrders = orders.filter(order => 
-    displayScheduleId && order.schedule_id === displayScheduleId
-  );
-  const assignedReturns = returns.filter(returnItem => 
-    displayScheduleId && returnItem.schedule_id === displayScheduleId
-  );
 
   const handleGroupSelection = (value: string) => {
     const groupId = value ? parseInt(value) : null;
@@ -182,6 +218,9 @@ export const DropZone: React.FC<DropZoneProps> = ({
     }
   };
 
+  // Get the selected group name for display
+  const selectedGroup = distributionGroups.find(group => group.groups_id === selectedGroupId);
+
   return (
     <Card
       ref={drop}
@@ -226,6 +265,11 @@ export const DropZone: React.FC<DropZoneProps> = ({
           {displayScheduleId ? (
             <div className="text-sm text-muted-foreground">
               מזהה לוח זמנים: {displayScheduleId}
+              {selectedGroup && (
+                <div className="font-medium text-primary">
+                  אזור נבחר: {selectedGroup.separation}
+                </div>
+              )}
             </div>
           ) : selectedGroupId ? (
             <div className="text-sm text-muted-foreground">
