@@ -27,7 +27,6 @@ interface Return {
 
 interface DistributionGroup {
   groups_id: number;
-  zone_id: number;
   separation: string;
 }
 
@@ -213,9 +212,6 @@ export const DropZone: React.FC<DropZoneProps> = ({
               <SelectValue placeholder="בחר אזור הפצה" />
             </SelectTrigger>
             <SelectContent className="bg-popover border border-border shadow-md z-50 max-h-[200px] overflow-y-auto">
-              <SelectItem value="" className="text-muted-foreground">
-                בחר אזור הפצה
-              </SelectItem>
               {distributionGroups.map((group) => (
                 <SelectItem 
                   key={group.groups_id} 

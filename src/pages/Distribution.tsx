@@ -27,7 +27,6 @@ interface Return {
 
 interface DistributionGroup {
   groups_id: number;
-  zone_id: number;
   separation: string;
 }
 
@@ -82,7 +81,7 @@ const Distribution = () => {
       console.log('Fetching distribution groups...');
       const { data, error } = await supabase
         .from('distribution_groups')
-        .select('groups_id, zone_id, separation');
+        .select('groups_id, separation');
       
       if (error) throw error;
       console.log('Distribution groups fetched:', data);
