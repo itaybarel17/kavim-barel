@@ -33,6 +33,7 @@ interface DistributionGroup {
 interface DistributionSchedule {
   schedule_id: number;
   groups_id: number;
+  create_at_schedule: string;
 }
 
 interface DropZoneProps {
@@ -43,6 +44,7 @@ interface DropZoneProps {
   orders: Order[];
   returns: Return[];
   onScheduleDeleted: () => void;
+  onScheduleCreated: () => void;
 }
 
 export const DropZone: React.FC<DropZoneProps> = ({
@@ -53,31 +55,27 @@ export const DropZone: React.FC<DropZoneProps> = ({
   orders,
   returns,
   onScheduleDeleted,
+  onScheduleCreated,
 }) => {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
+  const [scheduleId, setScheduleId] = useState<number | null>(null);
 
   const [{ isOver }, drop] = useDrop(() => ({
     accept: 'card',
     drop: (item: { type: 'order' | 'return'; data: Order | Return }) => {
-      console.log('Drop triggered with selectedGroupId:', selectedGroupId);
+      console.log('Drop triggered with scheduleId:', scheduleId);
       console.log('Drop item:', item);
-      if (selectedGroupId) {
+      if (scheduleId && selectedGroupId) {
+        // Use existing schedule_id for the drop
         onDrop(selectedGroupId, item);
       } else {
-        console.warn('No group selected for drop');
+        console.warn('No schedule ID available for drop');
       }
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
     }),
-  }), [selectedGroupId]);
-
-  // Find schedule ID for selected group
-  const scheduleId = useMemo(() => {
-    if (!selectedGroupId) return null;
-    const schedule = distributionSchedules.find(s => s.groups_id === selectedGroupId);
-    return schedule?.schedule_id || null;
-  }, [selectedGroupId, distributionSchedules]);
+  }), [scheduleId, selectedGroupId]);
 
   // Get assigned items for this zone based on schedule_id
   const assignedOrders = orders.filter(order => 
@@ -96,6 +94,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
 
     // Reset state first
     setSelectedGroupId(null);
+    setScheduleId(null);
 
     // Find items that are assigned to any schedule
     const assignedOrders = orders.filter(order => order.schedule_id);
@@ -118,48 +117,85 @@ export const DropZone: React.FC<DropZoneProps> = ({
 
     console.log('Schedule items map:', scheduleItemsMap);
 
-    // Assign schedules to zones based on schedule_id order
-    const sortedScheduleIds = Array.from(scheduleItemsMap.keys()).sort((a, b) => a - b);
-    console.log('Sorted schedule IDs with items:', sortedScheduleIds);
+    // Get schedules with items, sorted by creation time (schedule_id order)
+    const schedulesWithItems = distributionSchedules
+      .filter(schedule => scheduleItemsMap.has(schedule.schedule_id))
+      .sort((a, b) => a.schedule_id - b.schedule_id);
+
+    console.log('Schedules with items:', schedulesWithItems);
 
     // Check if this zone should handle one of the assigned schedules
-    if (sortedScheduleIds.length >= zoneNumber) {
-      const targetScheduleId = sortedScheduleIds[zoneNumber - 1];
-      console.log(`Zone ${zoneNumber} should handle schedule ${targetScheduleId}`);
+    if (schedulesWithItems.length >= zoneNumber) {
+      const targetSchedule = schedulesWithItems[zoneNumber - 1];
+      console.log(`Zone ${zoneNumber} should handle schedule ${targetSchedule.schedule_id}`);
 
-      // Find the group for this schedule
-      const correspondingSchedule = distributionSchedules.find(
-        schedule => schedule.schedule_id === targetScheduleId
-      );
-
-      if (correspondingSchedule) {
-        console.log('Setting selected group ID for zone', zoneNumber, ':', correspondingSchedule.groups_id);
-        setSelectedGroupId(correspondingSchedule.groups_id);
-        return;
-      }
+      setSelectedGroupId(targetSchedule.groups_id);
+      setScheduleId(targetSchedule.schedule_id);
+      return;
     }
 
     // If this is zone 1 and no assignments exist, check for any existing empty schedules
+    // Sort by creation time (schedule_id) and assign to zones in order
     if (zoneNumber === 1) {
-      const unassignedSchedules = distributionSchedules.filter(schedule => {
-        return !scheduleItemsMap.has(schedule.schedule_id);
-      });
+      const emptySchedules = distributionSchedules
+        .filter(schedule => !scheduleItemsMap.has(schedule.schedule_id))
+        .sort((a, b) => a.schedule_id - b.schedule_id);
 
-      console.log('Unassigned schedules:', unassignedSchedules);
+      console.log('Empty schedules:', emptySchedules);
 
-      if (unassignedSchedules.length > 0) {
-        // Take the first unassigned schedule for zone 1
-        const firstUnassigned = unassignedSchedules[0];
-        console.log('Assigning first unassigned schedule to zone 1:', firstUnassigned.schedule_id);
-        setSelectedGroupId(firstUnassigned.groups_id);
+      if (emptySchedules.length > 0) {
+        // Take the first empty schedule for zone 1
+        const firstEmpty = emptySchedules[0];
+        console.log('Assigning first empty schedule to zone 1:', firstEmpty.schedule_id);
+        setSelectedGroupId(firstEmpty.groups_id);
+        setScheduleId(firstEmpty.schedule_id);
+      }
+    } else {
+      // For other zones, check if there are enough empty schedules
+      const emptySchedules = distributionSchedules
+        .filter(schedule => !scheduleItemsMap.has(schedule.schedule_id))
+        .sort((a, b) => a.schedule_id - b.schedule_id);
+
+      const emptyScheduleIndex = zoneNumber - 1 - schedulesWithItems.length;
+      if (emptyScheduleIndex >= 0 && emptyScheduleIndex < emptySchedules.length) {
+        const targetSchedule = emptySchedules[emptyScheduleIndex];
+        console.log(`Zone ${zoneNumber} should handle empty schedule ${targetSchedule.schedule_id}`);
+        setSelectedGroupId(targetSchedule.groups_id);
+        setScheduleId(targetSchedule.schedule_id);
       }
     }
   }, [distributionSchedules, orders, returns, zoneNumber]);
 
-  const handleGroupSelection = (value: string) => {
+  const handleGroupSelection = async (value: string) => {
     const groupId = value ? parseInt(value) : null;
     console.log('Group selected for zone', zoneNumber, ':', groupId);
-    setSelectedGroupId(groupId);
+    
+    if (!groupId) {
+      setSelectedGroupId(null);
+      setScheduleId(null);
+      return;
+    }
+
+    try {
+      // Create a new schedule immediately when selecting a group
+      console.log('Creating new schedule for group:', groupId);
+      const { data: newScheduleId, error } = await supabase
+        .rpc('get_or_create_schedule_for_group', { group_id: groupId });
+
+      if (error) {
+        console.error('Error creating schedule:', error);
+        return;
+      }
+
+      console.log('Created new schedule ID:', newScheduleId);
+      setSelectedGroupId(groupId);
+      setScheduleId(newScheduleId);
+      
+      // Notify parent to refresh schedules
+      onScheduleCreated();
+    } catch (error) {
+      console.error('Error in group selection:', error);
+    }
   };
 
   const handleDeleteSchedule = async () => {
@@ -205,6 +241,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
       
       // Reset local state
       setSelectedGroupId(null);
+      setScheduleId(null);
       
       // Notify parent component to refresh data
       onScheduleDeleted();
@@ -272,7 +309,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
             </div>
           ) : (
             <div className="text-sm text-muted-foreground">
-              בחר אזור להצגת מזהה
+              בחר אזור ליצירת מזהה
             </div>
           )}
         </div>
@@ -292,7 +329,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
         ))}
         {assignedOrders.length === 0 && assignedReturns.length === 0 && (
           <div className="text-center text-muted-foreground text-sm py-8">
-            {selectedGroupId ? 'גרור הזמנות או החזרות לכאן' : 'בחר אזור תחילה'}
+            {scheduleId ? 'גרור הזמנות או החזרות לכאן' : 'בחר אזור ליצירת מזהה'}
           </div>
         )}
       </CardContent>

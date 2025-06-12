@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -34,6 +35,7 @@ interface DistributionGroup {
 interface DistributionSchedule {
   schedule_id: number;
   groups_id: number;
+  create_at_schedule: string;
 }
 
 const Distribution = () => {
@@ -100,7 +102,7 @@ const Distribution = () => {
       console.log('Fetching distribution schedules...');
       const { data, error } = await supabase
         .from('distribution_schedule')
-        .select('schedule_id, groups_id');
+        .select('schedule_id, groups_id, create_at_schedule');
       
       if (error) throw error;
       console.log('Distribution schedules fetched:', data);
@@ -112,16 +114,27 @@ const Distribution = () => {
     try {
       console.log('handleDrop called with groupId:', groupId, 'item:', item);
       
-      // Use the function to get or create a schedule for this group
-      const { data: scheduleId, error: scheduleError } = await supabase
-        .rpc('get_or_create_schedule_for_group', { group_id: groupId });
+      // Find the latest schedule for this group (there should already be one from group selection)
+      const groupSchedules = distributionSchedules
+        .filter(schedule => schedule.groups_id === groupId)
+        .sort((a, b) => b.schedule_id - a.schedule_id);
 
-      if (scheduleError) {
-        console.error('Error getting/creating schedule:', scheduleError);
-        return;
+      let scheduleId;
+      if (groupSchedules.length > 0) {
+        scheduleId = groupSchedules[0].schedule_id;
+        console.log('Using existing schedule ID:', scheduleId);
+      } else {
+        // Fallback: create a new schedule if none exists
+        const { data: newScheduleId, error: scheduleError } = await supabase
+          .rpc('get_or_create_schedule_for_group', { group_id: groupId });
+
+        if (scheduleError) {
+          console.error('Error creating schedule:', scheduleError);
+          return;
+        }
+        scheduleId = newScheduleId;
+        console.log('Created fallback schedule ID:', scheduleId);
       }
-
-      console.log('Got/created schedule ID:', scheduleId);
 
       if (item.type === 'order') {
         console.log('Updating order', (item.data as Order).ordernumber, 'with schedule_id:', scheduleId);
@@ -163,6 +176,12 @@ const Distribution = () => {
     // Refresh all data when a schedule is deleted
     refetchOrders();
     refetchReturns();
+    refetchSchedules();
+  };
+
+  const handleScheduleCreated = () => {
+    console.log('Schedule created, refreshing schedules...');
+    // Refresh schedules when a new one is created
     refetchSchedules();
   };
 
@@ -230,6 +249,7 @@ const Distribution = () => {
               orders={orders}
               returns={returns}
               onScheduleDeleted={handleScheduleDeleted}
+              onScheduleCreated={handleScheduleCreated}
             />
           ))}
         </div>
