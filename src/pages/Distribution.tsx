@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -90,7 +91,7 @@ const Distribution = () => {
   });
 
   // Fetch distribution schedules
-  const { data: distributionSchedules = [] } = useQuery({
+  const { data: distributionSchedules = [], refetch: refetchSchedules } = useQuery({
     queryKey: ['distribution-schedules'],
     queryFn: async () => {
       console.log('Fetching distribution schedules...');
@@ -132,9 +133,19 @@ const Distribution = () => {
         if (error) throw error;
         refetchReturns();
       }
+
+      // Refresh schedules after assignment
+      refetchSchedules();
     } catch (error) {
       console.error('Error updating distribution:', error);
     }
+  };
+
+  const handleScheduleDeleted = () => {
+    // Refresh all data when a schedule is deleted
+    refetchOrders();
+    refetchReturns();
+    refetchSchedules();
   };
 
   // Filter unassigned items (those without schedule_id)
@@ -187,6 +198,7 @@ const Distribution = () => {
               onDrop={handleDrop}
               orders={orders}
               returns={returns}
+              onScheduleDeleted={handleScheduleDeleted}
             />
           ))}
         </div>

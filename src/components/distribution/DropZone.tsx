@@ -3,6 +3,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useDrop } from 'react-dnd';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Order {
@@ -41,6 +43,7 @@ interface DropZoneProps {
   onDrop: (groupId: number, item: { type: 'order' | 'return'; data: Order | Return }) => void;
   orders: Order[];
   returns: Return[];
+  onScheduleDeleted: () => void;
 }
 
 export const DropZone: React.FC<DropZoneProps> = ({
@@ -50,6 +53,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
   onDrop,
   orders,
   returns,
+  onScheduleDeleted,
 }) => {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [currentScheduleId, setCurrentScheduleId] = useState<number | null>(null);
@@ -119,15 +123,80 @@ export const DropZone: React.FC<DropZoneProps> = ({
     }
   };
 
+  const handleDeleteSchedule = async () => {
+    if (!displayScheduleId) return;
+
+    try {
+      // First, clear all assignments (set schedule_id to null)
+      console.log('Clearing assignments for schedule:', displayScheduleId);
+      
+      // Clear orders
+      const { error: ordersError } = await supabase
+        .from('mainorder')
+        .update({ schedule_id: null })
+        .eq('schedule_id', displayScheduleId);
+
+      if (ordersError) {
+        console.error('Error clearing order assignments:', ordersError);
+        return;
+      }
+
+      // Clear returns
+      const { error: returnsError } = await supabase
+        .from('mainreturns')
+        .update({ schedule_id: null })
+        .eq('schedule_id', displayScheduleId);
+
+      if (returnsError) {
+        console.error('Error clearing return assignments:', returnsError);
+        return;
+      }
+
+      // Then delete the schedule
+      const { error: deleteError } = await supabase
+        .from('distribution_schedule')
+        .delete()
+        .eq('schedule_id', displayScheduleId);
+
+      if (deleteError) {
+        console.error('Error deleting schedule:', deleteError);
+        return;
+      }
+
+      console.log('Schedule deleted successfully');
+      
+      // Reset local state
+      setSelectedGroupId(null);
+      setCurrentScheduleId(null);
+      
+      // Notify parent component to refresh data
+      onScheduleDeleted();
+    } catch (error) {
+      console.error('Error deleting schedule:', error);
+    }
+  };
+
   return (
     <Card
       ref={drop}
-      className={`min-h-[300px] transition-colors ${
+      className={`min-h-[300px] transition-colors relative ${
         isOver ? 'border-primary bg-primary/5' : 'border-border'
       }`}
     >
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg">אזור {zoneNumber}</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg">אזור {zoneNumber}</CardTitle>
+          {displayScheduleId && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleDeleteSchedule}
+              className="h-6 w-6 text-muted-foreground hover:text-destructive"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
         <div className="space-y-2">
           <Select
             value={selectedGroupId?.toString() || ''}
