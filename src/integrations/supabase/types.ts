@@ -104,21 +104,18 @@ export type Database = {
       }
       ezor: {
         Row: {
-          appapp: number
           ezorim: string | null
           frequency: string | null
           id: number
           recommended_day: string | null
         }
         Insert: {
-          appapp: number
           ezorim?: string | null
           frequency?: string | null
           id?: number
           recommended_day?: string | null
         }
         Update: {
-          appapp?: number
           ezorim?: string | null
           frequency?: string | null
           id?: number
