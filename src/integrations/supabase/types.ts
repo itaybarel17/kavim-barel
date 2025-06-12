@@ -843,6 +843,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_next_dis_number: {
+        Args: { production_date: string }
+        Returns: number
+      }
       get_next_distribution_num: {
         Args: { schedule_date: string }
         Returns: number
@@ -854,6 +858,10 @@ export type Database = {
       get_region_from_group: {
         Args: { group_id: string }
         Returns: string
+      }
+      produce_schedule: {
+        Args: { schedule_id_param: number }
+        Returns: number
       }
     }
     Enums: {

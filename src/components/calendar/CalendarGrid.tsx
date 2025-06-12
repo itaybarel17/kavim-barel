@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useDrop } from 'react-dnd';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { CalendarCard } from './CalendarCard';
+import { ProductionDialog } from './ProductionDialog';
+import { Play } from 'lucide-react';
 
 interface Order {
   ordernumber: number;
@@ -54,7 +57,17 @@ const CalendarDay: React.FC<{
   orders: Order[];
   returns: Return[];
   onDropToDate: (scheduleId: number, date: Date) => void;
-}> = ({ date, schedulesForDate, distributionGroups, drivers, orders, returns, onDropToDate }) => {
+  onProductionDialogOpen: (date: Date) => void;
+}> = ({ 
+  date, 
+  schedulesForDate, 
+  distributionGroups, 
+  drivers, 
+  orders, 
+  returns, 
+  onDropToDate,
+  onProductionDialogOpen
+}) => {
   const [{ isOver }, drop] = useDrop(() => ({
     accept: 'calendar-card',
     drop: (item: { scheduleId: number }) => {
@@ -76,9 +89,22 @@ const CalendarDay: React.FC<{
         isOver ? 'border-blue-400 bg-blue-50' : 'border-gray-200'
       }`}
     >
-      <div className="text-center mb-3">
-        <div className="font-medium text-sm">{dayName}</div>
-        <div className="text-xs text-gray-500">{dateStr}</div>
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-center">
+          <div className="font-medium text-sm">{dayName}</div>
+          <div className="text-xs text-gray-500">{dateStr}</div>
+        </div>
+        {schedulesForDate.length > 0 && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onProductionDialogOpen(date)}
+            className="flex items-center gap-1 text-xs px-2 py-1 h-6"
+          >
+            <Play className="h-3 w-3" />
+            הפקה
+          </Button>
+        )}
       </div>
       
       <div className="space-y-2">
@@ -110,6 +136,9 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
   returns,
   onDropToDate
 }) => {
+  const [productionDialogOpen, setProductionDialogOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+
   // Generate 14 days (2 weeks) starting from Monday
   const days = [];
   for (let i = 0; i < 14; i++) {
@@ -128,6 +157,11 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
     return distributionSchedules.filter(schedule => schedule.distribution_date === dateStr);
   };
 
+  const handleProductionDialogOpen = (date: Date) => {
+    setSelectedDate(date);
+    setProductionDialogOpen(true);
+  };
+
   return (
     <div>
       <h2 className="text-xl font-semibold mb-4">לוח שנה - שבועיים</h2>
@@ -144,6 +178,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
             orders={orders}
             returns={returns}
             onDropToDate={onDropToDate}
+            onProductionDialogOpen={handleProductionDialogOpen}
           />
         ))}
       </div>
@@ -160,9 +195,25 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
             orders={orders}
             returns={returns}
             onDropToDate={onDropToDate}
+            onProductionDialogOpen={handleProductionDialogOpen}
           />
         ))}
       </div>
+
+      <ProductionDialog
+        isOpen={productionDialogOpen}
+        onClose={() => setProductionDialogOpen(false)}
+        selectedDate={selectedDate}
+        distributionSchedules={distributionSchedules}
+        distributionGroups={distributionGroups}
+        drivers={drivers}
+        orders={orders}
+        returns={returns}
+        onProduced={() => {
+          // Trigger a refresh of the data if needed
+          window.location.reload();
+        }}
+      />
     </div>
   );
 };

@@ -6,7 +6,7 @@ import { DropZone } from '@/components/distribution/DropZone';
 import { UnassignedArea } from '@/components/distribution/UnassignedArea';
 import { useQuery } from '@tanstack/react-query';
 import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription';
-import { Loader2, Calendar } from 'lucide-react';
+import { Loader2, Calendar, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
@@ -61,7 +61,7 @@ const Distribution = () => {
   // Set up realtime subscriptions
   useRealtimeSubscription();
 
-  // Fetch orders (only include if icecream is NULL or empty)
+  // Fetch orders (only include if icecream is NULL or empty AND not done)
   const { data: orders = [], refetch: refetchOrders, isLoading: ordersLoading } = useQuery({
     queryKey: ['orders'],
     queryFn: async () => {
@@ -70,6 +70,7 @@ const Distribution = () => {
         .from('mainorder')
         .select('ordernumber, customername, address, city, totalorder, schedule_id, icecream, customernumber, agentnumber, orderdate, invoicenumber')
         .or('icecream.is.null,icecream.eq.')
+        .is('done_mainorder', null)
         .order('ordernumber', { ascending: false })
         .limit(50);
       
@@ -79,7 +80,7 @@ const Distribution = () => {
     }
   });
 
-  // Fetch returns (only include if icecream is NULL or empty)
+  // Fetch returns (only include if icecream is NULL or empty AND not done)
   const { data: returns = [], refetch: refetchReturns, isLoading: returnsLoading } = useQuery({
     queryKey: ['returns'],
     queryFn: async () => {
@@ -88,6 +89,7 @@ const Distribution = () => {
         .from('mainreturns')
         .select('returnnumber, customername, address, city, totalreturn, schedule_id, icecream, customernumber, agentnumber, returndate')
         .or('icecream.is.null,icecream.eq.')
+        .is('done_return', null)
         .order('returnnumber', { ascending: false })
         .limit(50);
       
@@ -330,13 +332,23 @@ const Distribution = () => {
       <div className="min-h-screen p-6 bg-background">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">ממשק הפצה</h1>
-          <Button 
-            onClick={() => navigate('/calendar')}
-            className="flex items-center gap-2"
-          >
-            <Calendar className="h-4 w-4" />
-            לוח שנה
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => navigate('/archive')}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Archive className="h-4 w-4" />
+              ארכיון
+            </Button>
+            <Button 
+              onClick={() => navigate('/calendar')}
+              className="flex items-center gap-2"
+            >
+              <Calendar className="h-4 w-4" />
+              לוח שנה
+            </Button>
+          </div>
         </div>
         
         {/* Unassigned items area with drop functionality */}
