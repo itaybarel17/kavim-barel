@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useDrop } from 'react-dnd';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -149,49 +150,26 @@ export const DropZone: React.FC<DropZoneProps> = ({
     }
   }, [distributionSchedules, orders, returns, zoneNumber]);
 
-  // Updated print function using @react-pdf/renderer
-  const handlePrint = async () => {
+  // Updated print function to navigate to report page
+  const handlePrint = () => {
     if (!scheduleId) return;
 
     const selectedGroup = distributionGroups.find(group => group.groups_id === selectedGroupId);
     const selectedDriver = drivers.find(driver => driver.id === selectedDriverId);
 
-    try {
-      // Create PDF document
-      const doc = (
-        <ZonePDFDocument
-          zoneNumber={zoneNumber}
-          scheduleId={scheduleId}
-          groupName={selectedGroup?.separation || ''}
-          driverName={selectedDriver?.nahag || ''}
-          orders={assignedOrders}
-          returns={assignedReturns}
-        />
-      );
+    // Navigate to the report page with data
+    const reportData = {
+      zoneNumber,
+      scheduleId,
+      groupName: selectedGroup?.separation || '',
+      driverName: selectedDriver?.nahag || '',
+      orders: assignedOrders,
+      returns: assignedReturns,
+    };
 
-      // Generate PDF blob
-      const pdfBlob = await pdf(doc).toBlob();
-      
-      // Create URL and open in new tab for printing
-      const url = URL.createObjectURL(pdfBlob);
-      const newWindow = window.open(url, '_blank');
-      
-      // Clean up URL after a delay
-      setTimeout(() => {
-        URL.revokeObjectURL(url);
-      }, 1000);
-
-      // Focus the new window for printing
-      if (newWindow) {
-        newWindow.focus();
-        // Auto-print after a short delay to ensure PDF is loaded
-        setTimeout(() => {
-          newWindow.print();
-        }, 1000);
-      }
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-    }
+    // Use navigate to go to the report page
+    const navigate = useNavigate();
+    navigate(`/zone-report/${zoneNumber}`, { state: reportData });
   };
 
   const handleGroupSelection = async (value: string) => {
@@ -330,7 +308,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
                 size="icon"
                 onClick={handlePrint}
                 className="h-6 w-6 text-muted-foreground hover:text-blue-600"
-                title="הדפס"
+                title="הדפס דוח"
               >
                 <Printer className="h-4 w-4" />
               </Button>

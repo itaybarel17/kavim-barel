@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Distribution from "./pages/Distribution";
 import Calendar from "./pages/Calendar";
+import ZoneReport from "./pages/ZoneReport";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/distribution" element={<Distribution />} />
           <Route path="/calendar" element={<Calendar />} />
+          <Route path="/zone-report/:zoneId" element={<ZoneReport />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
