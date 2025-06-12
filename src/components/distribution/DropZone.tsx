@@ -155,28 +155,32 @@ export const DropZone: React.FC<DropZoneProps> = ({
     const selectedGroup = distributionGroups.find(group => group.groups_id === selectedGroupId);
     const selectedDriver = drivers.find(driver => driver.id === selectedDriverId);
 
-    // Create PDF
+    // Create PDF with Hebrew support
     const doc = new jsPDF();
     
-    // Configure font (Hebrew support)
+    // Set up for Hebrew text (RTL)
+    doc.setR2L(true);
     doc.setFont('helvetica');
     
-    // Title
+    // Title - positioned for RTL
     doc.setFontSize(20);
-    doc.text(`אזור ${zoneNumber} - ${selectedGroup?.separation || 'לא מוגדר'}`, 105, 20, { align: 'center' });
+    doc.text(`אזור ${zoneNumber} - ${selectedGroup?.separation || 'לא מוגדר'}`, 190, 20, { 
+      align: 'right',
+      dir: 'rtl'
+    });
     
     // Schedule info
     doc.setFontSize(12);
     let yPos = 40;
-    doc.text(`מזהה לוח זמנים: ${scheduleId}`, 20, yPos);
+    doc.text(`מזהה לוח זמנים: ${scheduleId}`, 190, yPos, { align: 'right' });
     yPos += 10;
-    doc.text(`נהג: ${selectedDriver?.nahag || 'לא מוגדר'}`, 20, yPos);
+    doc.text(`נהג: ${selectedDriver?.nahag || 'לא מוגדר'}`, 190, yPos, { align: 'right' });
     yPos += 20;
 
     // Orders section
     if (assignedOrders.length > 0) {
       doc.setFontSize(14);
-      doc.text('הזמנות:', 20, yPos);
+      doc.text('הזמנות:', 190, yPos, { align: 'right' });
       yPos += 15;
       
       doc.setFontSize(10);
@@ -185,9 +189,15 @@ export const DropZone: React.FC<DropZoneProps> = ({
           doc.addPage();
           yPos = 20;
         }
-        doc.text(`${index + 1}. ${order.customername} - ${order.address}, ${order.city}`, 20, yPos);
+        
+        // Customer name and address (Hebrew text from database)
+        const customerLine = `${index + 1}. ${order.customername} - ${order.address}, ${order.city}`;
+        doc.text(customerLine, 190, yPos, { align: 'right' });
         yPos += 5;
-        doc.text(`   הזמנה #${order.ordernumber} - ₪${order.totalorder.toLocaleString()}`, 20, yPos);
+        
+        // Order details
+        const orderLine = `הזמנה #${order.ordernumber} - ₪${order.totalorder.toLocaleString()}`;
+        doc.text(orderLine, 190, yPos, { align: 'right' });
         yPos += 10;
       });
       yPos += 10;
@@ -201,7 +211,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
       }
       
       doc.setFontSize(14);
-      doc.text('החזרות:', 20, yPos);
+      doc.text('החזרות:', 190, yPos, { align: 'right' });
       yPos += 15;
       
       doc.setFontSize(10);
@@ -210,9 +220,15 @@ export const DropZone: React.FC<DropZoneProps> = ({
           doc.addPage();
           yPos = 20;
         }
-        doc.text(`${index + 1}. ${returnItem.customername} - ${returnItem.address}, ${returnItem.city}`, 20, yPos);
+        
+        // Customer name and address (Hebrew text from database)
+        const customerLine = `${index + 1}. ${returnItem.customername} - ${returnItem.address}, ${returnItem.city}`;
+        doc.text(customerLine, 190, yPos, { align: 'right' });
         yPos += 5;
-        doc.text(`   החזרה #${returnItem.returnnumber} - ₪${returnItem.totalreturn.toLocaleString()}`, 20, yPos);
+        
+        // Return details
+        const returnLine = `החזרה #${returnItem.returnnumber} - ₪${returnItem.totalreturn.toLocaleString()}`;
+        doc.text(returnLine, 190, yPos, { align: 'right' });
         yPos += 10;
       });
     }
@@ -223,11 +239,11 @@ export const DropZone: React.FC<DropZoneProps> = ({
     
     yPos += 20;
     doc.setFontSize(12);
-    doc.text('סיכום:', 20, yPos);
+    doc.text('סיכום:', 190, yPos, { align: 'right' });
     yPos += 10;
-    doc.text(`סה"כ הזמנות: ${assignedOrders.length} (₪${totalOrdersAmount.toLocaleString()})`, 20, yPos);
+    doc.text(`סה"כ הזמנות: ${assignedOrders.length} (₪${totalOrdersAmount.toLocaleString()})`, 190, yPos, { align: 'right' });
     yPos += 8;
-    doc.text(`סה"כ החזרות: ${assignedReturns.length} (₪${totalReturnsAmount.toLocaleString()})`, 20, yPos);
+    doc.text(`סה"כ החזרות: ${assignedReturns.length} (₪${totalReturnsAmount.toLocaleString()})`, 190, yPos, { align: 'right' });
 
     // Open print dialog
     doc.autoPrint();
