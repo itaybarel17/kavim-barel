@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderCard } from './OrderCard';
-import { useQuery } from '@tanstack/react-query';
 
 interface Order {
   ordernumber: number;
@@ -55,6 +54,7 @@ interface DropZoneProps {
   zoneNumber: number;
   distributionGroups: DistributionGroup[];
   distributionSchedules: DistributionSchedule[];
+  drivers: Driver[];
   onDrop: (zoneNumber: number, item: { type: 'order' | 'return'; data: Order | Return }) => void;
   orders: Order[];
   returns: Return[];
@@ -67,6 +67,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
   zoneNumber,
   distributionGroups,
   distributionSchedules,
+  drivers,
   onDrop,
   orders,
   returns,
@@ -77,22 +78,6 @@ export const DropZone: React.FC<DropZoneProps> = ({
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [scheduleId, setScheduleId] = useState<number | null>(null);
   const [selectedDriverId, setSelectedDriverId] = useState<number | null>(null);
-
-  // Fetch drivers
-  const { data: drivers = [] } = useQuery({
-    queryKey: ['drivers'],
-    queryFn: async () => {
-      console.log('Fetching drivers...');
-      const { data, error } = await supabase
-        .from('nahagim')
-        .select('id, nahag')
-        .order('nahag', { ascending: true });
-      
-      if (error) throw error;
-      console.log('Drivers fetched:', data);
-      return data as Driver[];
-    }
-  });
 
   const [{ isOver }, drop] = useDrop(() => ({
     accept: 'card',
