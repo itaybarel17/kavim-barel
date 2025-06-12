@@ -1,8 +1,9 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useDrop } from 'react-dnd';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Order {
   ordernumber: number;
@@ -51,6 +52,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
   returns,
 }) => {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
+  const [currentScheduleId, setCurrentScheduleId] = useState<number | null>(null);
 
   const [{ isOver }, drop] = useDrop(() => ({
     accept: 'card',
@@ -71,13 +73,51 @@ export const DropZone: React.FC<DropZoneProps> = ({
     return schedule?.schedule_id || null;
   }, [selectedGroupId, distributionSchedules]);
 
+  // Create schedule immediately when group is selected
+  useEffect(() => {
+    if (selectedGroupId && !scheduleId) {
+      const createSchedule = async () => {
+        try {
+          console.log('Creating schedule for group:', selectedGroupId);
+          const { data: newScheduleId, error } = await supabase
+            .rpc('get_or_create_schedule_for_group', { group_id: selectedGroupId });
+
+          if (error) {
+            console.error('Error creating schedule:', error);
+            return;
+          }
+
+          console.log('Created schedule ID:', newScheduleId);
+          setCurrentScheduleId(newScheduleId);
+        } catch (error) {
+          console.error('Error creating schedule:', error);
+        }
+      };
+
+      createSchedule();
+    } else if (scheduleId) {
+      setCurrentScheduleId(scheduleId);
+    }
+  }, [selectedGroupId, scheduleId]);
+
+  // Get the actual schedule ID to display
+  const displayScheduleId = scheduleId || currentScheduleId;
+
   // Get assigned items for this zone based on schedule_id
   const assignedOrders = orders.filter(order => 
-    scheduleId && order.schedule_id === scheduleId
+    displayScheduleId && order.schedule_id === displayScheduleId
   );
   const assignedReturns = returns.filter(returnItem => 
-    scheduleId && returnItem.schedule_id === scheduleId
+    displayScheduleId && returnItem.schedule_id === displayScheduleId
   );
+
+  const handleGroupSelection = (value: string) => {
+    const groupId = value ? parseInt(value) : null;
+    setSelectedGroupId(groupId);
+    if (!groupId) {
+      setCurrentScheduleId(null);
+    }
+  };
 
   return (
     <Card
@@ -91,7 +131,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
         <div className="space-y-2">
           <Select
             value={selectedGroupId?.toString() || ''}
-            onValueChange={(value) => setSelectedGroupId(value ? parseInt(value) : null)}
+            onValueChange={handleGroupSelection}
           >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="בחר אזור הפצה" />
@@ -104,17 +144,17 @@ export const DropZone: React.FC<DropZoneProps> = ({
               ))}
             </SelectContent>
           </Select>
-          {scheduleId ? (
+          {displayScheduleId ? (
             <div className="text-sm text-muted-foreground">
-              מזהה {scheduleId}
+              מזהה לוח זמנים: {displayScheduleId}
             </div>
           ) : selectedGroupId ? (
             <div className="text-sm text-muted-foreground">
-              מזהה יווצר עם הגרירה הראשונה
+              יוצר מזהה לוח זמנים...
             </div>
           ) : (
             <div className="text-sm text-muted-foreground">
-              מזהה
+              בחר אזור להצגת מזהה
             </div>
           )}
         </div>
