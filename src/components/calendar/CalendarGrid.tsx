@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useDrop } from 'react-dnd';
 import { Card } from '@/components/ui/card';
@@ -71,6 +72,7 @@ const CalendarDay: React.FC<{
   const [{ isOver }, drop] = useDrop(() => ({
     accept: 'calendar-card',
     drop: (item: { scheduleId: number }) => {
+      console.log('Dropping to date:', date, 'Date string:', date.toISOString().split('T')[0]);
       onDropToDate(item.scheduleId, date);
     },
     collect: (monitor) => ({
@@ -81,6 +83,8 @@ const CalendarDay: React.FC<{
   const dayNames = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
   const dayName = dayNames[date.getDay()];
   const dateStr = date.getDate().toString().padStart(2, '0') + '/' + (date.getMonth() + 1).toString().padStart(2, '0');
+
+  console.log('CalendarDay rendered:', dateStr, date.toISOString().split('T')[0]);
 
   return (
     <Card
@@ -169,9 +173,14 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
   };
 
   const allDays = getWorkDaysForTwoWeeks();
-  // Keep natural order - no reverse() to avoid date mapping issues
-  const firstWeekDays = allDays.slice(0, 6); // Sunday to Friday in natural order
-  const secondWeekDays = allDays.slice(6, 12); // Sunday to Friday in natural order
+  console.log('All days generated:', allDays.map(d => ({ 
+    dayOfWeek: d.getDay(), 
+    dateStr: d.toISOString().split('T')[0],
+    displayStr: d.getDate().toString().padStart(2, '0') + '/' + (d.getMonth() + 1).toString().padStart(2, '0')
+  })));
+  
+  const firstWeekDays = allDays.slice(0, 6);
+  const secondWeekDays = allDays.slice(6, 12);
 
   // Group schedules by date
   const getSchedulesForDate = (date: Date) => {
@@ -192,7 +201,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
       <div className="grid grid-cols-6 gap-4 mb-6" dir="rtl">
         {firstWeekDays.map((date, index) => (
           <CalendarDay
-            key={index}
+            key={`week1-${date.toISOString().split('T')[0]}`}
             date={date}
             schedulesForDate={getSchedulesForDate(date)}
             distributionGroups={distributionGroups}
@@ -209,7 +218,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
       <div className="grid grid-cols-6 gap-4" dir="rtl">
         {secondWeekDays.map((date, index) => (
           <CalendarDay
-            key={index + 6}
+            key={`week2-${date.toISOString().split('T')[0]}`}
             date={date}
             schedulesForDate={getSchedulesForDate(date)}
             distributionGroups={distributionGroups}
