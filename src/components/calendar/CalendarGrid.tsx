@@ -83,7 +83,7 @@ const CalendarDay: React.FC<{
       
       <div className="space-y-2">
         {schedulesForDate.map((schedule) => (
-          <div key={schedule.schedule_id} className="scale-75 origin-top">
+          <div key={schedule.schedule_id} className="scale-65 origin-top">
             <CalendarCard
               scheduleId={schedule.schedule_id}
               groupId={schedule.groups_id}
