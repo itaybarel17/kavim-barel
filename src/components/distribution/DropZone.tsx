@@ -209,12 +209,19 @@ export const DropZone: React.FC<DropZoneProps> = ({
             value={selectedGroupId?.toString() || ''}
             onValueChange={handleGroupSelection}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full h-10 bg-background border border-input">
               <SelectValue placeholder="בחר אזור הפצה" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-popover border border-border shadow-md z-50 max-h-[200px] overflow-y-auto">
+              <SelectItem value="" className="text-muted-foreground">
+                בחר אזור הפצה
+              </SelectItem>
               {distributionGroups.map((group) => (
-                <SelectItem key={group.groups_id} value={group.groups_id.toString()}>
+                <SelectItem 
+                  key={group.groups_id} 
+                  value={group.groups_id.toString()}
+                  className="cursor-pointer hover:bg-accent focus:bg-accent"
+                >
                   {group.separation}
                 </SelectItem>
               ))}

@@ -11,35 +11,30 @@ export type Database = {
     Tables: {
       distribution_groups: {
         Row: {
+          day: string | null
+          frequency: string | null
           groups_id: number
           separation: string | null
-          zone_id: number | null
         }
         Insert: {
+          day?: string | null
+          frequency?: string | null
           groups_id?: number
           separation?: string | null
-          zone_id?: number | null
         }
         Update: {
+          day?: string | null
+          frequency?: string | null
           groups_id?: number
           separation?: string | null
-          zone_id?: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "distribution_groups_zone_id_fkey"
-            columns: ["zone_id"]
-            isOneToOne: false
-            referencedRelation: "ezor"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       distribution_schedule: {
         Row: {
           create_at_schedule: string | null
+          dis_number: number | null
           distribution_date: string | null
-          distribution_num: number
           done_schedule: string | null
           driver_id: number | null
           europallet_return: number | null
@@ -48,12 +43,11 @@ export type Database = {
           schedule_id: number
           smallpallet_return: number | null
           total_customers: number | null
-          zone_id: number | null
         }
         Insert: {
           create_at_schedule?: string | null
+          dis_number?: number | null
           distribution_date?: string | null
-          distribution_num?: number
           done_schedule?: string | null
           driver_id?: number | null
           europallet_return?: number | null
@@ -62,12 +56,11 @@ export type Database = {
           schedule_id?: number
           smallpallet_return?: number | null
           total_customers?: number | null
-          zone_id?: number | null
         }
         Update: {
           create_at_schedule?: string | null
+          dis_number?: number | null
           distribution_date?: string | null
-          distribution_num?: number
           done_schedule?: string | null
           driver_id?: number | null
           europallet_return?: number | null
@@ -76,7 +69,6 @@ export type Database = {
           schedule_id?: number
           smallpallet_return?: number | null
           total_customers?: number | null
-          zone_id?: number | null
         }
         Relationships: [
           {
@@ -93,35 +85,7 @@ export type Database = {
             referencedRelation: "distribution_groups"
             referencedColumns: ["groups_id"]
           },
-          {
-            foreignKeyName: "distribution_schedule_zone_id_fkey"
-            columns: ["zone_id"]
-            isOneToOne: false
-            referencedRelation: "ezor"
-            referencedColumns: ["id"]
-          },
         ]
-      }
-      ezor: {
-        Row: {
-          ezorim: string | null
-          frequency: string | null
-          id: number
-          recommended_day: string | null
-        }
-        Insert: {
-          ezorim?: string | null
-          frequency?: string | null
-          id?: number
-          recommended_day?: string | null
-        }
-        Update: {
-          ezorim?: string | null
-          frequency?: string | null
-          id?: number
-          recommended_day?: string | null
-        }
-        Relationships: []
       }
       likut_summary: {
         Row: {
