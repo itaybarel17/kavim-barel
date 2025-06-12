@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useDrop } from 'react-dnd';
 import { Card } from '@/components/ui/card';
@@ -139,17 +140,20 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
   const [productionDialogOpen, setProductionDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-  // Generate 14 days (2 weeks) starting from Monday
+  // Generate 12 days (2 weeks) starting from Sunday and including Sunday-Friday
   const days = [];
   for (let i = 0; i < 14; i++) {
     const date = new Date(currentWeekStart);
     date.setDate(currentWeekStart.getDate() + i);
     
-    // Only include Monday-Friday (1-5)
-    if (date.getDay() >= 1 && date.getDay() <= 5) {
+    // Include Sunday (0) through Friday (5)
+    if (date.getDay() >= 0 && date.getDay() <= 5) {
       days.push(date);
     }
   }
+
+  // Reverse the days array so the earliest day appears on the right (Hebrew reading direction)
+  const reversedDays = [...days].reverse();
 
   // Group schedules by date
   const getSchedulesForDate = (date: Date) => {
@@ -166,9 +170,9 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
     <div>
       <h2 className="text-xl font-semibold mb-4">לוח שנה - שבועיים</h2>
       
-      {/* Week 1 */}
-      <div className="grid grid-cols-5 gap-4 mb-6">
-        {days.slice(0, 5).map((date, index) => (
+      {/* Week 1 - showing first 6 days (Sunday to Friday) */}
+      <div className="grid grid-cols-6 gap-4 mb-6">
+        {reversedDays.slice(0, 6).map((date, index) => (
           <CalendarDay
             key={index}
             date={date}
@@ -183,11 +187,11 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
         ))}
       </div>
 
-      {/* Week 2 */}
-      <div className="grid grid-cols-5 gap-4">
-        {days.slice(5, 10).map((date, index) => (
+      {/* Week 2 - showing next 6 days (Sunday to Friday) */}
+      <div className="grid grid-cols-6 gap-4">
+        {reversedDays.slice(6, 12).map((date, index) => (
           <CalendarDay
-            key={index + 5}
+            key={index + 6}
             date={date}
             schedulesForDate={getSchedulesForDate(date)}
             distributionGroups={distributionGroups}
