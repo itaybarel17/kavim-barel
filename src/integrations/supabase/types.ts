@@ -9,6 +9,69 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      customerlist: {
+        Row: {
+          address: string | null
+          agentnumber: string | null
+          arvot: string | null
+          city: string | null
+          customername: string | null
+          customernumber: number
+          discount: number | null
+          discountdetails: string | null
+          mobile: string | null
+          obligolimit: number | null
+          obligotoday: number | null
+          opencustomer: string | null
+          phone: string | null
+          shotefname: string | null
+          shotefnumber: number | null
+          sumcustomer: number | null
+          supplydetails: string | null
+          type: string | null
+        }
+        Insert: {
+          address?: string | null
+          agentnumber?: string | null
+          arvot?: string | null
+          city?: string | null
+          customername?: string | null
+          customernumber: number
+          discount?: number | null
+          discountdetails?: string | null
+          mobile?: string | null
+          obligolimit?: number | null
+          obligotoday?: number | null
+          opencustomer?: string | null
+          phone?: string | null
+          shotefname?: string | null
+          shotefnumber?: number | null
+          sumcustomer?: number | null
+          supplydetails?: string | null
+          type?: string | null
+        }
+        Update: {
+          address?: string | null
+          agentnumber?: string | null
+          arvot?: string | null
+          city?: string | null
+          customername?: string | null
+          customernumber?: number
+          discount?: number | null
+          discountdetails?: string | null
+          mobile?: string | null
+          obligolimit?: number | null
+          obligotoday?: number | null
+          opencustomer?: string | null
+          phone?: string | null
+          shotefname?: string | null
+          shotefnumber?: number | null
+          sumcustomer?: number | null
+          supplydetails?: string | null
+          type?: string | null
+        }
+        Relationships: []
+      }
       distribution_groups: {
         Row: {
           day: string | null
