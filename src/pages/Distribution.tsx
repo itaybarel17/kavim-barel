@@ -19,7 +19,7 @@ interface Order {
   customernumber?: string;
   agentnumber?: string;
   orderdate?: string;
-  invoicenumber?: string;
+  invoicenumber?: number;
 }
 
 interface Return {
@@ -44,6 +44,11 @@ interface DistributionSchedule {
   schedule_id: number;
   groups_id: number;
   create_at_schedule: string;
+}
+
+interface Driver {
+  id: number;
+  nahag: string;
 }
 
 const Distribution = () => {
@@ -115,6 +120,22 @@ const Distribution = () => {
       if (error) throw error;
       console.log('Distribution schedules fetched:', data);
       return data as DistributionSchedule[];
+    }
+  });
+
+  // Fetch drivers
+  const { data: drivers = [], isLoading: driversLoading } = useQuery({
+    queryKey: ['drivers'],
+    queryFn: async () => {
+      console.log('Fetching drivers...');
+      const { data, error } = await supabase
+        .from('nahagim')
+        .select('id, nahag')
+        .order('nahag');
+      
+      if (error) throw error;
+      console.log('Drivers fetched:', data);
+      return data as Driver[];
     }
   });
 
@@ -287,7 +308,7 @@ const Distribution = () => {
   console.log('Unassigned returns:', unassignedReturns.length);
   console.log('Distribution groups:', distributionGroups.length);
 
-  const isLoading = ordersLoading || returnsLoading || groupsLoading || schedulesLoading;
+  const isLoading = ordersLoading || returnsLoading || groupsLoading || schedulesLoading || driversLoading;
 
   if (isLoading) {
     return (
@@ -321,6 +342,7 @@ const Distribution = () => {
               zoneNumber={zoneNumber}
               distributionGroups={distributionGroups}
               distributionSchedules={distributionSchedules}
+              drivers={drivers}
               onDrop={handleDrop}
               orders={orders}
               returns={returns}
