@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useDrop } from 'react-dnd';
 import { Card } from '@/components/ui/card';
@@ -29,6 +28,7 @@ interface DistributionSchedule {
   create_at_schedule: string;
   distribution_date?: string;
   destinations?: number;
+  driver_id?: number;
 }
 
 interface Driver {
@@ -91,6 +91,7 @@ const CalendarDay: React.FC<{
             drivers={drivers}
             orders={orders}
             returns={returns}
+            driverId={schedule.driver_id}
             showAllCustomers={true}
             isCalendarMode={true}
           />

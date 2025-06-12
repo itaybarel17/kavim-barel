@@ -49,6 +49,7 @@ interface DistributionSchedule {
   create_at_schedule: string;
   distribution_date?: string;
   destinations?: number;
+  driver_id?: number;
 }
 
 interface Driver {
@@ -116,14 +117,14 @@ const Calendar = () => {
     }
   });
 
-  // Fetch distribution schedules
+  // Fetch distribution schedules with driver_id
   const { data: distributionSchedules = [], refetch: refetchSchedules, isLoading: schedulesLoading } = useQuery({
     queryKey: ['calendar-distribution-schedules'],
     queryFn: async () => {
       console.log('Fetching distribution schedules for calendar...');
       const { data, error } = await supabase
         .from('distribution_schedule')
-        .select('schedule_id, groups_id, create_at_schedule, distribution_date, destinations');
+        .select('schedule_id, groups_id, create_at_schedule, distribution_date, destinations, driver_id');
       
       if (error) throw error;
       console.log('Calendar distribution schedules fetched:', data);
@@ -147,7 +148,7 @@ const Calendar = () => {
     }
   });
 
-  // Add useEffect to automatically update destinations count when orders/returns change
+  // Update destinations count immediately when orders/returns change
   useEffect(() => {
     const updateAllDestinationsCount = async () => {
       // Only update for schedules that have assigned items
@@ -166,7 +167,7 @@ const Calendar = () => {
           ...scheduleReturns.map(returnItem => returnItem.customername)
         ]);
 
-        // Only update if the destinations count has changed
+        // Update destinations count immediately if it has changed
         if (schedule.destinations !== uniqueCustomers.size) {
           try {
             const { error } = await supabase
@@ -176,6 +177,10 @@ const Calendar = () => {
             
             if (error) {
               console.error('Error updating destinations count:', error);
+            } else {
+              console.log(`Updated destinations for schedule ${schedule.schedule_id}: ${uniqueCustomers.size}`);
+              // Immediately refetch schedules to update the UI
+              refetchSchedules();
             }
           } catch (error) {
             console.error('Error updating destinations count:', error);
@@ -187,7 +192,7 @@ const Calendar = () => {
     if (distributionSchedules.length > 0 && (orders.length > 0 || returns.length > 0)) {
       updateAllDestinationsCount();
     }
-  }, [orders, returns, distributionSchedules]);
+  }, [orders, returns, distributionSchedules, refetchSchedules]);
 
   const handleDropToDate = async (scheduleId: number, date: Date) => {
     try {
@@ -247,7 +252,7 @@ const Calendar = () => {
   const updateDestinationsCount = async (scheduleId: number) => {
     try {
       const scheduleOrders = orders.filter(order => order.schedule_id === scheduleId);
-      const scheduleReturns = returns.filter(returnItem => returnItem.schedule_id === scheduleId);
+      const scheduleReturns = returns.filter(returnItem => returnItem.schedule_id === schedule.schedule_id);
       
       const uniqueCustomers = new Set([
         ...scheduleOrders.map(order => order.customername),
@@ -265,6 +270,7 @@ const Calendar = () => {
       }
       
       console.log('Destinations count updated successfully');
+      refetchSchedules();
     } catch (error) {
       console.error('Error updating destinations count:', error);
     }
