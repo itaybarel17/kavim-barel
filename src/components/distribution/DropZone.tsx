@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { X, Printer } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderCard } from './OrderCard';
-import jsPDF from 'jspdf';
+import { pdf } from '@react-pdf/renderer';
+import { ZonePDFDocument } from './ZonePDFDocument';
 
 interface Order {
   ordernumber: number;
@@ -148,110 +149,49 @@ export const DropZone: React.FC<DropZoneProps> = ({
     }
   }, [distributionSchedules, orders, returns, zoneNumber]);
 
-  // NEW: Print function
-  const handlePrint = () => {
+  // Updated print function using @react-pdf/renderer
+  const handlePrint = async () => {
     if (!scheduleId) return;
 
     const selectedGroup = distributionGroups.find(group => group.groups_id === selectedGroupId);
     const selectedDriver = drivers.find(driver => driver.id === selectedDriverId);
 
-    // Create PDF with better Hebrew handling
-    const doc = new jsPDF();
-    
-    // Try to use a font that supports Hebrew better
-    doc.setFont('helvetica');
-    
-    // Title - using English labels but keeping Hebrew data
-    doc.setFontSize(20);
-    doc.text(`Zone ${zoneNumber} - ${selectedGroup?.separation || 'Not Defined'}`, 20, 20);
-    
-    // Schedule info
-    doc.setFontSize(12);
-    let yPos = 40;
-    doc.text(`Schedule ID: ${scheduleId}`, 20, yPos);
-    yPos += 10;
-    doc.text(`Driver: ${selectedDriver?.nahag || 'Not Assigned'}`, 20, yPos);
-    yPos += 20;
+    try {
+      // Create PDF document
+      const doc = (
+        <ZonePDFDocument
+          zoneNumber={zoneNumber}
+          scheduleId={scheduleId}
+          groupName={selectedGroup?.separation || ''}
+          driverName={selectedDriver?.nahag || ''}
+          orders={assignedOrders}
+          returns={assignedReturns}
+        />
+      );
 
-    // Orders section
-    if (assignedOrders.length > 0) {
-      doc.setFontSize(14);
-      doc.text('Orders:', 20, yPos);
-      yPos += 15;
+      // Generate PDF blob
+      const pdfBlob = await pdf(doc).toBlob();
       
-      doc.setFontSize(10);
-      assignedOrders.forEach((order, index) => {
-        if (yPos > 270) { // New page if needed
-          doc.addPage();
-          yPos = 20;
-        }
-        
-        // Customer info - keep Hebrew names but use English labels
-        const customerLine = `${index + 1}. Customer: ${order.customername}`;
-        doc.text(customerLine, 20, yPos);
-        yPos += 5;
-        
-        const addressLine = `   Address: ${order.address}, ${order.city}`;
-        doc.text(addressLine, 20, yPos);
-        yPos += 5;
-        
-        // Order details
-        const orderLine = `   Order #${order.ordernumber} - ₪${order.totalorder.toLocaleString()}`;
-        doc.text(orderLine, 20, yPos);
-        yPos += 10;
-      });
-      yPos += 10;
-    }
+      // Create URL and open in new tab for printing
+      const url = URL.createObjectURL(pdfBlob);
+      const newWindow = window.open(url, '_blank');
+      
+      // Clean up URL after a delay
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 1000);
 
-    // Returns section
-    if (assignedReturns.length > 0) {
-      if (yPos > 250) { // New page if needed
-        doc.addPage();
-        yPos = 20;
+      // Focus the new window for printing
+      if (newWindow) {
+        newWindow.focus();
+        // Auto-print after a short delay to ensure PDF is loaded
+        setTimeout(() => {
+          newWindow.print();
+        }, 1000);
       }
-      
-      doc.setFontSize(14);
-      doc.text('Returns:', 20, yPos);
-      yPos += 15;
-      
-      doc.setFontSize(10);
-      assignedReturns.forEach((returnItem, index) => {
-        if (yPos > 270) { // New page if needed
-          doc.addPage();
-          yPos = 20;
-        }
-        
-        // Customer info - keep Hebrew names but use English labels
-        const customerLine = `${index + 1}. Customer: ${returnItem.customername}`;
-        doc.text(customerLine, 20, yPos);
-        yPos += 5;
-        
-        const addressLine = `   Address: ${returnItem.address}, ${returnItem.city}`;
-        doc.text(addressLine, 20, yPos);
-        yPos += 5;
-        
-        // Return details
-        const returnLine = `   Return #${returnItem.returnnumber} - ₪${returnItem.totalreturn.toLocaleString()}`;
-        doc.text(returnLine, 20, yPos);
-        yPos += 10;
-      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
     }
-
-    // Summary
-    const totalOrdersAmount = assignedOrders.reduce((sum, order) => sum + order.totalorder, 0);
-    const totalReturnsAmount = assignedReturns.reduce((sum, returnItem) => sum + returnItem.totalreturn, 0);
-    
-    yPos += 20;
-    doc.setFontSize(12);
-    doc.text('Summary:', 20, yPos);
-    yPos += 10;
-    doc.text(`Total Orders: ${assignedOrders.length} (₪${totalOrdersAmount.toLocaleString()})`, 20, yPos);
-    yPos += 8;
-    doc.text(`Total Returns: ${assignedReturns.length} (₪${totalReturnsAmount.toLocaleString()})`, 20, yPos);
-
-    // Open print dialog
-    doc.autoPrint();
-    window.open(doc.output('bloburl'), '_blank');
   };
 
   const handleGroupSelection = async (value: string) => {
