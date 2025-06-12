@@ -9,6 +9,7 @@ interface Order {
   address: string;
   city: string;
   totalorder: number;
+  schedule_id?: number;
 }
 
 interface Return {
@@ -17,15 +18,17 @@ interface Return {
   address: string;
   city: string;
   totalreturn: number;
+  schedule_id?: number;
 }
 
 interface OrderCardProps {
   type: 'order' | 'return';
   data: Order | Return;
   onDragStart: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
+  isAssigned?: boolean;
 }
 
-export const OrderCard: React.FC<OrderCardProps> = ({ type, data, onDragStart }) => {
+export const OrderCard: React.FC<OrderCardProps> = ({ type, data, onDragStart, isAssigned = false }) => {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'card',
     item: { type, data },
@@ -46,7 +49,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ type, data, onDragStart })
       ref={drag}
       className={`min-w-[250px] cursor-move ${isDragging ? 'opacity-50' : ''} ${
         isOrder ? 'border-blue-200 bg-blue-50' : 'border-red-200 bg-red-50'
-      }`}
+      } ${isAssigned ? 'ring-2 ring-green-300' : ''}`}
     >
       <CardContent className="p-4">
         <div className="flex justify-between items-start mb-2">
@@ -58,6 +61,11 @@ export const OrderCard: React.FC<OrderCardProps> = ({ type, data, onDragStart })
         <h3 className="font-medium text-sm mb-1">{data.customername}</h3>
         <p className="text-xs text-muted-foreground">{data.address}</p>
         <p className="text-xs text-muted-foreground">{data.city}</p>
+        {isAssigned && (
+          <div className="mt-2 text-xs text-green-600 font-medium">
+            משויך לאזור
+          </div>
+        )}
       </CardContent>
     </Card>
   );

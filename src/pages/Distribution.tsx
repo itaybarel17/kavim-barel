@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { supabase } from '@/integrations/supabase/client';
-import { OrderCard } from '@/components/distribution/OrderCard';
 import { DropZone } from '@/components/distribution/DropZone';
+import { UnassignedArea } from '@/components/distribution/UnassignedArea';
 import { useQuery } from '@tanstack/react-query';
 import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription';
 import { Loader2 } from 'lucide-react';
@@ -114,7 +114,7 @@ const Distribution = () => {
     try {
       console.log('handleDrop called with groupId:', groupId, 'item:', item);
       
-      // Find the latest schedule for this group (there should already be one from group selection)
+      // Find the latest schedule for this group
       const groupSchedules = distributionSchedules
         .filter(schedule => schedule.groups_id === groupId)
         .sort((a, b) => b.schedule_id - a.schedule_id);
@@ -171,9 +171,45 @@ const Distribution = () => {
     }
   };
 
+  const handleDropToUnassigned = async (item: { type: 'order' | 'return'; data: Order | Return }) => {
+    try {
+      console.log('Removing item from assignment:', item);
+
+      if (item.type === 'order') {
+        const { error } = await supabase
+          .from('mainorder')
+          .update({ schedule_id: null })
+          .eq('ordernumber', (item.data as Order).ordernumber);
+        
+        if (error) {
+          console.error('Error removing order assignment:', error);
+          throw error;
+        }
+        console.log('Order assignment removed successfully');
+        refetchOrders();
+      } else {
+        const { error } = await supabase
+          .from('mainreturns')
+          .update({ schedule_id: null })
+          .eq('returnnumber', (item.data as Return).returnnumber);
+        
+        if (error) {
+          console.error('Error removing return assignment:', error);
+          throw error;
+        }
+        console.log('Return assignment removed successfully');
+        refetchReturns();
+      }
+
+      // Refresh schedules after removal
+      refetchSchedules();
+    } catch (error) {
+      console.error('Error removing assignment:', error);
+    }
+  };
+
   const handleScheduleDeleted = () => {
     console.log('Schedule deleted, refreshing all data...');
-    // Refresh all data when a schedule is deleted
     refetchOrders();
     refetchReturns();
     refetchSchedules();
@@ -181,8 +217,11 @@ const Distribution = () => {
 
   const handleScheduleCreated = () => {
     console.log('Schedule created, refreshing schedules...');
-    // Refresh schedules when a new one is created
     refetchSchedules();
+  };
+
+  const handleRemoveFromZone = async (item: { type: 'order' | 'return'; data: Order | Return }) => {
+    await handleDropToUnassigned(item);
   };
 
   // Filter unassigned items (those without schedule_id)
@@ -214,28 +253,13 @@ const Distribution = () => {
       <div className="min-h-screen p-6 bg-background">
         <h1 className="text-3xl font-bold mb-6">ממשק הפצה</h1>
         
-        {/* Horizontal scrollable row of cards */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">הזמנות והחזרות ללא שיוך</h2>
-          <div className="flex gap-4 overflow-x-auto pb-4">
-            {unassignedOrders.map((order) => (
-              <OrderCard
-                key={`order-${order.ordernumber}`}
-                type="order"
-                data={order}
-                onDragStart={setDraggedItem}
-              />
-            ))}
-            {unassignedReturns.map((returnItem) => (
-              <OrderCard
-                key={`return-${returnItem.returnnumber}`}
-                type="return"
-                data={returnItem}
-                onDragStart={setDraggedItem}
-              />
-            ))}
-          </div>
-        </div>
+        {/* Unassigned items area with drop functionality */}
+        <UnassignedArea
+          unassignedOrders={unassignedOrders}
+          unassignedReturns={unassignedReturns}
+          onDragStart={setDraggedItem}
+          onDropToUnassigned={handleDropToUnassigned}
+        />
 
         {/* 3x4 Grid of drop zones */}
         <div className="grid grid-cols-4 gap-4">
@@ -250,6 +274,7 @@ const Distribution = () => {
               returns={returns}
               onScheduleDeleted={handleScheduleDeleted}
               onScheduleCreated={handleScheduleCreated}
+              onRemoveFromZone={handleRemoveFromZone}
             />
           ))}
         </div>

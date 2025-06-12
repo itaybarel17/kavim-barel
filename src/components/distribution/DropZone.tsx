@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { OrderCard } from './OrderCard';
 
 interface Order {
   ordernumber: number;
@@ -45,6 +46,7 @@ interface DropZoneProps {
   returns: Return[];
   onScheduleDeleted: () => void;
   onScheduleCreated: () => void;
+  onRemoveFromZone: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
 }
 
 export const DropZone: React.FC<DropZoneProps> = ({
@@ -56,6 +58,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
   returns,
   onScheduleDeleted,
   onScheduleCreated,
+  onRemoveFromZone,
 }) => {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [scheduleId, setScheduleId] = useState<number | null>(null);
@@ -66,7 +69,6 @@ export const DropZone: React.FC<DropZoneProps> = ({
       console.log('Drop triggered with scheduleId:', scheduleId);
       console.log('Drop item:', item);
       if (scheduleId && selectedGroupId) {
-        // Use existing schedule_id for the drop
         onDrop(selectedGroupId, item);
       } else {
         console.warn('No schedule ID available for drop');
@@ -88,9 +90,6 @@ export const DropZone: React.FC<DropZoneProps> = ({
   // Load existing state for this zone based on assigned items
   useEffect(() => {
     console.log('DropZone effect - loading existing state for zone:', zoneNumber);
-    console.log('Distribution schedules:', distributionSchedules);
-    console.log('Orders:', orders);
-    console.log('Returns:', returns);
 
     // Reset state first
     setSelectedGroupId(null);
@@ -100,8 +99,6 @@ export const DropZone: React.FC<DropZoneProps> = ({
     const assignedOrders = orders.filter(order => order.schedule_id);
     const assignedReturns = returns.filter(returnItem => returnItem.schedule_id);
     const allAssignedItems = [...assignedOrders, ...assignedReturns];
-
-    console.log('All assigned items:', allAssignedItems);
 
     // Group items by schedule_id
     const scheduleItemsMap = new Map();
@@ -115,14 +112,10 @@ export const DropZone: React.FC<DropZoneProps> = ({
       }
     });
 
-    console.log('Schedule items map:', scheduleItemsMap);
-
     // Get schedules with items, sorted by creation time (schedule_id order)
     const schedulesWithItems = distributionSchedules
       .filter(schedule => scheduleItemsMap.has(schedule.schedule_id))
       .sort((a, b) => a.schedule_id - b.schedule_id);
-
-    console.log('Schedules with items:', schedulesWithItems);
 
     // Check if this zone should handle one of the assigned schedules
     if (schedulesWithItems.length >= zoneNumber) {
@@ -135,16 +128,12 @@ export const DropZone: React.FC<DropZoneProps> = ({
     }
 
     // If this is zone 1 and no assignments exist, check for any existing empty schedules
-    // Sort by creation time (schedule_id) and assign to zones in order
     if (zoneNumber === 1) {
       const emptySchedules = distributionSchedules
         .filter(schedule => !scheduleItemsMap.has(schedule.schedule_id))
         .sort((a, b) => a.schedule_id - b.schedule_id);
 
-      console.log('Empty schedules:', emptySchedules);
-
       if (emptySchedules.length > 0) {
-        // Take the first empty schedule for zone 1
         const firstEmpty = emptySchedules[0];
         console.log('Assigning first empty schedule to zone 1:', firstEmpty.schedule_id);
         setSelectedGroupId(firstEmpty.groups_id);
@@ -250,6 +239,10 @@ export const DropZone: React.FC<DropZoneProps> = ({
     }
   };
 
+  const handleItemDragStart = (item: { type: 'order' | 'return'; data: Order | Return }) => {
+    console.log('Item drag started from zone:', item);
+  };
+
   // Get the selected group name for display
   const selectedGroup = distributionGroups.find(group => group.groups_id === selectedGroupId);
 
@@ -316,16 +309,22 @@ export const DropZone: React.FC<DropZoneProps> = ({
       </CardHeader>
       <CardContent className="space-y-2">
         {assignedOrders.map((order) => (
-          <div key={`order-${order.ordernumber}`} className="p-2 bg-blue-50 rounded text-xs">
-            <div className="font-semibold">הזמנה #{order.ordernumber}</div>
-            <div>{order.customername}</div>
-          </div>
+          <OrderCard
+            key={`order-${order.ordernumber}`}
+            type="order"
+            data={order}
+            onDragStart={handleItemDragStart}
+            isAssigned={true}
+          />
         ))}
         {assignedReturns.map((returnItem) => (
-          <div key={`return-${returnItem.returnnumber}`} className="p-2 bg-red-50 rounded text-xs">
-            <div className="font-semibold">החזרה #{returnItem.returnnumber}</div>
-            <div>{returnItem.customername}</div>
-          </div>
+          <OrderCard
+            key={`return-${returnItem.returnnumber}`}
+            type="return"
+            data={returnItem}
+            onDragStart={handleItemDragStart}
+            isAssigned={true}
+          />
         ))}
         {assignedOrders.length === 0 && assignedReturns.length === 0 && (
           <div className="text-center text-muted-foreground text-sm py-8">
