@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useDrop } from 'react-dnd';
 import { Card } from '@/components/ui/card';
@@ -33,6 +32,8 @@ interface DistributionSchedule {
   distribution_date?: string;
   destinations?: number;
   driver_id?: number;
+  dis_number?: number;
+  done_schedule?: string;
 }
 
 interface Driver {
@@ -92,7 +93,6 @@ const CalendarDay: React.FC<{
   }));
 
   const dayNames = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
-  const dayName = dayNames[date.getDay()];
   const dateStr = date.getDate().toString().padStart(2, '0') + '/' + (date.getMonth() + 1).toString().padStart(2, '0');
 
   // Build date string consistently using date components (not toISOString)
