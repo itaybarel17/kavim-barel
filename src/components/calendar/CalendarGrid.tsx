@@ -72,7 +72,7 @@ const CalendarDay: React.FC<{
   return (
     <Card
       ref={drop}
-      className={`p-3 min-h-[200px] border-2 border-dashed ${
+      className={`p-3 min-h-[250px] border-2 border-dashed ${
         isOver ? 'border-blue-400 bg-blue-50' : 'border-gray-200'
       }`}
     >
@@ -83,7 +83,7 @@ const CalendarDay: React.FC<{
       
       <div className="space-y-2">
         {schedulesForDate.map((schedule) => (
-          <div key={schedule.schedule_id} className="scale-75 origin-top">
+          <div key={schedule.schedule_id} className="scale-90 origin-top">
             <CalendarCard
               scheduleId={schedule.schedule_id}
               groupId={schedule.groups_id}
@@ -91,6 +91,7 @@ const CalendarDay: React.FC<{
               drivers={drivers}
               orders={orders}
               returns={returns}
+              showAllCustomers={true}
             />
           </div>
         ))}

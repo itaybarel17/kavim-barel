@@ -181,6 +181,33 @@ const Calendar = () => {
     }
   };
 
+  // Add function to update destinations count when items are removed
+  const updateDestinationsCount = async (scheduleId: number) => {
+    try {
+      const scheduleOrders = orders.filter(order => order.schedule_id === scheduleId);
+      const scheduleReturns = returns.filter(returnItem => returnItem.schedule_id === scheduleId);
+      
+      const uniqueCustomers = new Set([
+        ...scheduleOrders.map(order => order.customername),
+        ...scheduleReturns.map(returnItem => returnItem.customername)
+      ]);
+
+      const { error } = await supabase
+        .from('distribution_schedule')
+        .update({ destinations: uniqueCustomers.size })
+        .eq('schedule_id', scheduleId);
+      
+      if (error) {
+        console.error('Error updating destinations count:', error);
+        throw error;
+      }
+      
+      console.log('Destinations count updated successfully');
+    } catch (error) {
+      console.error('Error updating destinations count:', error);
+    }
+  };
+
   const navigateWeeks = (direction: 'prev' | 'next') => {
     const newDate = new Date(currentWeekStart);
     newDate.setDate(newDate.getDate() + (direction === 'next' ? 14 : -14));
@@ -222,6 +249,7 @@ const Calendar = () => {
           drivers={drivers}
           orders={orders}
           returns={returns}
+          onUpdateDestinations={updateDestinationsCount}
         />
 
         {/* Calendar Navigation */}

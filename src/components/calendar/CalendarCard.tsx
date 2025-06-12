@@ -35,6 +35,8 @@ interface CalendarCardProps {
   orders: Order[];
   returns: Return[];
   driverId?: number;
+  showAllCustomers?: boolean;
+  onUpdateDestinations?: (scheduleId: number) => void;
 }
 
 export const CalendarCard: React.FC<CalendarCardProps> = ({
@@ -44,7 +46,9 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   drivers,
   orders,
   returns,
-  driverId
+  driverId,
+  showAllCustomers = false,
+  onUpdateDestinations
 }) => {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'calendar-card',
@@ -78,7 +82,7 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   return (
     <Card
       ref={drag}
-      className={`min-w-[220px] max-w-[250px] cursor-move border-blue-200 bg-blue-50 ${
+      className={`min-w-[250px] max-w-[280px] cursor-move border-blue-200 bg-blue-50 ${
         isDragging ? 'opacity-50' : ''
       }`}
     >
@@ -93,13 +97,10 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
 
         <div className="mb-2">
           <div className="text-xs font-medium text-gray-700 mb-1">נקודות:</div>
-          <div className="max-h-16 overflow-y-auto text-xs space-y-0.5">
-            {uniqueCustomersList.slice(0, 4).map((customer, index) => (
+          <div className="max-h-20 overflow-y-auto text-xs space-y-0.5">
+            {uniqueCustomersList.map((customer, index) => (
               <div key={index} className="text-gray-600">• {customer}</div>
             ))}
-            {uniqueCustomersList.length > 4 && (
-              <div className="text-gray-500 italic">ועוד {uniqueCustomersList.length - 4}...</div>
-            )}
           </div>
         </div>
 
