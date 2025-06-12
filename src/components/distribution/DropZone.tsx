@@ -155,31 +155,28 @@ export const DropZone: React.FC<DropZoneProps> = ({
     const selectedGroup = distributionGroups.find(group => group.groups_id === selectedGroupId);
     const selectedDriver = drivers.find(driver => driver.id === selectedDriverId);
 
-    // Create PDF with Hebrew support
+    // Create PDF with better Hebrew handling
     const doc = new jsPDF();
     
-    // Set up for Hebrew text (RTL)
-    doc.setR2L(true);
+    // Try to use a font that supports Hebrew better
     doc.setFont('helvetica');
     
-    // Title - positioned for RTL
+    // Title - using English labels but keeping Hebrew data
     doc.setFontSize(20);
-    doc.text(`אזור ${zoneNumber} - ${selectedGroup?.separation || 'לא מוגדר'}`, 190, 20, { 
-      align: 'right'
-    });
+    doc.text(`Zone ${zoneNumber} - ${selectedGroup?.separation || 'Not Defined'}`, 20, 20);
     
     // Schedule info
     doc.setFontSize(12);
     let yPos = 40;
-    doc.text(`מזהה לוח זמנים: ${scheduleId}`, 190, yPos, { align: 'right' });
+    doc.text(`Schedule ID: ${scheduleId}`, 20, yPos);
     yPos += 10;
-    doc.text(`נהג: ${selectedDriver?.nahag || 'לא מוגדר'}`, 190, yPos, { align: 'right' });
+    doc.text(`Driver: ${selectedDriver?.nahag || 'Not Assigned'}`, 20, yPos);
     yPos += 20;
 
     // Orders section
     if (assignedOrders.length > 0) {
       doc.setFontSize(14);
-      doc.text('הזמנות:', 190, yPos, { align: 'right' });
+      doc.text('Orders:', 20, yPos);
       yPos += 15;
       
       doc.setFontSize(10);
@@ -189,14 +186,18 @@ export const DropZone: React.FC<DropZoneProps> = ({
           yPos = 20;
         }
         
-        // Customer name and address (Hebrew text from database)
-        const customerLine = `${index + 1}. ${order.customername} - ${order.address}, ${order.city}`;
-        doc.text(customerLine, 190, yPos, { align: 'right' });
+        // Customer info - keep Hebrew names but use English labels
+        const customerLine = `${index + 1}. Customer: ${order.customername}`;
+        doc.text(customerLine, 20, yPos);
+        yPos += 5;
+        
+        const addressLine = `   Address: ${order.address}, ${order.city}`;
+        doc.text(addressLine, 20, yPos);
         yPos += 5;
         
         // Order details
-        const orderLine = `הזמנה #${order.ordernumber} - ₪${order.totalorder.toLocaleString()}`;
-        doc.text(orderLine, 190, yPos, { align: 'right' });
+        const orderLine = `   Order #${order.ordernumber} - ₪${order.totalorder.toLocaleString()}`;
+        doc.text(orderLine, 20, yPos);
         yPos += 10;
       });
       yPos += 10;
@@ -210,7 +211,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
       }
       
       doc.setFontSize(14);
-      doc.text('החזרות:', 190, yPos, { align: 'right' });
+      doc.text('Returns:', 20, yPos);
       yPos += 15;
       
       doc.setFontSize(10);
@@ -220,14 +221,18 @@ export const DropZone: React.FC<DropZoneProps> = ({
           yPos = 20;
         }
         
-        // Customer name and address (Hebrew text from database)
-        const customerLine = `${index + 1}. ${returnItem.customername} - ${returnItem.address}, ${returnItem.city}`;
-        doc.text(customerLine, 190, yPos, { align: 'right' });
+        // Customer info - keep Hebrew names but use English labels
+        const customerLine = `${index + 1}. Customer: ${returnItem.customername}`;
+        doc.text(customerLine, 20, yPos);
+        yPos += 5;
+        
+        const addressLine = `   Address: ${returnItem.address}, ${returnItem.city}`;
+        doc.text(addressLine, 20, yPos);
         yPos += 5;
         
         // Return details
-        const returnLine = `החזרה #${returnItem.returnnumber} - ₪${returnItem.totalreturn.toLocaleString()}`;
-        doc.text(returnLine, 190, yPos, { align: 'right' });
+        const returnLine = `   Return #${returnItem.returnnumber} - ₪${returnItem.totalreturn.toLocaleString()}`;
+        doc.text(returnLine, 20, yPos);
         yPos += 10;
       });
     }
@@ -238,11 +243,11 @@ export const DropZone: React.FC<DropZoneProps> = ({
     
     yPos += 20;
     doc.setFontSize(12);
-    doc.text('סיכום:', 190, yPos, { align: 'right' });
+    doc.text('Summary:', 20, yPos);
     yPos += 10;
-    doc.text(`סה"כ הזמנות: ${assignedOrders.length} (₪${totalOrdersAmount.toLocaleString()})`, 190, yPos, { align: 'right' });
+    doc.text(`Total Orders: ${assignedOrders.length} (₪${totalOrdersAmount.toLocaleString()})`, 20, yPos);
     yPos += 8;
-    doc.text(`סה"כ החזרות: ${assignedReturns.length} (₪${totalReturnsAmount.toLocaleString()})`, 190, yPos, { align: 'right' });
+    doc.text(`Total Returns: ${assignedReturns.length} (₪${totalReturnsAmount.toLocaleString()})`, 20, yPos);
 
     // Open print dialog
     doc.autoPrint();
