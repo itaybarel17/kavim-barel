@@ -1,9 +1,10 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDrop } from 'react-dnd';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { X, Printer } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Trash2, User, Printer } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderCard } from './OrderCard';
 import jsPDF from 'jspdf';
@@ -42,6 +43,8 @@ interface DistributionSchedule {
   schedule_id: number;
   groups_id: number;
   create_at_schedule: string;
+  distribution_date?: string;
+  destinations?: number;
   driver_id?: number;
 }
 
@@ -76,206 +79,74 @@ export const DropZone: React.FC<DropZoneProps> = ({
   onRemoveFromZone,
 }) => {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
-  const [scheduleId, setScheduleId] = useState<number | null>(null);
   const [selectedDriverId, setSelectedDriverId] = useState<number | null>(null);
+  const [scheduleId, setScheduleId] = useState<number | null>(null);
+  const [destinations, setDestinations] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Get the initial state of the zone
+    const initialState = getZoneState();
+    setSelectedGroupId(initialState.selectedGroupId);
+    setScheduleId(initialState.scheduleId);
+
+    // Find the corresponding schedule and set the driver
+    if (initialState.scheduleId) {
+      const schedule = distributionSchedules.find(s => s.schedule_id === initialState.scheduleId);
+      setSelectedDriverId(schedule?.driver_id || null);
+      setDestinations(schedule?.destinations || null);
+    }
+  }, [zoneNumber, distributionGroups, distributionSchedules, orders, returns]);
+
+  // Find assigned orders and returns based on scheduleId
+  const assignedOrders = orders.filter(order => order.schedule_id === scheduleId);
+  const assignedReturns = returns.filter(returnItem => returnItem.schedule_id === scheduleId);
+  const hasItems = assignedOrders.length > 0 || assignedReturns.length > 0;
 
   const [{ isOver }, drop] = useDrop(() => ({
     accept: 'card',
     drop: (item: { type: 'order' | 'return'; data: Order | Return }) => {
-      console.log('Drop triggered in zone', zoneNumber, 'with scheduleId:', scheduleId);
-      console.log('Drop item:', item);
-      if (scheduleId) {
-        onDrop(zoneNumber, item);
-      } else {
-        console.warn('No schedule ID available for drop in zone', zoneNumber);
-      }
+      console.log('Dropping item to zone:', zoneNumber, item);
+      onDrop(zoneNumber, item);
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
     }),
-  }), [scheduleId, zoneNumber]);
+  }));
 
-  // Get assigned items for this zone based on schedule_id
-  const assignedOrders = orders.filter(order => 
-    scheduleId && order.schedule_id === scheduleId
-  );
-  const assignedReturns = returns.filter(returnItem => 
-    scheduleId && returnItem.schedule_id === scheduleId
-  );
-
-  // Load existing state for this zone - FIXED to include driver_id
-  useEffect(() => {
-    console.log('DropZone effect - loading existing state for zone:', zoneNumber);
-
-    // Reset state first
-    setSelectedGroupId(null);
-    setScheduleId(null);
-    setSelectedDriverId(null);
-
-    // Find the schedule for this zone
-    const zoneSchedules = distributionSchedules
-      .filter(schedule => {
-        const hasItems = [...orders, ...returns].some(item => item.schedule_id === schedule.schedule_id);
-        return hasItems;
-      })
-      .sort((a, b) => a.schedule_id - b.schedule_id);
-
-    if (zoneSchedules.length >= zoneNumber) {
-      const targetSchedule = zoneSchedules[zoneNumber - 1];
-      console.log(`Zone ${zoneNumber} assigned to schedule ${targetSchedule.schedule_id}`);
-
-      setSelectedGroupId(targetSchedule.groups_id);
-      setScheduleId(targetSchedule.schedule_id);
-      setSelectedDriverId(targetSchedule.driver_id || null); // FIX: Load driver_id from schedule
-      return;
-    }
-
-    // Check for empty schedules
-    const emptySchedules = distributionSchedules
-      .filter(schedule => {
-        const hasItems = [...orders, ...returns].some(item => item.schedule_id === schedule.schedule_id);
-        return !hasItems;
-      })
-      .sort((a, b) => a.schedule_id - b.schedule_id);
-
-    const emptyScheduleIndex = zoneNumber - 1 - zoneSchedules.length;
-    if (emptyScheduleIndex >= 0 && emptyScheduleIndex < emptySchedules.length) {
-      const targetSchedule = emptySchedules[emptyScheduleIndex];
-      console.log(`Zone ${zoneNumber} assigned to empty schedule ${targetSchedule.schedule_id}`);
-      setSelectedGroupId(targetSchedule.groups_id);
-      setScheduleId(targetSchedule.schedule_id);
-      setSelectedDriverId(targetSchedule.driver_id || null); // FIX: Load driver_id from schedule
-    }
-  }, [distributionSchedules, orders, returns, zoneNumber]);
-
-  // NEW: Print function
-  const handlePrint = () => {
-    if (!scheduleId) return;
-
-    const selectedGroup = distributionGroups.find(group => group.groups_id === selectedGroupId);
-    const selectedDriver = drivers.find(driver => driver.id === selectedDriverId);
-
-    // Create PDF
-    const doc = new jsPDF();
-    
-    // Configure font (Hebrew support)
-    doc.setFont('helvetica');
-    
-    // Title
-    doc.setFontSize(20);
-    doc.text(`אזור ${zoneNumber} - ${selectedGroup?.separation || 'לא מוגדר'}`, 105, 20, { align: 'center' });
-    
-    // Schedule info
-    doc.setFontSize(12);
-    let yPos = 40;
-    doc.text(`מזהה לוח זמנים: ${scheduleId}`, 20, yPos);
-    yPos += 10;
-    doc.text(`נהג: ${selectedDriver?.nahag || 'לא מוגדר'}`, 20, yPos);
-    yPos += 20;
-
-    // Orders section
-    if (assignedOrders.length > 0) {
-      doc.setFontSize(14);
-      doc.text('הזמנות:', 20, yPos);
-      yPos += 15;
-      
-      doc.setFontSize(10);
-      assignedOrders.forEach((order, index) => {
-        if (yPos > 270) { // New page if needed
-          doc.addPage();
-          yPos = 20;
-        }
-        doc.text(`${index + 1}. ${order.customername} - ${order.address}, ${order.city}`, 20, yPos);
-        yPos += 5;
-        doc.text(`   הזמנה #${order.ordernumber} - ₪${order.totalorder.toLocaleString()}`, 20, yPos);
-        yPos += 10;
-      });
-      yPos += 10;
-    }
-
-    // Returns section
-    if (assignedReturns.length > 0) {
-      if (yPos > 250) { // New page if needed
-        doc.addPage();
-        yPos = 20;
-      }
-      
-      doc.setFontSize(14);
-      doc.text('החזרות:', 20, yPos);
-      yPos += 15;
-      
-      doc.setFontSize(10);
-      assignedReturns.forEach((returnItem, index) => {
-        if (yPos > 270) { // New page if needed
-          doc.addPage();
-          yPos = 20;
-        }
-        doc.text(`${index + 1}. ${returnItem.customername} - ${returnItem.address}, ${returnItem.city}`, 20, yPos);
-        yPos += 5;
-        doc.text(`   החזרה #${returnItem.returnnumber} - ₪${returnItem.totalreturn.toLocaleString()}`, 20, yPos);
-        yPos += 10;
-      });
-    }
-
-    // Summary
-    const totalOrdersAmount = assignedOrders.reduce((sum, order) => sum + order.totalorder, 0);
-    const totalReturnsAmount = assignedReturns.reduce((sum, returnItem) => sum + returnItem.totalreturn, 0);
-    
-    yPos += 20;
-    doc.setFontSize(12);
-    doc.text('סיכום:', 20, yPos);
-    yPos += 10;
-    doc.text(`סה"כ הזמנות: ${assignedOrders.length} (₪${totalOrdersAmount.toLocaleString()})`, 20, yPos);
-    yPos += 8;
-    doc.text(`סה"כ החזרות: ${assignedReturns.length} (₪${totalReturnsAmount.toLocaleString()})`, 20, yPos);
-
-    // Open print dialog
-    doc.autoPrint();
-    window.open(doc.output('bloburl'), '_blank');
-  };
-
-  const handleGroupSelection = async (value: string) => {
-    const groupId = value ? parseInt(value) : null;
-    console.log('Group selected for zone', zoneNumber, ':', groupId);
-    
-    if (!groupId) {
-      setSelectedGroupId(null);
-      setScheduleId(null);
-      setSelectedDriverId(null);
-      return;
-    }
-
+  const handleGroupChange = async (groupId: number) => {
     try {
-      console.log('Creating new schedule for group:', groupId);
-      const { data: newScheduleId, error } = await supabase
-        .rpc('get_or_create_schedule_for_group', { group_id: groupId });
+      console.log('handleGroupChange called with groupId:', groupId);
+      setSelectedGroupId(groupId);
+
+      // Find existing schedule or create a new one
+      const { data, error } = await supabase.rpc('get_or_create_schedule_for_group', {
+        group_id: groupId
+      });
 
       if (error) {
-        console.error('Error creating schedule:', error);
+        console.error('Error getting or creating schedule:', error);
+        throw error;
+      }
+
+      const newScheduleId = data;
+      console.log('New schedule ID:', newScheduleId);
+      setScheduleId(newScheduleId);
+      onScheduleCreated();
+    } catch (error) {
+      console.error('Error updating distribution:', error);
+    }
+  };
+
+  const handleDriverChange = async (driverId: number) => {
+    try {
+      console.log('handleDriverChange called with driverId:', driverId, 'and scheduleId:', scheduleId);
+      setSelectedDriverId(driverId);
+
+      if (!scheduleId) {
+        console.warn('No schedule ID available to update.');
         return;
       }
 
-      console.log('Created new schedule ID:', newScheduleId);
-      setSelectedGroupId(groupId);
-      setScheduleId(newScheduleId);
-      setSelectedDriverId(null);
-      
-      onScheduleCreated();
-    } catch (error) {
-      console.error('Error in group selection:', error);
-    }
-  };
-
-  const handleDriverSelection = async (value: string) => {
-    const driverId = value ? parseInt(value) : null;
-    console.log('Driver selected for zone', zoneNumber, ':', driverId);
-    
-    if (!scheduleId) {
-      console.warn('No schedule ID available for driver assignment');
-      return;
-    }
-
-    try {
       const { error } = await supabase
         .from('distribution_schedule')
         .update({ driver_id: driverId })
@@ -283,198 +154,331 @@ export const DropZone: React.FC<DropZoneProps> = ({
 
       if (error) {
         console.error('Error updating driver:', error);
-        return;
+        throw error;
       }
-
-      console.log('Driver updated successfully');
-      setSelectedDriverId(driverId);
     } catch (error) {
-      console.error('Error in driver selection:', error);
+      console.error('Error updating driver:', error);
     }
   };
 
   const handleDeleteSchedule = async () => {
-    if (!scheduleId) return;
-
     try {
-      console.log('Clearing assignments for schedule:', scheduleId);
-      
-      // Clear orders
-      const { error: ordersError } = await supabase
-        .from('mainorder')
-        .update({ schedule_id: null })
-        .eq('schedule_id', scheduleId);
+      console.log('handleDeleteSchedule called for scheduleId:', scheduleId);
 
-      if (ordersError) {
-        console.error('Error clearing order assignments:', ordersError);
+      if (!scheduleId) {
+        console.warn('No schedule ID available to delete.');
         return;
       }
 
-      // Clear returns
-      const { error: returnsError } = await supabase
-        .from('mainreturns')
-        .update({ schedule_id: null })
-        .eq('schedule_id', scheduleId);
-
-      if (returnsError) {
-        console.error('Error clearing return assignments:', returnsError);
-        return;
-      }
-
-      // Then delete the schedule
-      const { error: deleteError } = await supabase
+      // Delete the schedule
+      const { error } = await supabase
         .from('distribution_schedule')
         .delete()
         .eq('schedule_id', scheduleId);
 
-      if (deleteError) {
-        console.error('Error deleting schedule:', deleteError);
-        return;
+      if (error) {
+        console.error('Error deleting schedule:', error);
+        throw error;
       }
 
-      console.log('Schedule deleted successfully');
-      
-      // Reset local state
+      // Reset state
       setSelectedGroupId(null);
-      setScheduleId(null);
       setSelectedDriverId(null);
-      
+      setScheduleId(null);
+      setDestinations(null);
+
+      // Notify parent component
       onScheduleDeleted();
     } catch (error) {
       console.error('Error deleting schedule:', error);
     }
   };
 
-  const handleItemDragStart = (item: { type: 'order' | 'return'; data: Order | Return }) => {
-    console.log('Item drag started from zone:', item);
+  const handleRemoveFromZoneClick = async (item: { type: 'order' | 'return'; data: Order | Return }) => {
+    await onRemoveFromZone(item);
   };
 
-  // Get the selected group name for display
-  const selectedGroup = distributionGroups.find(group => group.groups_id === selectedGroupId);
-  const selectedDriver = drivers.find(driver => driver.id === selectedDriverId);
+  // Helper function to get the current state of a zone
+  const getZoneState = () => {
+    // Find items that are assigned to any schedule
+    const assignedOrders = orders.filter(order => order.schedule_id);
+    const assignedReturns = returns.filter(returnItem => returnItem.schedule_id);
+    const allAssignedItems = [...assignedOrders, ...assignedReturns];
+
+    // Group items by schedule_id
+    const scheduleItemsMap = new Map();
+    allAssignedItems.forEach(item => {
+      const scheduleId = item.schedule_id;
+      if (scheduleId) {
+        if (!scheduleItemsMap.has(scheduleId)) {
+          scheduleItemsMap.set(scheduleId, []);
+        }
+        scheduleItemsMap.get(scheduleId).push(item);
+      }
+    });
+
+    // Get schedules with items, sorted by creation time
+    const schedulesWithItems = distributionSchedules
+      .filter(schedule => scheduleItemsMap.has(schedule.schedule_id))
+      .sort((a, b) => a.schedule_id - b.schedule_id);
+
+    // Check if this zone should handle one of the assigned schedules
+    if (schedulesWithItems.length >= zoneNumber) {
+      const targetSchedule = schedulesWithItems[zoneNumber - 1];
+      return {
+        selectedGroupId: targetSchedule.groups_id,
+        scheduleId: targetSchedule.schedule_id
+      };
+    }
+
+    // Check for empty schedules
+    const emptySchedules = distributionSchedules
+      .filter(schedule => !scheduleItemsMap.has(schedule.schedule_id))
+      .sort((a, b) => a.schedule_id - b.schedule_id);
+
+    const emptyScheduleIndex = zoneNumber - 1 - schedulesWithItems.length;
+    if (emptyScheduleIndex >= 0 && emptyScheduleIndex < emptySchedules.length) {
+      const targetSchedule = emptySchedules[emptyScheduleIndex];
+      return {
+        selectedGroupId: targetSchedule.groups_id,
+        scheduleId: targetSchedule.schedule_id
+      };
+    }
+
+    return {
+      selectedGroupId: null,
+      scheduleId: null
+    };
+  };
+
+  const generatePDF = () => {
+    const doc = new jsPDF();
+    
+    // Set font to support Hebrew (use Arial Unicode MS or similar)
+    doc.setFont('helvetica');
+    
+    // Title
+    doc.setFontSize(20);
+    const title = `Distribution Zone ${zoneNumber} Report`;
+    doc.text(title, 20, 20);
+    
+    // Zone info
+    doc.setFontSize(12);
+    let yPosition = 40;
+    
+    if (selectedGroup) {
+      const groupText = `Area: ${selectedGroup.separation}`;
+      doc.text(groupText, 20, yPosition);
+      yPosition += 10;
+    }
+    
+    if (selectedDriver) {
+      const driverText = `Driver: ${selectedDriver.nahag}`;
+      doc.text(driverText, 20, yPosition);
+      yPosition += 10;
+    }
+    
+    yPosition += 10;
+    
+    // Orders section
+    if (assignedOrders.length > 0) {
+      doc.setFontSize(16);
+      doc.text('Orders:', 20, yPosition);
+      yPosition += 10;
+      
+      doc.setFontSize(10);
+      assignedOrders.forEach((order, index) => {
+        const orderText = `${index + 1}. Order #${order.ordernumber} - ${order.customername}`;
+        doc.text(orderText, 25, yPosition);
+        yPosition += 5;
+        
+        const addressText = `   Address: ${order.address}, ${order.city}`;
+        doc.text(addressText, 25, yPosition);
+        yPosition += 5;
+        
+        const amountText = `   Amount: ₪${order.totalorder?.toLocaleString()}`;
+        doc.text(amountText, 25, yPosition);
+        yPosition += 8;
+        
+        if (yPosition > 270) {
+          doc.addPage();
+          yPosition = 20;
+        }
+      });
+    }
+    
+    // Returns section
+    if (assignedReturns.length > 0) {
+      yPosition += 10;
+      doc.setFontSize(16);
+      doc.text('Returns:', 20, yPosition);
+      yPosition += 10;
+      
+      doc.setFontSize(10);
+      assignedReturns.forEach((returnItem, index) => {
+        const returnText = `${index + 1}. Return #${returnItem.returnnumber} - ${returnItem.customername}`;
+        doc.text(returnText, 25, yPosition);
+        yPosition += 5;
+        
+        const addressText = `   Address: ${returnItem.address}, ${returnItem.city}`;
+        doc.text(addressText, 25, yPosition);
+        yPosition += 5;
+        
+        const amountText = `   Amount: ₪${returnItem.totalreturn?.toLocaleString()}`;
+        doc.text(amountText, 25, yPosition);
+        yPosition += 8;
+        
+        if (yPosition > 270) {
+          doc.addPage();
+          yPosition = 20;
+        }
+      });
+    }
+    
+    // Summary
+    yPosition += 10;
+    doc.setFontSize(14);
+    doc.text('Summary:', 20, yPosition);
+    yPosition += 10;
+    
+    doc.setFontSize(12);
+    doc.text(`Total Orders: ${assignedOrders.length}`, 25, yPosition);
+    yPosition += 8;
+    doc.text(`Total Returns: ${assignedReturns.length}`, 25, yPosition);
+    yPosition += 8;
+    
+    const totalOrderAmount = assignedOrders.reduce((sum, order) => sum + (order.totalorder || 0), 0);
+    const totalReturnAmount = assignedReturns.reduce((sum, returnItem) => sum + (returnItem.totalreturn || 0), 0);
+    
+    doc.text(`Total Order Amount: ₪${totalOrderAmount.toLocaleString()}`, 25, yPosition);
+    yPosition += 8;
+    doc.text(`Total Return Amount: ₪${totalReturnAmount.toLocaleString()}`, 25, yPosition);
+    
+    // Save the PDF
+    const fileName = `Zone_${zoneNumber}_Distribution_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
+  };
 
   return (
     <Card
       ref={drop}
-      className={`min-h-[300px] transition-colors relative ${
-        isOver ? 'border-primary bg-primary/5' : 'border-border'
+      className={`h-[400px] transition-colors ${
+        isOver ? 'border-primary bg-primary/5' : ''
       }`}
     >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">אזור {zoneNumber}</CardTitle>
-          <div className="flex gap-2">
-            {scheduleId && (assignedOrders.length > 0 || assignedReturns.length > 0) && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={generatePDF}
+              disabled={assignedOrders.length === 0 && assignedReturns.length === 0}
+              className="flex items-center gap-1"
+            >
+              <Printer className="h-4 w-4" />
+              הדפס
+            </Button>
+            
+            {hasItems && (
               <Button
-                variant="ghost"
-                size="icon"
-                onClick={handlePrint}
-                className="h-6 w-6 text-muted-foreground hover:text-blue-600"
-                title="הדפס"
-              >
-                <Printer className="h-4 w-4" />
-              </Button>
-            )}
-            {scheduleId && (
-              <Button
-                variant="ghost"
-                size="icon"
+                variant="outline"
+                size="sm"
                 onClick={handleDeleteSchedule}
-                className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                className="text-destructive hover:text-destructive"
               >
-                <X className="h-4 w-4" />
+                <Trash2 className="h-4 w-4" />
               </Button>
             )}
           </div>
         </div>
-        <div className="space-y-2">
-          <Select
-            value={selectedGroupId?.toString() || ''}
-            onValueChange={handleGroupSelection}
-          >
-            <SelectTrigger className="w-full h-10 bg-background border border-input">
-              <SelectValue placeholder="בחר אזור הפצה" />
+        
+        <div className="flex items-center space-x-2 mt-4">
+          <Select value={selectedGroupId ? selectedGroupId.toString() : 'default'} onValueChange={(value) => handleGroupChange(Number(value))}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="בחר איזור" />
             </SelectTrigger>
-            <SelectContent className="bg-popover border border-border shadow-md z-50 max-h-[200px] overflow-y-auto">
+            <SelectContent>
               {distributionGroups.map((group) => (
-                <SelectItem 
-                  key={group.groups_id} 
-                  value={group.groups_id.toString()}
-                  className="cursor-pointer hover:bg-accent focus:bg-accent"
-                >
+                <SelectItem key={group.groups_id} value={group.groups_id.toString()}>
                   {group.separation}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
 
-          {scheduleId && (
-            <Select
-              value={selectedDriverId?.toString() || ''}
-              onValueChange={handleDriverSelection}
-            >
-              <SelectTrigger className="w-full h-10 bg-background border border-input">
-                <SelectValue placeholder="בחר נהג" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover border border-border shadow-md z-50 max-h-[200px] overflow-y-auto">
-                {drivers.map((driver) => (
-                  <SelectItem 
-                    key={driver.id} 
-                    value={driver.id.toString()}
-                    className="cursor-pointer hover:bg-accent focus:bg-accent"
-                  >
-                    {driver.nahag}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          <Select value={selectedDriverId ? selectedDriverId.toString() : 'default'} onValueChange={(value) => handleDriverChange(Number(value))}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="בחר נהג" />
+            </SelectTrigger>
+            <SelectContent>
+              {drivers.map((driver) => (
+                <SelectItem key={driver.id} value={driver.id.toString()}>
+                  {driver.nahag}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-          {scheduleId ? (
-            <div className="text-sm text-muted-foreground">
-              מזהה לוח זמנים: {scheduleId}
-              {selectedGroup && (
-                <div className="font-medium text-primary">
-                  אזור נבחר: {selectedGroup.separation}
-                </div>
-              )}
-              {selectedDriver && (
-                <div className="font-medium text-secondary-foreground">
-                  נהג נבחר: {selectedDriver.nahag}
-                </div>
-              )}
-            </div>
-          ) : selectedGroupId ? (
-            <div className="text-sm text-muted-foreground">
-              יוצר מזהה לוח זמנים...
-            </div>
-          ) : (
-            <div className="text-sm text-muted-foreground">
-              בחר אזור ליצירת מזהה
+        <div className="mt-3 flex justify-between items-center">
+          <div>
+            <Badge variant="secondary">
+              הזמנות: {assignedOrders.length}
+            </Badge>
+            <Badge variant="secondary">
+              החזרות: {assignedReturns.length}
+            </Badge>
+          </div>
+          {destinations !== null && (
+            <div>
+              <Badge variant="outline">
+                יעדים: {destinations}
+              </Badge>
             </div>
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-2">
+
+      <CardContent className="overflow-y-auto h-[220px] p-4">
         {assignedOrders.map((order) => (
-          <OrderCard
-            key={`order-${order.ordernumber}`}
-            type="order"
-            data={order}
-            onDragStart={handleItemDragStart}
-          />
+          <div key={`order-${order.ordernumber}`} className="mb-2">
+            <OrderCard
+              type="order"
+              data={order}
+              onDragStart={() => {}}
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="ml-2"
+              onClick={() => handleRemoveFromZoneClick({ type: 'order', data: order })}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         ))}
         {assignedReturns.map((returnItem) => (
-          <OrderCard
-            key={`return-${returnItem.returnnumber}`}
-            type="return"
-            data={returnItem}
-            onDragStart={handleItemDragStart}
-          />
+          <div key={`return-${returnItem.returnnumber}`} className="mb-2">
+            <OrderCard
+              type="return"
+              data={returnItem}
+              onDragStart={() => {}}
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="ml-2"
+              onClick={() => handleRemoveFromZoneClick({ type: 'return', data: returnItem })}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         ))}
         {assignedOrders.length === 0 && assignedReturns.length === 0 && (
-          <div className="text-center text-muted-foreground text-sm py-8">
-            {scheduleId ? 'גרור הזמנות או החזרות לכאן' : 'בחר אזור ליצירת מזהה'}
+          <div className="text-center text-muted-foreground">
+            גרור לכאן הזמנות או החזרות
           </div>
         )}
       </CardContent>
