@@ -80,6 +80,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [scheduleId, setScheduleId] = useState<number | null>(null);
   const [selectedDriverId, setSelectedDriverId] = useState<number | null>(null);
+  const navigate = useNavigate();
 
   const [{ isOver }, drop] = useDrop(() => ({
     accept: 'card',
@@ -168,7 +169,6 @@ export const DropZone: React.FC<DropZoneProps> = ({
     };
 
     // Use navigate to go to the report page
-    const navigate = useNavigate();
     navigate(`/zone-report/${zoneNumber}`, { state: reportData });
   };
 
