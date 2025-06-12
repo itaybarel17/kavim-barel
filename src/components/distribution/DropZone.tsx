@@ -165,8 +165,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
     // Title - positioned for RTL
     doc.setFontSize(20);
     doc.text(`אזור ${zoneNumber} - ${selectedGroup?.separation || 'לא מוגדר'}`, 190, 20, { 
-      align: 'right',
-      dir: 'rtl'
+      align: 'right'
     });
     
     // Schedule info
