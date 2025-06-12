@@ -33,6 +33,7 @@ export type Database = {
       distribution_schedule: {
         Row: {
           create_at_schedule: string | null
+          destinations: number | null
           dis_number: number | null
           distribution_date: string | null
           done_schedule: string | null
@@ -46,6 +47,7 @@ export type Database = {
         }
         Insert: {
           create_at_schedule?: string | null
+          destinations?: number | null
           dis_number?: number | null
           distribution_date?: string | null
           done_schedule?: string | null
@@ -59,6 +61,7 @@ export type Database = {
         }
         Update: {
           create_at_schedule?: string | null
+          destinations?: number | null
           dis_number?: number | null
           distribution_date?: string | null
           done_schedule?: string | null

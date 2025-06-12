@@ -6,7 +6,9 @@ import { DropZone } from '@/components/distribution/DropZone';
 import { UnassignedArea } from '@/components/distribution/UnassignedArea';
 import { useQuery } from '@tanstack/react-query';
 import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Calendar } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 interface Order {
   ordernumber: number;
@@ -53,6 +55,7 @@ interface Driver {
 
 const Distribution = () => {
   const [draggedItem, setDraggedItem] = useState<{ type: 'order' | 'return'; data: Order | Return } | null>(null);
+  const navigate = useNavigate();
 
   // Set up realtime subscriptions
   useRealtimeSubscription();
@@ -324,7 +327,16 @@ const Distribution = () => {
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="min-h-screen p-6 bg-background">
-        <h1 className="text-3xl font-bold mb-6">ממשק הפצה</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold">ממשק הפצה</h1>
+          <Button 
+            onClick={() => navigate('/calendar')}
+            className="flex items-center gap-2"
+          >
+            <Calendar className="h-4 w-4" />
+            לוח שנה
+          </Button>
+        </div>
         
         {/* Unassigned items area with drop functionality */}
         <UnassignedArea
