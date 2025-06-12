@@ -104,9 +104,17 @@ export const DropZone: React.FC<DropZoneProps> = ({
               ))}
             </SelectContent>
           </Select>
-          {scheduleId && (
+          {scheduleId ? (
             <div className="text-sm text-muted-foreground">
-              מזהה: {scheduleId}
+              מזהה {scheduleId}
+            </div>
+          ) : selectedGroupId ? (
+            <div className="text-sm text-muted-foreground">
+              מזהה יווצר עם הגרירה הראשונה
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              מזהה
             </div>
           )}
         </div>

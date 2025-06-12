@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -38,14 +39,15 @@ interface DistributionSchedule {
 const Distribution = () => {
   const [draggedItem, setDraggedItem] = useState<{ type: 'order' | 'return'; data: Order | Return } | null>(null);
 
-  // Fetch orders
+  // Fetch orders (exclude ice cream orders where icecream = '1')
   const { data: orders = [], refetch: refetchOrders } = useQuery({
     queryKey: ['orders'],
     queryFn: async () => {
       console.log('Fetching orders...');
       const { data, error } = await supabase
         .from('mainorder')
-        .select('ordernumber, customername, address, city, totalorder, schedule_id')
+        .select('ordernumber, customername, address, city, totalorder, schedule_id, icecream')
+        .neq('icecream', '1')
         .order('ordernumber', { ascending: false })
         .limit(50);
       
@@ -55,14 +57,15 @@ const Distribution = () => {
     }
   });
 
-  // Fetch returns
+  // Fetch returns (exclude ice cream returns where icecream = '1')
   const { data: returns = [], refetch: refetchReturns } = useQuery({
     queryKey: ['returns'],
     queryFn: async () => {
       console.log('Fetching returns...');
       const { data, error } = await supabase
         .from('mainreturns')
-        .select('returnnumber, customername, address, city, totalreturn, schedule_id')
+        .select('returnnumber, customername, address, city, totalreturn, schedule_id, icecream')
+        .neq('icecream', '1')
         .order('returnnumber', { ascending: false })
         .limit(50);
       
@@ -104,17 +107,19 @@ const Distribution = () => {
 
   const handleDrop = async (groupId: number, item: { type: 'order' | 'return'; data: Order | Return }) => {
     try {
-      // Find the schedule_id for this group
-      const schedule = distributionSchedules.find(s => s.groups_id === groupId);
-      if (!schedule) {
-        console.error('No schedule found for group:', groupId);
+      // Use the new function to get or create a schedule for this group
+      const { data: scheduleId, error: scheduleError } = await supabase
+        .rpc('get_or_create_schedule_for_group', { group_id: groupId });
+
+      if (scheduleError) {
+        console.error('Error getting/creating schedule:', scheduleError);
         return;
       }
 
       if (item.type === 'order') {
         const { error } = await supabase
           .from('mainorder')
-          .update({ schedule_id: schedule.schedule_id })
+          .update({ schedule_id: scheduleId })
           .eq('ordernumber', (item.data as Order).ordernumber);
         
         if (error) throw error;
@@ -122,7 +127,7 @@ const Distribution = () => {
       } else {
         const { error } = await supabase
           .from('mainreturns')
-          .update({ schedule_id: schedule.schedule_id })
+          .update({ schedule_id: scheduleId })
           .eq('returnnumber', (item.data as Return).returnnumber);
         
         if (error) throw error;

@@ -817,6 +817,10 @@ export type Database = {
         Args: { schedule_date: string }
         Returns: number
       }
+      get_or_create_schedule_for_group: {
+        Args: { group_id: number }
+        Returns: number
+      }
       get_region_from_group: {
         Args: { group_id: string }
         Returns: string
