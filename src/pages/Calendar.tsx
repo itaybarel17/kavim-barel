@@ -62,10 +62,11 @@ const Calendar = () => {
   const navigate = useNavigate();
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
     const today = new Date();
-    const dayOfWeek = today.getDay();
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-    return monday;
+    const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    const sunday = new Date(today);
+    // Calculate days back to Sunday (Israeli week start)
+    sunday.setDate(today.getDate() - dayOfWeek);
+    return sunday;
   });
 
   // Set up realtime subscriptions
@@ -199,6 +200,17 @@ const Calendar = () => {
     try {
       console.log('Dropping schedule', scheduleId, 'to date', date);
       
+      // Build date string directly from date components to avoid timezone issues
+      // This ensures the exact date displayed is what gets saved
+      const year = date.getFullYear();
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
+      
+      console.log('Date being saved to database:', dateString);
+      console.log('Original date object:', date);
+      console.log('Display format:', `${day}/${month}`);
+      
       // Calculate unique destinations count for this schedule
       const scheduleOrders = orders.filter(order => order.schedule_id === scheduleId);
       const scheduleReturns = returns.filter(returnItem => returnItem.schedule_id === scheduleId);
@@ -211,7 +223,7 @@ const Calendar = () => {
       const { error } = await supabase
         .from('distribution_schedule')
         .update({ 
-          distribution_date: date.toISOString().split('T')[0],
+          distribution_date: dateString,
           destinations: uniqueCustomers.size
         })
         .eq('schedule_id', scheduleId);
@@ -221,7 +233,7 @@ const Calendar = () => {
         throw error;
       }
       
-      console.log('Schedule date updated successfully');
+      console.log('Schedule date updated successfully to:', dateString);
       refetchSchedules();
     } catch (error) {
       console.error('Error updating schedule date:', error);

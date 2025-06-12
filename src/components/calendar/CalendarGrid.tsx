@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useDrop } from 'react-dnd';
 import { Card } from '@/components/ui/card';
@@ -71,6 +72,7 @@ const CalendarDay: React.FC<{
   const [{ isOver }, drop] = useDrop(() => ({
     accept: 'calendar-card',
     drop: (item: { scheduleId: number }) => {
+      console.log('Dropping to date:', date, 'Date string:', date.toISOString().split('T')[0]);
       onDropToDate(item.scheduleId, date);
     },
     collect: (monitor) => ({
@@ -81,6 +83,8 @@ const CalendarDay: React.FC<{
   const dayNames = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
   const dayName = dayNames[date.getDay()];
   const dateStr = date.getDate().toString().padStart(2, '0') + '/' + (date.getMonth() + 1).toString().padStart(2, '0');
+
+  console.log('CalendarDay rendered:', dateStr, date.toISOString().split('T')[0]);
 
   return (
     <Card
@@ -139,17 +143,44 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
   const [productionDialogOpen, setProductionDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-  // Generate 14 days (2 weeks) starting from Monday
-  const days = [];
-  for (let i = 0; i < 14; i++) {
-    const date = new Date(currentWeekStart);
-    date.setDate(currentWeekStart.getDate() + i);
+  // Generate Israeli work week days (Sunday to Friday) for 2 weeks
+  const getWorkDaysForTwoWeeks = () => {
+    const days = [];
     
-    // Only include Monday-Friday (1-5)
-    if (date.getDay() >= 1 && date.getDay() <= 5) {
-      days.push(date);
+    // First week - Sunday to Friday
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(currentWeekStart);
+      date.setDate(currentWeekStart.getDate() + i);
+      
+      // Only include Sunday (0) through Friday (5)
+      if (date.getDay() >= 0 && date.getDay() <= 5) {
+        days.push(date);
+      }
     }
-  }
+    
+    // Second week - Sunday to Friday
+    for (let i = 7; i < 14; i++) {
+      const date = new Date(currentWeekStart);
+      date.setDate(currentWeekStart.getDate() + i);
+      
+      // Only include Sunday (0) through Friday (5)
+      if (date.getDay() >= 0 && date.getDay() <= 5) {
+        days.push(date);
+      }
+    }
+    
+    return days;
+  };
+
+  const allDays = getWorkDaysForTwoWeeks();
+  console.log('All days generated:', allDays.map(d => ({ 
+    dayOfWeek: d.getDay(), 
+    dateStr: d.toISOString().split('T')[0],
+    displayStr: d.getDate().toString().padStart(2, '0') + '/' + (d.getMonth() + 1).toString().padStart(2, '0')
+  })));
+  
+  const firstWeekDays = allDays.slice(0, 6);
+  const secondWeekDays = allDays.slice(6, 12);
 
   // Group schedules by date
   const getSchedulesForDate = (date: Date) => {
@@ -166,11 +197,11 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
     <div>
       <h2 className="text-xl font-semibold mb-4">לוח שנה - שבועיים</h2>
       
-      {/* Week 1 */}
-      <div className="grid grid-cols-5 gap-4 mb-6">
-        {days.slice(0, 5).map((date, index) => (
+      {/* Week 1 - Use CSS Grid with RTL direction for Hebrew layout */}
+      <div className="grid grid-cols-6 gap-4 mb-6" dir="rtl">
+        {firstWeekDays.map((date, index) => (
           <CalendarDay
-            key={index}
+            key={`week1-${date.toISOString().split('T')[0]}`}
             date={date}
             schedulesForDate={getSchedulesForDate(date)}
             distributionGroups={distributionGroups}
@@ -183,11 +214,11 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
         ))}
       </div>
 
-      {/* Week 2 */}
-      <div className="grid grid-cols-5 gap-4">
-        {days.slice(5, 10).map((date, index) => (
+      {/* Week 2 - Use CSS Grid with RTL direction for Hebrew layout */}
+      <div className="grid grid-cols-6 gap-4" dir="rtl">
+        {secondWeekDays.map((date, index) => (
           <CalendarDay
-            key={index + 5}
+            key={`week2-${date.toISOString().split('T')[0]}`}
             date={date}
             schedulesForDate={getSchedulesForDate(date)}
             distributionGroups={distributionGroups}
