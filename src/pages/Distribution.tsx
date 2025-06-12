@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -16,6 +15,11 @@ interface Order {
   city: string;
   totalorder: number;
   schedule_id?: number;
+  icecream?: string;
+  customernumber?: string;
+  agentnumber?: string;
+  orderdate?: string;
+  invoicenumber?: string;
 }
 
 interface Return {
@@ -25,6 +29,10 @@ interface Return {
   city: string;
   totalreturn: number;
   schedule_id?: number;
+  icecream?: string;
+  customernumber?: string;
+  agentnumber?: string;
+  returndate?: string;
 }
 
 interface DistributionGroup {
@@ -51,7 +59,7 @@ const Distribution = () => {
       console.log('Fetching orders...');
       const { data, error } = await supabase
         .from('mainorder')
-        .select('ordernumber, customername, address, city, totalorder, schedule_id, icecream')
+        .select('ordernumber, customername, address, city, totalorder, schedule_id, icecream, customernumber, agentnumber, orderdate, invoicenumber')
         .or('icecream.is.null,icecream.eq.')
         .order('ordernumber', { ascending: false })
         .limit(50);
@@ -69,7 +77,7 @@ const Distribution = () => {
       console.log('Fetching returns...');
       const { data, error } = await supabase
         .from('mainreturns')
-        .select('returnnumber, customername, address, city, totalreturn, schedule_id, icecream')
+        .select('returnnumber, customername, address, city, totalreturn, schedule_id, icecream, customernumber, agentnumber, returndate')
         .or('icecream.is.null,icecream.eq.')
         .order('returnnumber', { ascending: false })
         .limit(50);

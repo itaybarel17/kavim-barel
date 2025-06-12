@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderCard } from './OrderCard';
+import { useQuery } from '@tanstack/react-query';
 
 interface Order {
   ordernumber: number;
@@ -15,6 +16,10 @@ interface Order {
   city: string;
   totalorder: number;
   schedule_id?: number;
+  customernumber?: string;
+  agentnumber?: string;
+  orderdate?: string;
+  invoicenumber?: number;
 }
 
 interface Return {
@@ -24,6 +29,9 @@ interface Return {
   city: string;
   totalreturn: number;
   schedule_id?: number;
+  customernumber?: string;
+  agentnumber?: string;
+  returndate?: string;
 }
 
 interface DistributionGroup {
@@ -35,6 +43,12 @@ interface DistributionSchedule {
   schedule_id: number;
   groups_id: number;
   create_at_schedule: string;
+  driver_id?: number;
+}
+
+interface Driver {
+  id: number;
+  nahag: string;
 }
 
 interface DropZoneProps {
@@ -62,6 +76,23 @@ export const DropZone: React.FC<DropZoneProps> = ({
 }) => {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [scheduleId, setScheduleId] = useState<number | null>(null);
+  const [selectedDriverId, setSelectedDriverId] = useState<number | null>(null);
+
+  // Fetch drivers
+  const { data: drivers = [] } = useQuery({
+    queryKey: ['drivers'],
+    queryFn: async () => {
+      console.log('Fetching drivers...');
+      const { data, error } = await supabase
+        .from('nahagim')
+        .select('id, nahag')
+        .order('nahag', { ascending: true });
+      
+      if (error) throw error;
+      console.log('Drivers fetched:', data);
+      return data as Driver[];
+    }
+  });
 
   const [{ isOver }, drop] = useDrop(() => ({
     accept: 'card',
@@ -87,59 +118,48 @@ export const DropZone: React.FC<DropZoneProps> = ({
     scheduleId && returnItem.schedule_id === scheduleId
   );
 
-  // Load existing state for this zone based on assigned items
+  // Load existing state for this zone
   useEffect(() => {
     console.log('DropZone effect - loading existing state for zone:', zoneNumber);
 
     // Reset state first
     setSelectedGroupId(null);
     setScheduleId(null);
+    setSelectedDriverId(null);
 
-    // Find items that are assigned to any schedule
-    const assignedOrders = orders.filter(order => order.schedule_id);
-    const assignedReturns = returns.filter(returnItem => returnItem.schedule_id);
-    const allAssignedItems = [...assignedOrders, ...assignedReturns];
-
-    // Group items by schedule_id and maintain the zone mapping
-    const scheduleItemsMap = new Map();
-    allAssignedItems.forEach(item => {
-      const scheduleId = item.schedule_id;
-      if (scheduleId) {
-        if (!scheduleItemsMap.has(scheduleId)) {
-          scheduleItemsMap.set(scheduleId, []);
-        }
-        scheduleItemsMap.get(scheduleId).push(item);
-      }
-    });
-
-    // Get schedules with items, sorted by creation time (schedule_id order) to maintain consistent assignment
-    const schedulesWithItems = distributionSchedules
-      .filter(schedule => scheduleItemsMap.has(schedule.schedule_id))
+    // Find the schedule for this zone
+    const zoneSchedules = distributionSchedules
+      .filter(schedule => {
+        const hasItems = [...orders, ...returns].some(item => item.schedule_id === schedule.schedule_id);
+        return hasItems;
+      })
       .sort((a, b) => a.schedule_id - b.schedule_id);
 
-    // Each zone gets assigned to a specific position based on zoneNumber
-    // Zone 1 gets the first schedule with items, Zone 2 gets the second, etc.
-    if (schedulesWithItems.length >= zoneNumber) {
-      const targetSchedule = schedulesWithItems[zoneNumber - 1];
-      console.log(`Zone ${zoneNumber} assigned to schedule ${targetSchedule.schedule_id} (position-based)`);
+    if (zoneSchedules.length >= zoneNumber) {
+      const targetSchedule = zoneSchedules[zoneNumber - 1];
+      console.log(`Zone ${zoneNumber} assigned to schedule ${targetSchedule.schedule_id}`);
 
       setSelectedGroupId(targetSchedule.groups_id);
       setScheduleId(targetSchedule.schedule_id);
+      setSelectedDriverId(targetSchedule.driver_id || null);
       return;
     }
 
-    // If this zone doesn't have assigned items, check for empty schedules
+    // Check for empty schedules
     const emptySchedules = distributionSchedules
-      .filter(schedule => !scheduleItemsMap.has(schedule.schedule_id))
+      .filter(schedule => {
+        const hasItems = [...orders, ...returns].some(item => item.schedule_id === schedule.schedule_id);
+        return !hasItems;
+      })
       .sort((a, b) => a.schedule_id - b.schedule_id);
 
-    // Calculate which empty schedule this zone should get
-    const emptyScheduleIndex = zoneNumber - 1 - schedulesWithItems.length;
+    const emptyScheduleIndex = zoneNumber - 1 - zoneSchedules.length;
     if (emptyScheduleIndex >= 0 && emptyScheduleIndex < emptySchedules.length) {
       const targetSchedule = emptySchedules[emptyScheduleIndex];
       console.log(`Zone ${zoneNumber} assigned to empty schedule ${targetSchedule.schedule_id}`);
       setSelectedGroupId(targetSchedule.groups_id);
       setScheduleId(targetSchedule.schedule_id);
+      setSelectedDriverId(targetSchedule.driver_id || null);
     }
   }, [distributionSchedules, orders, returns, zoneNumber]);
 
@@ -150,11 +170,11 @@ export const DropZone: React.FC<DropZoneProps> = ({
     if (!groupId) {
       setSelectedGroupId(null);
       setScheduleId(null);
+      setSelectedDriverId(null);
       return;
     }
 
     try {
-      // Create a new schedule immediately when selecting a group
       console.log('Creating new schedule for group:', groupId);
       const { data: newScheduleId, error } = await supabase
         .rpc('get_or_create_schedule_for_group', { group_id: groupId });
@@ -167,11 +187,38 @@ export const DropZone: React.FC<DropZoneProps> = ({
       console.log('Created new schedule ID:', newScheduleId);
       setSelectedGroupId(groupId);
       setScheduleId(newScheduleId);
+      setSelectedDriverId(null);
       
-      // Notify parent to refresh schedules
       onScheduleCreated();
     } catch (error) {
       console.error('Error in group selection:', error);
+    }
+  };
+
+  const handleDriverSelection = async (value: string) => {
+    const driverId = value ? parseInt(value) : null;
+    console.log('Driver selected for zone', zoneNumber, ':', driverId);
+    
+    if (!scheduleId) {
+      console.warn('No schedule ID available for driver assignment');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('distribution_schedule')
+        .update({ driver_id: driverId })
+        .eq('schedule_id', scheduleId);
+
+      if (error) {
+        console.error('Error updating driver:', error);
+        return;
+      }
+
+      console.log('Driver updated successfully');
+      setSelectedDriverId(driverId);
+    } catch (error) {
+      console.error('Error in driver selection:', error);
     }
   };
 
@@ -219,8 +266,8 @@ export const DropZone: React.FC<DropZoneProps> = ({
       // Reset local state
       setSelectedGroupId(null);
       setScheduleId(null);
+      setSelectedDriverId(null);
       
-      // Notify parent component to refresh data
       onScheduleDeleted();
     } catch (error) {
       console.error('Error deleting schedule:', error);
@@ -233,6 +280,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
 
   // Get the selected group name for display
   const selectedGroup = distributionGroups.find(group => group.groups_id === selectedGroupId);
+  const selectedDriver = drivers.find(driver => driver.id === selectedDriverId);
 
   return (
     <Card
@@ -275,12 +323,40 @@ export const DropZone: React.FC<DropZoneProps> = ({
               ))}
             </SelectContent>
           </Select>
+
+          {scheduleId && (
+            <Select
+              value={selectedDriverId?.toString() || ''}
+              onValueChange={handleDriverSelection}
+            >
+              <SelectTrigger className="w-full h-10 bg-background border border-input">
+                <SelectValue placeholder="בחר נהג" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover border border-border shadow-md z-50 max-h-[200px] overflow-y-auto">
+                {drivers.map((driver) => (
+                  <SelectItem 
+                    key={driver.id} 
+                    value={driver.id.toString()}
+                    className="cursor-pointer hover:bg-accent focus:bg-accent"
+                  >
+                    {driver.nahag}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
           {scheduleId ? (
             <div className="text-sm text-muted-foreground">
               מזהה לוח זמנים: {scheduleId}
               {selectedGroup && (
                 <div className="font-medium text-primary">
                   אזור נבחר: {selectedGroup.separation}
+                </div>
+              )}
+              {selectedDriver && (
+                <div className="font-medium text-secondary-foreground">
+                  נהג נבחר: {selectedDriver.nahag}
                 </div>
               )}
             </div>
@@ -302,7 +378,6 @@ export const DropZone: React.FC<DropZoneProps> = ({
             type="order"
             data={order}
             onDragStart={handleItemDragStart}
-            isAssigned={true}
           />
         ))}
         {assignedReturns.map((returnItem) => (
@@ -311,7 +386,6 @@ export const DropZone: React.FC<DropZoneProps> = ({
             type="return"
             data={returnItem}
             onDragStart={handleItemDragStart}
-            isAssigned={true}
           />
         ))}
         {assignedOrders.length === 0 && assignedReturns.length === 0 && (
