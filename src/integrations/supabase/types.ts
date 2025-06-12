@@ -349,6 +349,7 @@ export type Database = {
           customergroup: string | null
           customername: string | null
           customernumber: string | null
+          done_return: string | null
           icecream: string | null
           returndate: string | null
           returnnumber: number
@@ -364,6 +365,7 @@ export type Database = {
           customergroup?: string | null
           customername?: string | null
           customernumber?: string | null
+          done_return?: string | null
           icecream?: string | null
           returndate?: string | null
           returnnumber: number
@@ -379,6 +381,7 @@ export type Database = {
           customergroup?: string | null
           customername?: string | null
           customernumber?: string | null
+          done_return?: string | null
           icecream?: string | null
           returndate?: string | null
           returnnumber?: number

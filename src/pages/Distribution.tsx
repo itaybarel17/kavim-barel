@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -39,7 +38,7 @@ interface DistributionSchedule {
 const Distribution = () => {
   const [draggedItem, setDraggedItem] = useState<{ type: 'order' | 'return'; data: Order | Return } | null>(null);
 
-  // Fetch orders (exclude ice cream orders where icecream = '1')
+  // Fetch orders (only include if icecream is NULL or empty)
   const { data: orders = [], refetch: refetchOrders } = useQuery({
     queryKey: ['orders'],
     queryFn: async () => {
@@ -47,7 +46,7 @@ const Distribution = () => {
       const { data, error } = await supabase
         .from('mainorder')
         .select('ordernumber, customername, address, city, totalorder, schedule_id, icecream')
-        .neq('icecream', '1')
+        .or('icecream.is.null,icecream.eq.')
         .order('ordernumber', { ascending: false })
         .limit(50);
       
@@ -57,7 +56,7 @@ const Distribution = () => {
     }
   });
 
-  // Fetch returns (exclude ice cream returns where icecream = '1')
+  // Fetch returns (only include if icecream is NULL or empty)
   const { data: returns = [], refetch: refetchReturns } = useQuery({
     queryKey: ['returns'],
     queryFn: async () => {
@@ -65,7 +64,7 @@ const Distribution = () => {
       const { data, error } = await supabase
         .from('mainreturns')
         .select('returnnumber, customername, address, city, totalreturn, schedule_id, icecream')
-        .neq('icecream', '1')
+        .or('icecream.is.null,icecream.eq.')
         .order('returnnumber', { ascending: false })
         .limit(50);
       
