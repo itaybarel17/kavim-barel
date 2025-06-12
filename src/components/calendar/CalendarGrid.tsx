@@ -140,20 +140,38 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
   const [productionDialogOpen, setProductionDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-  // Generate 12 days (2 weeks) starting from Sunday and including Sunday-Friday
-  const days = [];
-  for (let i = 0; i < 14; i++) {
-    const date = new Date(currentWeekStart);
-    date.setDate(currentWeekStart.getDate() + i);
+  // Generate Israeli work week days (Sunday to Friday) for 2 weeks
+  const getWorkDaysForTwoWeeks = () => {
+    const days = [];
     
-    // Include Sunday (0) through Friday (5)
-    if (date.getDay() >= 0 && date.getDay() <= 5) {
-      days.push(date);
+    // First week - Sunday to Friday
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(currentWeekStart);
+      date.setDate(currentWeekStart.getDate() + i);
+      
+      // Only include Sunday (0) through Friday (5)
+      if (date.getDay() >= 0 && date.getDay() <= 5) {
+        days.push(date);
+      }
     }
-  }
+    
+    // Second week - Sunday to Friday
+    for (let i = 7; i < 14; i++) {
+      const date = new Date(currentWeekStart);
+      date.setDate(currentWeekStart.getDate() + i);
+      
+      // Only include Sunday (0) through Friday (5)
+      if (date.getDay() >= 0 && date.getDay() <= 5) {
+        days.push(date);
+      }
+    }
+    
+    return days;
+  };
 
-  // Reverse the days array so the earliest day appears on the right (Hebrew reading direction)
-  const reversedDays = [...days].reverse();
+  const allDays = getWorkDaysForTwoWeeks();
+  const firstWeekDays = allDays.slice(0, 5); // First 5 days (Sunday-Friday of first week)
+  const secondWeekDays = allDays.slice(5, 10); // Next 5 days (Sunday-Friday of second week)
 
   // Group schedules by date
   const getSchedulesForDate = (date: Date) => {
@@ -170,9 +188,9 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
     <div>
       <h2 className="text-xl font-semibold mb-4">לוח שנה - שבועיים</h2>
       
-      {/* Week 1 - showing first 6 days (Sunday to Friday) */}
-      <div className="grid grid-cols-6 gap-4 mb-6">
-        {reversedDays.slice(0, 6).map((date, index) => (
+      {/* Week 1 - Sunday to Friday (Sunday on the right, Friday on the left) */}
+      <div className="grid grid-cols-5 gap-4 mb-6">
+        {firstWeekDays.reverse().map((date, index) => (
           <CalendarDay
             key={index}
             date={date}
@@ -187,11 +205,11 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
         ))}
       </div>
 
-      {/* Week 2 - showing next 6 days (Sunday to Friday) */}
-      <div className="grid grid-cols-6 gap-4">
-        {reversedDays.slice(6, 12).map((date, index) => (
+      {/* Week 2 - Sunday to Friday (Sunday on the right, Friday on the left) */}
+      <div className="grid grid-cols-5 gap-4">
+        {secondWeekDays.reverse().map((date, index) => (
           <CalendarDay
-            key={index + 6}
+            key={index + 5}
             date={date}
             schedulesForDate={getSchedulesForDate(date)}
             distributionGroups={distributionGroups}
