@@ -61,14 +61,18 @@ export const DropZone: React.FC<DropZoneProps> = ({
   const [{ isOver }, drop] = useDrop(() => ({
     accept: 'card',
     drop: (item: { type: 'order' | 'return'; data: Order | Return }) => {
+      console.log('Drop triggered with selectedGroupId:', selectedGroupId);
+      console.log('Drop item:', item);
       if (selectedGroupId) {
         onDrop(selectedGroupId, item);
+      } else {
+        console.warn('No group selected for drop');
       }
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
     }),
-  }));
+  }), [selectedGroupId]);
 
   // Find schedule ID for selected group
   const scheduleId = useMemo(() => {
@@ -93,6 +97,9 @@ export const DropZone: React.FC<DropZoneProps> = ({
 
           console.log('Created schedule ID:', newScheduleId);
           setCurrentScheduleId(newScheduleId);
+          
+          // Trigger refresh of schedules in parent
+          onScheduleDeleted(); // This will refresh all data including schedules
         } catch (error) {
           console.error('Error creating schedule:', error);
         }
@@ -102,7 +109,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
     } else if (scheduleId) {
       setCurrentScheduleId(scheduleId);
     }
-  }, [selectedGroupId, scheduleId]);
+  }, [selectedGroupId, scheduleId, onScheduleDeleted]);
 
   // Get the actual schedule ID to display
   const displayScheduleId = scheduleId || currentScheduleId;
@@ -117,6 +124,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
 
   const handleGroupSelection = (value: string) => {
     const groupId = value ? parseInt(value) : null;
+    console.log('Group selected:', groupId);
     setSelectedGroupId(groupId);
     if (!groupId) {
       setCurrentScheduleId(null);
@@ -127,7 +135,6 @@ export const DropZone: React.FC<DropZoneProps> = ({
     if (!displayScheduleId) return;
 
     try {
-      // First, clear all assignments (set schedule_id to null)
       console.log('Clearing assignments for schedule:', displayScheduleId);
       
       // Clear orders
@@ -243,7 +250,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
         ))}
         {assignedOrders.length === 0 && assignedReturns.length === 0 && (
           <div className="text-center text-muted-foreground text-sm py-8">
-            גרור הזמנות או החזרות לכאן
+            {selectedGroupId ? 'גרור הזמנות או החזרות לכאן' : 'בחר אזור תחילה'}
           </div>
         )}
       </CardContent>

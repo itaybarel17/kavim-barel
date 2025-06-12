@@ -107,7 +107,9 @@ const Distribution = () => {
 
   const handleDrop = async (groupId: number, item: { type: 'order' | 'return'; data: Order | Return }) => {
     try {
-      // Use the new function to get or create a schedule for this group
+      console.log('handleDrop called with groupId:', groupId, 'item:', item);
+      
+      // Use the function to get or create a schedule for this group
       const { data: scheduleId, error: scheduleError } = await supabase
         .rpc('get_or_create_schedule_for_group', { group_id: groupId });
 
@@ -116,21 +118,33 @@ const Distribution = () => {
         return;
       }
 
+      console.log('Got/created schedule ID:', scheduleId);
+
       if (item.type === 'order') {
+        console.log('Updating order', (item.data as Order).ordernumber, 'with schedule_id:', scheduleId);
         const { error } = await supabase
           .from('mainorder')
           .update({ schedule_id: scheduleId })
           .eq('ordernumber', (item.data as Order).ordernumber);
         
-        if (error) throw error;
+        if (error) {
+          console.error('Error updating order:', error);
+          throw error;
+        }
+        console.log('Order updated successfully');
         refetchOrders();
       } else {
+        console.log('Updating return', (item.data as Return).returnnumber, 'with schedule_id:', scheduleId);
         const { error } = await supabase
           .from('mainreturns')
           .update({ schedule_id: scheduleId })
           .eq('returnnumber', (item.data as Return).returnnumber);
         
-        if (error) throw error;
+        if (error) {
+          console.error('Error updating return:', error);
+          throw error;
+        }
+        console.log('Return updated successfully');
         refetchReturns();
       }
 
@@ -142,6 +156,7 @@ const Distribution = () => {
   };
 
   const handleScheduleDeleted = () => {
+    console.log('Schedule deleted, refreshing all data...');
     // Refresh all data when a schedule is deleted
     refetchOrders();
     refetchReturns();
