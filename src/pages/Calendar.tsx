@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -62,10 +61,11 @@ const Calendar = () => {
   const navigate = useNavigate();
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
     const today = new Date();
-    const dayOfWeek = today.getDay();
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-    return monday;
+    const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    const sunday = new Date(today);
+    // Calculate days back to Sunday (Israeli week start)
+    sunday.setDate(today.getDate() - dayOfWeek);
+    return sunday;
   });
 
   // Set up realtime subscriptions
