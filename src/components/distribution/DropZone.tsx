@@ -85,18 +85,14 @@ export const DropZone: React.FC<DropZoneProps> = ({
   const [{ isOver }, drop] = useDrop(() => ({
     accept: 'card',
     drop: (item: { type: 'order' | 'return'; data: Order | Return }) => {
-      console.log('Drop triggered in zone', zoneNumber, 'with scheduleId:', scheduleId);
-      console.log('Drop item:', item);
-      if (scheduleId) {
-        onDrop(zoneNumber, item);
-      } else {
-        console.warn('No schedule ID available for drop in zone', zoneNumber);
-      }
+      console.log('Drop triggered in zone', zoneNumber, 'with item:', item);
+      // Always allow drop - the handleDrop will create a new schedule if needed
+      onDrop(zoneNumber, item);
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
     }),
-  }), [scheduleId, zoneNumber]);
+  }), [zoneNumber]);
 
   // Get assigned items for this zone based on schedule_id
   const assignedOrders = orders.filter(order => 
@@ -106,7 +102,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
     scheduleId && returnItem.schedule_id === scheduleId
   );
 
-  // Load existing state for this zone - FIXED to include driver_id
+  // Load existing state for this zone
   useEffect(() => {
     console.log('DropZone effect - loading existing state for zone:', zoneNumber);
 
@@ -115,7 +111,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
     setScheduleId(null);
     setSelectedDriverId(null);
 
-    // Find the schedule for this zone
+    // Find the schedule for this zone - allow flexible assignment
     const zoneSchedules = distributionSchedules
       .filter(schedule => {
         const hasItems = [...orders, ...returns].some(item => item.schedule_id === schedule.schedule_id);
@@ -129,7 +125,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
 
       setSelectedGroupId(targetSchedule.groups_id);
       setScheduleId(targetSchedule.schedule_id);
-      setSelectedDriverId(targetSchedule.driver_id || null); // FIX: Load driver_id from schedule
+      setSelectedDriverId(targetSchedule.driver_id || null);
       return;
     }
 
@@ -147,7 +143,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
       console.log(`Zone ${zoneNumber} assigned to empty schedule ${targetSchedule.schedule_id}`);
       setSelectedGroupId(targetSchedule.groups_id);
       setScheduleId(targetSchedule.schedule_id);
-      setSelectedDriverId(targetSchedule.driver_id || null); // FIX: Load driver_id from schedule
+      setSelectedDriverId(targetSchedule.driver_id || null);
     }
   }, [distributionSchedules, orders, returns, zoneNumber]);
 
@@ -346,7 +342,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
             </SelectContent>
           </Select>
 
-          {scheduleId && (
+          {selectedGroupId && (
             <Select
               value={selectedDriverId?.toString() || ''}
               onValueChange={handleDriverSelection}
@@ -412,7 +408,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
         ))}
         {assignedOrders.length === 0 && assignedReturns.length === 0 && (
           <div className="text-center text-muted-foreground text-sm py-8">
-            {scheduleId ? 'גרור הזמנות או החזרות לכאן' : 'בחר אזור ליצירת מזהה'}
+            {selectedGroupId ? 'גרור הזמנות או החזרות לכאן' : 'בחר אזור ליצירת מזהה'}
           </div>
         )}
       </CardContent>

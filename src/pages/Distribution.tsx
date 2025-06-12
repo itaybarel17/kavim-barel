@@ -61,7 +61,7 @@ const Distribution = () => {
   // Set up realtime subscriptions
   useRealtimeSubscription();
 
-  // Fetch orders (only include if icecream is NULL or empty AND not done)
+  // Fetch orders (exclude produced orders: done_mainorder IS NOT NULL)
   const { data: orders = [], refetch: refetchOrders, isLoading: ordersLoading } = useQuery({
     queryKey: ['orders'],
     queryFn: async () => {
@@ -80,7 +80,7 @@ const Distribution = () => {
     }
   });
 
-  // Fetch returns (only include if icecream is NULL or empty AND not done)
+  // Fetch returns (exclude produced returns: done_return IS NOT NULL)
   const { data: returns = [], refetch: refetchReturns, isLoading: returnsLoading } = useQuery({
     queryKey: ['returns'],
     queryFn: async () => {
@@ -149,24 +149,32 @@ const Distribution = () => {
     try {
       console.log('handleDrop called with zoneNumber:', zoneNumber, 'item:', item);
       
-      // Get the current zone state to find the target schedule ID
+      // Always create a new schedule when dropping to a zone
+      // First, find the selected group for this zone
       const currentZoneState = getZoneState(zoneNumber);
       
-      let targetScheduleId = currentZoneState.scheduleId;
-      
-      // If the zone doesn't have a schedule ID, we need to create one
-      if (!targetScheduleId) {
-        console.log('Zone has no schedule, cannot drop item');
+      if (!currentZoneState.selectedGroupId) {
+        console.log('No group selected for zone, cannot drop item');
         return;
       }
 
-      console.log('Using target schedule ID:', targetScheduleId);
+      // Create a new schedule for this group
+      console.log('Creating new schedule for group:', currentZoneState.selectedGroupId);
+      const { data: newScheduleId, error: scheduleError } = await supabase
+        .rpc('get_or_create_schedule_for_group', { group_id: currentZoneState.selectedGroupId });
+
+      if (scheduleError) {
+        console.error('Error creating schedule:', scheduleError);
+        return;
+      }
+
+      console.log('Created new schedule ID:', newScheduleId);
 
       if (item.type === 'order') {
-        console.log('Updating order', (item.data as Order).ordernumber, 'with schedule_id:', targetScheduleId);
+        console.log('Updating order', (item.data as Order).ordernumber, 'with schedule_id:', newScheduleId);
         const { error } = await supabase
           .from('mainorder')
-          .update({ schedule_id: targetScheduleId })
+          .update({ schedule_id: newScheduleId })
           .eq('ordernumber', (item.data as Order).ordernumber);
         
         if (error) {
@@ -176,10 +184,10 @@ const Distribution = () => {
         console.log('Order updated successfully');
         refetchOrders();
       } else {
-        console.log('Updating return', (item.data as Return).returnnumber, 'with schedule_id:', targetScheduleId);
+        console.log('Updating return', (item.data as Return).returnnumber, 'with schedule_id:', newScheduleId);
         const { error } = await supabase
           .from('mainreturns')
-          .update({ schedule_id: targetScheduleId })
+          .update({ schedule_id: newScheduleId })
           .eq('returnnumber', (item.data as Return).returnnumber);
         
         if (error) {
@@ -250,7 +258,7 @@ const Distribution = () => {
     await handleDropToUnassigned(item);
   };
 
-  // Helper function to get the current state of a zone
+  // Updated helper function to get the current state of a zone
   const getZoneState = (zoneNumber: number) => {
     // Find items that are assigned to any schedule
     const assignedOrders = orders.filter(order => order.schedule_id);
