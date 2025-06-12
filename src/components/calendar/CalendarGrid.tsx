@@ -72,7 +72,11 @@ const CalendarDay: React.FC<{
   const [{ isOver }, drop] = useDrop(() => ({
     accept: 'calendar-card',
     drop: (item: { scheduleId: number }) => {
-      console.log('Dropping to date:', date, 'Date string:', date.toISOString().split('T')[0]);
+      console.log('Dropping to date:', date, 'Date components:', {
+        year: date.getFullYear(),
+        month: date.getMonth() + 1,
+        day: date.getDate()
+      });
       onDropToDate(item.scheduleId, date);
     },
     collect: (monitor) => ({
@@ -84,7 +88,13 @@ const CalendarDay: React.FC<{
   const dayName = dayNames[date.getDay()];
   const dateStr = date.getDate().toString().padStart(2, '0') + '/' + (date.getMonth() + 1).toString().padStart(2, '0');
 
-  console.log('CalendarDay rendered:', dateStr, date.toISOString().split('T')[0]);
+  // Build date string consistently using date components (not toISOString)
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  const dateForComparison = `${year}-${month}-${day}`;
+
+  console.log('CalendarDay rendered:', dateStr, 'dateForComparison:', dateForComparison);
 
   return (
     <Card
@@ -173,19 +183,37 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
   };
 
   const allDays = getWorkDaysForTwoWeeks();
-  console.log('All days generated:', allDays.map(d => ({ 
-    dayOfWeek: d.getDay(), 
-    dateStr: d.toISOString().split('T')[0],
-    displayStr: d.getDate().toString().padStart(2, '0') + '/' + (d.getMonth() + 1).toString().padStart(2, '0')
-  })));
+  console.log('All days generated:', allDays.map(d => {
+    const year = d.getFullYear();
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const day = d.getDate().toString().padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    return {
+      dayOfWeek: d.getDay(), 
+      dateStr: dateStr,
+      displayStr: day + '/' + month
+    };
+  }));
   
   const firstWeekDays = allDays.slice(0, 6);
   const secondWeekDays = allDays.slice(6, 12);
 
-  // Group schedules by date
+  // Group schedules by date - using consistent date string building
   const getSchedulesForDate = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
-    return distributionSchedules.filter(schedule => schedule.distribution_date === dateStr);
+    // Build date string consistently using date components (avoiding toISOString timezone issues)
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    
+    console.log('getSchedulesForDate - comparing dateStr:', dateStr);
+    const filteredSchedules = distributionSchedules.filter(schedule => {
+      console.log('  schedule.distribution_date:', schedule.distribution_date);
+      return schedule.distribution_date === dateStr;
+    });
+    console.log('  filtered schedules count:', filteredSchedules.length);
+    
+    return filteredSchedules;
   };
 
   const handleProductionDialogOpen = (date: Date) => {
@@ -201,7 +229,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
       <div className="grid grid-cols-6 gap-4 mb-6" dir="rtl">
         {firstWeekDays.map((date, index) => (
           <CalendarDay
-            key={`week1-${date.toISOString().split('T')[0]}`}
+            key={`week1-${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`}
             date={date}
             schedulesForDate={getSchedulesForDate(date)}
             distributionGroups={distributionGroups}
@@ -218,7 +246,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
       <div className="grid grid-cols-6 gap-4" dir="rtl">
         {secondWeekDays.map((date, index) => (
           <CalendarDay
-            key={`week2-${date.toISOString().split('T')[0]}`}
+            key={`week2-${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`}
             date={date}
             schedulesForDate={getSchedulesForDate(date)}
             distributionGroups={distributionGroups}
