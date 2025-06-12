@@ -309,7 +309,7 @@ const ZoneReport = () => {
       </div>
 
       {/* Print styles */}
-      <style jsx>{`
+      <style>{`
         @media print {
           .no-print {
             display: none !important;
