@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -199,30 +198,12 @@ const Calendar = () => {
   const handleDropToDate = async (scheduleId: number, date: Date) => {
     try {
       console.log('Dropping schedule', scheduleId, 'to date', date);
-      console.log('Date details:', {
-        toString: date.toString(),
-        toDateString: date.toDateString(),
-        getDate: date.getDate(),
-        getMonth: date.getMonth(),
-        getFullYear: date.getFullYear()
-      });
       
-      // Create a completely new date object to avoid any timezone issues
-      // Use the exact date components from the calendar display
-      const exactDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0, 0);
-      console.log('Exact date created:', exactDate);
+      // Create a new date object to avoid timezone issues
+      const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const dateString = localDate.toISOString().split('T')[0];
       
-      // Format manually to ensure correct date
-      const year = exactDate.getFullYear();
-      const month = String(exactDate.getMonth() + 1).padStart(2, '0');
-      const day = String(exactDate.getDate()).padStart(2, '0');
-      const dateString = `${year}-${month}-${day}`;
-      
-      console.log('Date components being saved:');
-      console.log('- Year:', year);
-      console.log('- Month:', month, '(from getMonth():', exactDate.getMonth(), ')');
-      console.log('- Day:', day);
-      console.log('- Final date string for database:', dateString);
+      console.log('Date being saved to database:', dateString);
       
       // Calculate unique destinations count for this schedule
       const scheduleOrders = orders.filter(order => order.schedule_id === scheduleId);
