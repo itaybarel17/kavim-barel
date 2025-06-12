@@ -128,70 +128,68 @@ const ZoneReport = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Action buttons - visible only on screen */}
-      <div className="no-print sticky top-0 z-10 bg-background border-b p-4 flex items-center justify-between">
+      <div className="no-print sticky top-0 z-10 bg-background border-b p-2 flex items-center justify-between">
         <Button
           variant="outline"
           onClick={() => navigate('/distribution')}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 text-sm"
+          size="sm"
         >
-          <ArrowRight className="h-4 w-4 rotate-180" />
+          <ArrowRight className="h-3 w-3 rotate-180" />
           חזור לממשק הפצה
         </Button>
         <div className="flex gap-2" data-hide-in-export>
           <Button
             onClick={handlePrint}
             variant="outline"
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 text-sm"
+            size="sm"
           >
-            <Printer className="h-4 w-4" />
+            <Printer className="h-3 w-3" />
             הדפס
           </Button>
           <Button
             onClick={handleExportToPDF}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 text-sm"
+            size="sm"
           >
-            <Download className="h-4 w-4" />
+            <Download className="h-3 w-3" />
             ייצא ל-PDF
           </Button>
         </div>
       </div>
 
-      {/* Report content */}
-      <div ref={reportRef} className="p-8 max-w-4xl mx-auto bg-white">
-        {/* Header */}
-        <div className="text-center mb-8 border-b pb-6">
-          <h1 className="text-4xl font-bold text-primary mb-2">
+      {/* Report content - optimized for single page */}
+      <div ref={reportRef} className="p-3 max-w-4xl mx-auto bg-white text-xs">
+        {/* Header - compact */}
+        <div className="text-center mb-3 border-b pb-2">
+          <h1 className="text-xl font-bold text-primary mb-1">
             דוח אזור {zoneNumber}
           </h1>
-          <h2 className="text-2xl text-muted-foreground">
+          <h2 className="text-base text-muted-foreground">
             {groupName || 'לא מוגדר'}
           </h2>
         </div>
 
-        {/* Schedule Info */}
-        <Card className="mb-8 border-2">
-          <CardHeader>
-            <CardTitle className="text-xl">פרטי לוח זמנים</CardTitle>
+        {/* Schedule Info - compact */}
+        <Card className="mb-3 border">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">פרטי לוח זמנים</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-2 gap-4">
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-4 gap-2 text-xs">
               <div>
-                <span className="font-semibold">מזהה לוח זמנים:</span> {scheduleId}
+                <span className="font-medium">מזהה לוח זמנים:</span> {scheduleId}
               </div>
               <div>
-                <span className="font-semibold">נהג:</span> {driverName || 'לא מוגדר'}
+                <span className="font-medium">נהג:</span> {driverName || 'לא מוגדר'}
               </div>
               <div>
-                <span className="font-semibold">תאריך הדפסה:</span>{' '}
-                {new Date().toLocaleDateString('he-IL', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                  weekday: 'long'
-                })}
+                <span className="font-medium">תאריך הדפסה:</span>{' '}
+                {new Date().toLocaleDateString('he-IL')}
               </div>
               <div>
-                <span className="font-semibold">שעת הדפסה:</span>{' '}
+                <span className="font-medium">שעת הדפסה:</span>{' '}
                 {new Date().toLocaleTimeString('he-IL', {
                   hour: '2-digit',
                   minute: '2-digit'
@@ -201,116 +199,105 @@ const ZoneReport = () => {
           </CardContent>
         </Card>
 
-        {/* Orders Section */}
-        {orders.length > 0 && (
-          <Card className="mb-8 border-2 border-blue-300">
-            <CardHeader>
-              <CardTitle className="text-xl text-blue-700">
-                הזמנות ({orders.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {orders.map((order, index) => (
-                  <div
-                    key={`order-${order.ordernumber}`}
-                    className="p-4 border-2 border-blue-300 rounded-lg"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <h3 className="text-lg font-semibold text-blue-900">
-                        {index + 1}. {order.customername}
-                      </h3>
-                      <span className="text-lg font-bold text-blue-700">
-                        ₪{order.totalorder.toLocaleString('he-IL')}
-                      </span>
-                    </div>
-                    <div className="text-sm text-blue-800 space-y-1">
-                      <div>
-                        <span className="font-medium">כתובת:</span> {order.address}, {order.city}
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          {/* Orders Section - compact */}
+          {orders.length > 0 && (
+            <Card className="border-blue-300">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-blue-700">
+                  הזמנות ({orders.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-1">
+                  {orders.map((order, index) => (
+                    <div
+                      key={`order-${order.ordernumber}`}
+                      className="p-1 border border-blue-300 rounded text-xs"
+                    >
+                      <div className="flex items-start justify-between mb-1">
+                        <span className="font-medium text-blue-900 text-xs">
+                          {index + 1}. {order.customername}
+                        </span>
+                        <span className="font-bold text-blue-700 text-xs">
+                          ₪{order.totalorder.toLocaleString('he-IL')}
+                        </span>
                       </div>
-                      <div>
-                        <span className="font-medium">מספר הזמנה:</span> {order.ordernumber}
+                      <div className="text-xs text-blue-800">
+                        <div>{order.address}, {order.city}</div>
+                        <div>הזמנה: {order.ordernumber}</div>
                       </div>
-                      {order.invoicenumber && (
-                        <div>
-                          <span className="font-medium">מספר חשבונית:</span> {order.invoicenumber}
-                        </div>
-                      )}
                     </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-        {/* Returns Section */}
-        {returns.length > 0 && (
-          <Card className="mb-8 border-2 border-red-300">
-            <CardHeader>
-              <CardTitle className="text-xl text-red-700">
-                החזרות ({returns.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {returns.map((returnItem, index) => (
-                  <div
-                    key={`return-${returnItem.returnnumber}`}
-                    className="p-4 border-2 border-red-300 rounded-lg"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <h3 className="text-lg font-semibold text-red-900">
-                        {index + 1}. {returnItem.customername}
-                      </h3>
-                      <span className="text-lg font-bold text-red-700">
-                        ₪{returnItem.totalreturn.toLocaleString('he-IL')}
-                      </span>
-                    </div>
-                    <div className="text-sm text-red-800 space-y-1">
-                      <div>
-                        <span className="font-medium">כתובת:</span> {returnItem.address}, {returnItem.city}
+          {/* Returns Section - compact */}
+          {returns.length > 0 && (
+            <Card className="border-red-300">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-red-700">
+                  החזרות ({returns.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-1">
+                  {returns.map((returnItem, index) => (
+                    <div
+                      key={`return-${returnItem.returnnumber}`}
+                      className="p-1 border border-red-300 rounded text-xs"
+                    >
+                      <div className="flex items-start justify-between mb-1">
+                        <span className="font-medium text-red-900 text-xs">
+                          {index + 1}. {returnItem.customername}
+                        </span>
+                        <span className="font-bold text-red-700 text-xs">
+                          ₪{returnItem.totalreturn.toLocaleString('he-IL')}
+                        </span>
                       </div>
-                      <div>
-                        <span className="font-medium">מספר החזרה:</span> {returnItem.returnnumber}
+                      <div className="text-xs text-red-800">
+                        <div>{returnItem.address}, {returnItem.city}</div>
+                        <div>החזרה: {returnItem.returnnumber}</div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Summary - Always on one page */}
-        <div className="page-break-before">
-          <Card className="border-2 border-green-400">
-            <CardHeader>
-              <CardTitle className="text-xl text-green-800">
-                סיכום אזור {zoneNumber}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-lg">
-                <div className="text-blue-700 p-4 border-2 border-blue-300 rounded-lg">
-                  <span className="font-semibold">סך הכל הזמנות:</span><br />
-                  {orders.length} פריטים • ₪{totalOrdersAmount.toLocaleString('he-IL')}
+                  ))}
                 </div>
-                <div className="text-red-700 p-4 border-2 border-red-300 rounded-lg">
-                  <span className="font-semibold">סך הכל החזרות:</span><br />
-                  {returns.length} פריטים • ₪{totalReturnsAmount.toLocaleString('he-IL')}
-                </div>
-                <div className="text-green-800 font-bold text-xl p-4 border-2 border-green-400 rounded-lg">
-                  <span className="font-semibold">סך הכל נטו:</span><br />
-                  ₪{netTotal.toLocaleString('he-IL')}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </div>
+
+        {/* Summary - compact, no page break */}
+        <Card className="border-green-400">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-green-800">
+              סיכום אזור {zoneNumber}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div className="text-blue-700 p-2 border border-blue-300 rounded">
+                <div className="font-medium">סך הכל הזמנות:</div>
+                <div>{orders.length} פריטים</div>
+                <div className="font-bold">₪{totalOrdersAmount.toLocaleString('he-IL')}</div>
+              </div>
+              <div className="text-red-700 p-2 border border-red-300 rounded">
+                <div className="font-medium">סך הכל החזרות:</div>
+                <div>{returns.length} פריטים</div>
+                <div className="font-bold">₪{totalReturnsAmount.toLocaleString('he-IL')}</div>
+              </div>
+              <div className="text-green-800 p-2 border border-green-400 rounded">
+                <div className="font-medium">סך הכל נטו:</div>
+                <div className="font-bold text-lg">₪{netTotal.toLocaleString('he-IL')}</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Print styles */}
+      {/* Print styles - optimized for single page */}
       <style>{`
         @media print {
           .no-print {
@@ -319,15 +306,39 @@ const ZoneReport = () => {
           body {
             margin: 0;
             padding: 0;
+            font-size: 10px;
+          }
+          @page {
+            margin: 0.5cm;
+            size: A4;
           }
           .page-break-before {
-            page-break-before: always;
+            page-break-before: avoid;
           }
           .page-break-after {
-            page-break-after: always;
+            page-break-after: avoid;
           }
           .page-break-inside {
             page-break-inside: avoid;
+          }
+          /* Force everything to fit on one page */
+          * {
+            page-break-inside: avoid;
+            page-break-before: avoid;
+            page-break-after: avoid;
+          }
+          /* Reduce spacing even more for print */
+          .space-y-1 > * + * {
+            margin-top: 0.125rem;
+          }
+          .mb-3 {
+            margin-bottom: 0.5rem;
+          }
+          .p-3 {
+            padding: 0.5rem;
+          }
+          .gap-3 {
+            gap: 0.5rem;
           }
         }
       `}</style>
