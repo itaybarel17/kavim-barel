@@ -1,0 +1,135 @@
+
+import React, { useState, useMemo } from 'react';
+import { useDrop } from 'react-dnd';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+interface Order {
+  ordernumber: number;
+  customername: string;
+  address: string;
+  city: string;
+  totalorder: number;
+  distribution_group_id?: string;
+}
+
+interface Return {
+  returnnumber: number;
+  customername: string;
+  address: string;
+  city: string;
+  totalreturn: number;
+  distribution_group_id?: string;
+}
+
+interface DistributionGroup {
+  groups_id: number;
+  zone_id: number;
+  separation: string;
+}
+
+interface DistributionSchedule {
+  schedule_id: number;
+  groups_id: number;
+}
+
+interface DropZoneProps {
+  zoneNumber: number;
+  distributionGroups: DistributionGroup[];
+  distributionSchedules: DistributionSchedule[];
+  onDrop: (groupId: number, item: { type: 'order' | 'return'; data: Order | Return }) => void;
+  orders: Order[];
+  returns: Return[];
+}
+
+export const DropZone: React.FC<DropZoneProps> = ({
+  zoneNumber,
+  distributionGroups,
+  distributionSchedules,
+  onDrop,
+  orders,
+  returns,
+}) => {
+  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
+
+  const [{ isOver }, drop] = useDrop(() => ({
+    accept: 'card',
+    drop: (item: { type: 'order' | 'return'; data: Order | Return }) => {
+      if (selectedGroupId) {
+        onDrop(selectedGroupId, item);
+      }
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+    }),
+  }));
+
+  // Find schedule ID for selected group
+  const scheduleId = useMemo(() => {
+    if (!selectedGroupId) return null;
+    const schedule = distributionSchedules.find(s => s.groups_id === selectedGroupId);
+    return schedule?.schedule_id || null;
+  }, [selectedGroupId, distributionSchedules]);
+
+  // Get assigned items for this zone
+  const assignedOrders = orders.filter(order => 
+    order.distribution_group_id === selectedGroupId?.toString()
+  );
+  const assignedReturns = returns.filter(returnItem => 
+    returnItem.distribution_group_id === selectedGroupId?.toString()
+  );
+
+  return (
+    <Card
+      ref={drop}
+      className={`min-h-[300px] transition-colors ${
+        isOver ? 'border-primary bg-primary/5' : 'border-border'
+      }`}
+    >
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg">אזור {zoneNumber}</CardTitle>
+        <div className="space-y-2">
+          <Select
+            value={selectedGroupId?.toString() || ''}
+            onValueChange={(value) => setSelectedGroupId(value ? parseInt(value) : null)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="בחר אזור הפצה" />
+            </SelectTrigger>
+            <SelectContent>
+              {distributionGroups.map((group) => (
+                <SelectItem key={group.groups_id} value={group.groups_id.toString()}>
+                  {group.separation}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {scheduleId && (
+            <div className="text-sm text-muted-foreground">
+              מזהה: {scheduleId}
+            </div>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {assignedOrders.map((order) => (
+          <div key={`order-${order.ordernumber}`} className="p-2 bg-blue-50 rounded text-xs">
+            <div className="font-semibold">הזמנה #{order.ordernumber}</div>
+            <div>{order.customername}</div>
+          </div>
+        ))}
+        {assignedReturns.map((returnItem) => (
+          <div key={`return-${returnItem.returnnumber}`} className="p-2 bg-red-50 rounded text-xs">
+            <div className="font-semibold">החזרה #{returnItem.returnnumber}</div>
+            <div>{returnItem.customername}</div>
+          </div>
+        ))}
+        {assignedOrders.length === 0 && assignedReturns.length === 0 && (
+          <div className="text-center text-muted-foreground text-sm py-8">
+            גרור הזמנות או החזרות לכאן
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};

@@ -1,0 +1,176 @@
+
+import React, { useState, useEffect } from 'react';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { supabase } from '@/integrations/supabase/client';
+import { OrderCard } from '@/components/distribution/OrderCard';
+import { DropZone } from '@/components/distribution/DropZone';
+import { useQuery } from '@tanstack/react-query';
+
+interface Order {
+  ordernumber: number;
+  customername: string;
+  address: string;
+  city: string;
+  totalorder: number;
+  distribution_group_id?: string;
+}
+
+interface Return {
+  returnnumber: number;
+  customername: string;
+  address: string;
+  city: string;
+  totalreturn: number;
+  distribution_group_id?: string;
+}
+
+interface DistributionGroup {
+  groups_id: number;
+  zone_id: number;
+  separation: string;
+}
+
+interface DistributionSchedule {
+  schedule_id: number;
+  groups_id: number;
+}
+
+const Distribution = () => {
+  const [draggedItem, setDraggedItem] = useState<{ type: 'order' | 'return'; data: Order | Return } | null>(null);
+
+  // Fetch orders
+  const { data: orders = [], refetch: refetchOrders } = useQuery({
+    queryKey: ['orders'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('mainorder')
+        .select('ordernumber, customername, address, city, totalorder, distribution_group_id')
+        .order('ordernumber', { ascending: false })
+        .limit(50);
+      
+      if (error) throw error;
+      return data as Order[];
+    }
+  });
+
+  // Fetch returns
+  const { data: returns = [], refetch: refetchReturns } = useQuery({
+    queryKey: ['returns'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('mainreturns')
+        .select('returnnumber, customername, address, city, totalreturn, distribution_group_id')
+        .order('returnnumber', { ascending: false })
+        .limit(50);
+      
+      if (error) throw error;
+      return data as Return[];
+    }
+  });
+
+  // Fetch distribution groups
+  const { data: distributionGroups = [] } = useQuery({
+    queryKey: ['distribution-groups'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('distribution_groups')
+        .select('groups_id, zone_id, separation');
+      
+      if (error) throw error;
+      return data as DistributionGroup[];
+    }
+  });
+
+  // Fetch distribution schedules
+  const { data: distributionSchedules = [] } = useQuery({
+    queryKey: ['distribution-schedules'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('distribution_schedule')
+        .select('schedule_id, groups_id');
+      
+      if (error) throw error;
+      return data as DistributionSchedule[];
+    }
+  });
+
+  const handleDrop = async (groupId: number, item: { type: 'order' | 'return'; data: Order | Return }) => {
+    try {
+      if (item.type === 'order') {
+        const { error } = await supabase
+          .from('mainorder')
+          .update({ distribution_group_id: groupId.toString() })
+          .eq('ordernumber', (item.data as Order).ordernumber);
+        
+        if (error) throw error;
+        refetchOrders();
+      } else {
+        const { error } = await supabase
+          .from('mainreturns')
+          .update({ distribution_group_id: groupId.toString() })
+          .eq('returnnumber', (item.data as Return).returnnumber);
+        
+        if (error) throw error;
+        refetchReturns();
+      }
+    } catch (error) {
+      console.error('Error updating distribution:', error);
+    }
+  };
+
+  // Filter unassigned items
+  const unassignedOrders = orders.filter(order => !order.distribution_group_id);
+  const unassignedReturns = returns.filter(returnItem => !returnItem.distribution_group_id);
+
+  // Create 12 drop zones (3 rows x 4 columns)
+  const dropZones = Array.from({ length: 12 }, (_, index) => index + 1);
+
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <div className="min-h-screen p-6 bg-background">
+        <h1 className="text-3xl font-bold mb-6">ממשק הפצה</h1>
+        
+        {/* Horizontal scrollable row of cards */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-4">הזמנות והחזרות ללא שיוך</h2>
+          <div className="flex gap-4 overflow-x-auto pb-4">
+            {unassignedOrders.map((order) => (
+              <OrderCard
+                key={`order-${order.ordernumber}`}
+                type="order"
+                data={order}
+                onDragStart={setDraggedItem}
+              />
+            ))}
+            {unassignedReturns.map((returnItem) => (
+              <OrderCard
+                key={`return-${returnItem.returnnumber}`}
+                type="return"
+                data={returnItem}
+                onDragStart={setDraggedItem}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* 3x4 Grid of drop zones */}
+        <div className="grid grid-cols-4 gap-4">
+          {dropZones.map((zoneNumber) => (
+            <DropZone
+              key={zoneNumber}
+              zoneNumber={zoneNumber}
+              distributionGroups={distributionGroups}
+              distributionSchedules={distributionSchedules}
+              onDrop={handleDrop}
+              orders={orders}
+              returns={returns}
+            />
+          ))}
+        </div>
+      </div>
+    </DndProvider>
+  );
+};
+
+export default Distribution;
