@@ -100,9 +100,17 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
       <CardContent className={contentPadding}>
         <div className={spacing}>
           <h3 className={`font-semibold ${titleSize} text-blue-800`}>{group?.separation || 'אזור לא מוגדר'}</h3>
-          <div className={`flex justify-between items-center ${textSize} text-muted-foreground`}>
-            <span>מזהה: {scheduleId}</span>
-            {!isCalendarMode && <span>נהג: {driver?.nahag || 'לא מוגדר'}</span>}
+          <div className={`${textSize} text-muted-foreground`}>
+            <div>מזהה: {scheduleId}</div>
+            {isCalendarMode && (
+              <div>נהג: {driver?.nahag || 'לא מוגדר'}</div>
+            )}
+            {!isCalendarMode && (
+              <div className="flex justify-between items-center">
+                <span>מזהה: {scheduleId}</span>
+                <span>נהג: {driver?.nahag || 'לא מוגדר'}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -131,6 +139,11 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
             <span>החזרות:</span>
             <span className="font-medium">₪{totalReturnsAmount.toLocaleString()}</span>
           </div>
+          {isCalendarMode && (
+            <div className={`${textSize} text-gray-500 mt-1`}>
+              {totalOrders} הזמנות, {totalReturns} החזרות
+            </div>
+          )}
           {!isCalendarMode && (
             <div className={`flex justify-between ${textSize} text-gray-500 mt-1`}>
               <span>({totalOrders} הזמנות, {totalReturns} החזרות)</span>
