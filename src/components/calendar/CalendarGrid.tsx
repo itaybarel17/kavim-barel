@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useDrop } from 'react-dnd';
 import { Card } from '@/components/ui/card';
@@ -169,9 +170,9 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
   };
 
   const allDays = getWorkDaysForTwoWeeks();
-  // Israeli work week: Sunday (leftmost) to Friday (rightmost) - natural order
-  const firstWeekDays = allDays.slice(0, 6); // Sunday to Friday of first week
-  const secondWeekDays = allDays.slice(6, 12); // Sunday to Friday of second week
+  // Hebrew order: Sunday (rightmost) to Friday (leftmost) - reverse natural order
+  const firstWeekDays = allDays.slice(0, 6).reverse(); // Sunday to Friday reversed
+  const secondWeekDays = allDays.slice(6, 12).reverse(); // Sunday to Friday reversed
 
   // Group schedules by date
   const getSchedulesForDate = (date: Date) => {
@@ -188,7 +189,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
     <div>
       <h2 className="text-xl font-semibold mb-4">לוח שנה - שבועיים</h2>
       
-      {/* Week 1 - Israeli work week: Sunday (leftmost) to Friday (rightmost) */}
+      {/* Week 1 - Hebrew order: Sunday (rightmost) to Friday (leftmost) */}
       <div className="grid grid-cols-6 gap-4 mb-6">
         {firstWeekDays.map((date, index) => (
           <CalendarDay
@@ -205,7 +206,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
         ))}
       </div>
 
-      {/* Week 2 - Israeli work week: Sunday (leftmost) to Friday (rightmost) */}
+      {/* Week 2 - Hebrew order: Sunday (rightmost) to Friday (leftmost) */}
       <div className="grid grid-cols-6 gap-4">
         {secondWeekDays.map((date, index) => (
           <CalendarDay
