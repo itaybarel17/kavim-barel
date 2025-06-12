@@ -10,6 +10,7 @@ import Distribution from "./pages/Distribution";
 import Calendar from "./pages/Calendar";
 import Archive from "./pages/Archive";
 import ZoneReport from "./pages/ZoneReport";
+import ProductionSummary from "./pages/ProductionSummary";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -34,6 +35,7 @@ function App() {
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/archive" element={<Archive />} />
             <Route path="/zone-report/:zoneNumber" element={<ZoneReport />} />
+            <Route path="/production-summary/:scheduleId" element={<ProductionSummary />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

@@ -72,6 +72,13 @@ const CalendarDay: React.FC<{
   const [{ isOver }, drop] = useDrop(() => ({
     accept: 'calendar-card',
     drop: (item: { scheduleId: number }) => {
+      // Check if the schedule being dropped is produced
+      const schedule = schedulesForDate.find(s => s.schedule_id === item.scheduleId);
+      if (schedule?.dis_number && schedule?.done_schedule) {
+        console.log('Cannot drop produced schedule');
+        return;
+      }
+      
       console.log('Dropping to date:', date, 'Date components:', {
         year: date.getFullYear(),
         month: date.getMonth() + 1,
@@ -105,7 +112,7 @@ const CalendarDay: React.FC<{
     >
       <div className="flex items-center justify-between mb-3">
         <div className="text-center">
-          <div className="font-medium text-sm">{dayName}</div>
+          <div className="font-medium text-sm">{dayNames[date.getDay()]}</div>
           <div className="text-xs text-gray-500">{dateStr}</div>
         </div>
         {schedulesForDate.length > 0 && (
@@ -134,6 +141,7 @@ const CalendarDay: React.FC<{
             driverId={schedule.driver_id}
             showAllCustomers={true}
             isCalendarMode={true}
+            schedule={schedule}
           />
         ))}
       </div>

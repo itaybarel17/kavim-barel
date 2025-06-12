@@ -2,6 +2,7 @@
 import React from 'react';
 import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 interface Order {
   ordernumber: number;
@@ -27,6 +28,17 @@ interface Driver {
   nahag: string;
 }
 
+interface DistributionSchedule {
+  schedule_id: number;
+  groups_id: number;
+  create_at_schedule: string;
+  distribution_date?: string;
+  destinations?: number;
+  driver_id?: number;
+  dis_number?: number;
+  done_schedule?: string;
+}
+
 interface CalendarCardProps {
   scheduleId: number;
   groupId: number;
@@ -38,6 +50,7 @@ interface CalendarCardProps {
   showAllCustomers?: boolean;
   onUpdateDestinations?: (scheduleId: number) => void;
   isCalendarMode?: boolean;
+  schedule?: DistributionSchedule;
 }
 
 export const CalendarCard: React.FC<CalendarCardProps> = ({
@@ -50,11 +63,16 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   driverId,
   showAllCustomers = false,
   onUpdateDestinations,
-  isCalendarMode = false
+  isCalendarMode = false,
+  schedule
 }) => {
+  // Check if this schedule has been produced
+  const isProduced = schedule?.dis_number && schedule?.done_schedule;
+  
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'calendar-card',
     item: { scheduleId },
+    canDrag: !isProduced, // Prevent dragging if produced
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
@@ -81,10 +99,10 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   const totalOrders = scheduleOrders.length;
   const totalReturns = scheduleReturns.length;
 
-  // Conditional styling for calendar mode
+  // Conditional styling for calendar mode and produced status
   const cardClasses = isCalendarMode 
-    ? "w-full max-w-[160px] cursor-move border-blue-200 bg-blue-50 overflow-hidden"
-    : "min-w-[250px] max-w-[280px] cursor-move border-blue-200 bg-blue-50";
+    ? `w-full max-w-[160px] overflow-hidden ${isProduced ? 'cursor-not-allowed border-green-300 bg-green-50' : 'cursor-move border-blue-200 bg-blue-50'}`
+    : `min-w-[250px] max-w-[280px] ${isProduced ? 'cursor-not-allowed border-green-300 bg-green-50' : 'cursor-move border-blue-200 bg-blue-50'}`;
 
   const contentPadding = isCalendarMode ? "p-1.5" : "p-3";
   const titleSize = isCalendarMode ? "text-[10px]" : "text-sm";
@@ -94,12 +112,21 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
 
   return (
     <Card
-      ref={drag}
+      ref={!isProduced ? drag : null}
       className={`${cardClasses} ${isDragging ? 'opacity-50' : ''}`}
     >
       <CardContent className={contentPadding}>
         <div className={spacing}>
-          <h3 className={`font-semibold ${titleSize} text-blue-800 truncate`}>{group?.separation || 'אזור לא מוגדר'}</h3>
+          <div className="flex items-center justify-between">
+            <h3 className={`font-semibold ${titleSize} ${isProduced ? 'text-green-800' : 'text-blue-800'} truncate`}>
+              {group?.separation || 'אזור לא מוגדר'}
+            </h3>
+            {isProduced && (
+              <Badge variant="secondary" className="text-[8px] px-1 py-0 bg-green-100 text-green-800">
+                הופק #{schedule?.dis_number}
+              </Badge>
+            )}
+          </div>
           <div className={`${textSize} text-muted-foreground`}>
             <div className="truncate">מזהה: {scheduleId}</div>
           </div>
