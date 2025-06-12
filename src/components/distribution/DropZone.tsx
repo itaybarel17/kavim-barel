@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { useDrop } from 'react-dnd';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -91,7 +90,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
     displayScheduleId && returnItem.schedule_id === displayScheduleId
   );
 
-  // Load previously selected group - now checks both assigned items AND existing schedules
+  // Load previously selected group - now with proper zone-to-schedule mapping
   useEffect(() => {
     console.log('DropZone effect - loading existing state for zone:', zoneNumber);
     console.log('Distribution schedules:', distributionSchedules);
@@ -132,30 +131,27 @@ export const DropZone: React.FC<DropZoneProps> = ({
       }
     }
 
-    // Method 2: If no assigned items, check for existing schedules by zone mapping
-    // For now, we'll use a simple mapping where zone 1 gets the first available schedule, etc.
-    // This is a temporary solution - you might want to add a zone_number field to distribution_schedule table
-    const availableSchedules = distributionSchedules.filter(schedule => {
-      // Check if this schedule already has assigned items
-      const hasAssignedOrders = orders.some(order => order.schedule_id === schedule.schedule_id);
-      const hasAssignedReturns = returns.some(returnItem => returnItem.schedule_id === schedule.schedule_id);
-      return !hasAssignedOrders && !hasAssignedReturns;
-    });
+    // Method 2: If no assigned items, check for existing schedules
+    // Only assign the FIRST available schedule to zone 1, leave others empty
+    if (zoneNumber === 1) {
+      const availableSchedules = distributionSchedules.filter(schedule => {
+        // Check if this schedule already has assigned items
+        const hasAssignedOrders = orders.some(order => order.schedule_id === schedule.schedule_id);
+        const hasAssignedReturns = returns.some(returnItem => returnItem.schedule_id === schedule.schedule_id);
+        return !hasAssignedOrders && !hasAssignedReturns;
+      });
 
-    console.log('Available schedules without assignments:', availableSchedules);
+      console.log('Available schedules without assignments:', availableSchedules);
 
-    // Try to map zone number to an available schedule
-    if (availableSchedules.length > 0) {
-      // Simple mapping: take the schedule at index (zoneNumber - 1) if available
-      const scheduleIndex = (zoneNumber - 1) % availableSchedules.length;
-      const targetSchedule = availableSchedules[scheduleIndex];
-      
-      if (targetSchedule) {
-        console.log('Mapping zone', zoneNumber, 'to existing schedule:', targetSchedule.schedule_id);
-        setSelectedGroupId(targetSchedule.groups_id);
-        setCurrentScheduleId(targetSchedule.schedule_id);
+      // Only assign to zone 1 if there's an available schedule
+      if (availableSchedules.length > 0) {
+        const firstAvailableSchedule = availableSchedules[0];
+        console.log('Assigning first available schedule to zone 1:', firstAvailableSchedule.schedule_id);
+        setSelectedGroupId(firstAvailableSchedule.groups_id);
+        setCurrentScheduleId(firstAvailableSchedule.schedule_id);
       }
     }
+    // For zones 2-12, don't auto-assign any existing schedules - leave them empty
   }, [distributionSchedules, orders, returns, selectedGroupId, zoneNumber]);
 
   // Create schedule immediately when group is selected
