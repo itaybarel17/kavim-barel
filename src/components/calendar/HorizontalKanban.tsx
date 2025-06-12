@@ -56,9 +56,9 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
   onDropToKanban
 }) => {
   const [{ isOver }, drop] = useDrop(() => ({
-    accept: 'calendar-card',
-    drop: (item: { scheduleId: number }) => {
-      if (onDropToKanban) {
+    accept: ['calendar-card', 'card'], // Accept both calendar cards and regular order/return cards
+    drop: (item: { scheduleId?: number; type?: 'order' | 'return'; data?: Order | Return }) => {
+      if (item.scheduleId && onDropToKanban) {
         onDropToKanban(item.scheduleId);
       }
     },
