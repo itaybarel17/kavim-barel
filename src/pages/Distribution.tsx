@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -6,6 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { OrderCard } from '@/components/distribution/OrderCard';
 import { DropZone } from '@/components/distribution/DropZone';
 import { useQuery } from '@tanstack/react-query';
+import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription';
+import { Loader2 } from 'lucide-react';
 
 interface Order {
   ordernumber: number;
@@ -38,8 +39,11 @@ interface DistributionSchedule {
 const Distribution = () => {
   const [draggedItem, setDraggedItem] = useState<{ type: 'order' | 'return'; data: Order | Return } | null>(null);
 
+  // Set up realtime subscriptions
+  useRealtimeSubscription();
+
   // Fetch orders (only include if icecream is NULL or empty)
-  const { data: orders = [], refetch: refetchOrders } = useQuery({
+  const { data: orders = [], refetch: refetchOrders, isLoading: ordersLoading } = useQuery({
     queryKey: ['orders'],
     queryFn: async () => {
       console.log('Fetching orders...');
@@ -57,7 +61,7 @@ const Distribution = () => {
   });
 
   // Fetch returns (only include if icecream is NULL or empty)
-  const { data: returns = [], refetch: refetchReturns } = useQuery({
+  const { data: returns = [], refetch: refetchReturns, isLoading: returnsLoading } = useQuery({
     queryKey: ['returns'],
     queryFn: async () => {
       console.log('Fetching returns...');
@@ -75,7 +79,7 @@ const Distribution = () => {
   });
 
   // Fetch distribution groups
-  const { data: distributionGroups = [] } = useQuery({
+  const { data: distributionGroups = [], isLoading: groupsLoading } = useQuery({
     queryKey: ['distribution-groups'],
     queryFn: async () => {
       console.log('Fetching distribution groups...');
@@ -90,7 +94,7 @@ const Distribution = () => {
   });
 
   // Fetch distribution schedules
-  const { data: distributionSchedules = [], refetch: refetchSchedules } = useQuery({
+  const { data: distributionSchedules = [], refetch: refetchSchedules, isLoading: schedulesLoading } = useQuery({
     queryKey: ['distribution-schedules'],
     queryFn: async () => {
       console.log('Fetching distribution schedules...');
@@ -172,6 +176,19 @@ const Distribution = () => {
   console.log('Unassigned orders:', unassignedOrders.length);
   console.log('Unassigned returns:', unassignedReturns.length);
   console.log('Distribution groups:', distributionGroups.length);
+
+  const isLoading = ordersLoading || returnsLoading || groupsLoading || schedulesLoading;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen p-6 bg-background flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>טוען נתונים...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <DndProvider backend={HTML5Backend}>
