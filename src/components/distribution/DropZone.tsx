@@ -10,7 +10,7 @@ interface Order {
   address: string;
   city: string;
   totalorder: number;
-  distribution_group_id?: string;
+  schedule_id?: number;
 }
 
 interface Return {
@@ -19,7 +19,7 @@ interface Return {
   address: string;
   city: string;
   totalreturn: number;
-  distribution_group_id?: string;
+  schedule_id?: number;
 }
 
 interface DistributionGroup {
@@ -71,12 +71,12 @@ export const DropZone: React.FC<DropZoneProps> = ({
     return schedule?.schedule_id || null;
   }, [selectedGroupId, distributionSchedules]);
 
-  // Get assigned items for this zone
+  // Get assigned items for this zone based on schedule_id
   const assignedOrders = orders.filter(order => 
-    order.distribution_group_id === selectedGroupId?.toString()
+    scheduleId && order.schedule_id === scheduleId
   );
   const assignedReturns = returns.filter(returnItem => 
-    returnItem.distribution_group_id === selectedGroupId?.toString()
+    scheduleId && returnItem.schedule_id === scheduleId
   );
 
   return (

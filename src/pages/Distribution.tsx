@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,7 +13,7 @@ interface Order {
   address: string;
   city: string;
   totalorder: number;
-  distribution_group_id?: string;
+  schedule_id?: number;
 }
 
 interface Return {
@@ -22,7 +22,7 @@ interface Return {
   address: string;
   city: string;
   totalreturn: number;
-  distribution_group_id?: string;
+  schedule_id?: number;
 }
 
 interface DistributionGroup {
@@ -45,7 +45,7 @@ const Distribution = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('mainorder')
-        .select('ordernumber, customername, address, city, totalorder, distribution_group_id')
+        .select('ordernumber, customername, address, city, totalorder, schedule_id')
         .order('ordernumber', { ascending: false })
         .limit(50);
       
@@ -60,7 +60,7 @@ const Distribution = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('mainreturns')
-        .select('returnnumber, customername, address, city, totalreturn, distribution_group_id')
+        .select('returnnumber, customername, address, city, totalreturn, schedule_id')
         .order('returnnumber', { ascending: false })
         .limit(50);
       
@@ -97,10 +97,17 @@ const Distribution = () => {
 
   const handleDrop = async (groupId: number, item: { type: 'order' | 'return'; data: Order | Return }) => {
     try {
+      // Find the schedule_id for this group
+      const schedule = distributionSchedules.find(s => s.groups_id === groupId);
+      if (!schedule) {
+        console.error('No schedule found for group:', groupId);
+        return;
+      }
+
       if (item.type === 'order') {
         const { error } = await supabase
           .from('mainorder')
-          .update({ distribution_group_id: groupId.toString() })
+          .update({ schedule_id: schedule.schedule_id })
           .eq('ordernumber', (item.data as Order).ordernumber);
         
         if (error) throw error;
@@ -108,7 +115,7 @@ const Distribution = () => {
       } else {
         const { error } = await supabase
           .from('mainreturns')
-          .update({ distribution_group_id: groupId.toString() })
+          .update({ schedule_id: schedule.schedule_id })
           .eq('returnnumber', (item.data as Return).returnnumber);
         
         if (error) throw error;
@@ -119,9 +126,9 @@ const Distribution = () => {
     }
   };
 
-  // Filter unassigned items
-  const unassignedOrders = orders.filter(order => !order.distribution_group_id);
-  const unassignedReturns = returns.filter(returnItem => !returnItem.distribution_group_id);
+  // Filter unassigned items (those without schedule_id)
+  const unassignedOrders = orders.filter(order => !order.schedule_id);
+  const unassignedReturns = returns.filter(returnItem => !returnItem.schedule_id);
 
   // Create 12 drop zones (3 rows x 4 columns)
   const dropZones = Array.from({ length: 12 }, (_, index) => index + 1);
