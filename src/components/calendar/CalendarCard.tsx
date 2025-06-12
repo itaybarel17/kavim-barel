@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
@@ -83,14 +82,14 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
 
   // Conditional styling for calendar mode
   const cardClasses = isCalendarMode 
-    ? "w-full max-w-none cursor-move border-blue-200 bg-blue-50"
+    ? "w-full max-w-[160px] cursor-move border-blue-200 bg-blue-50 overflow-hidden"
     : "min-w-[250px] max-w-[280px] cursor-move border-blue-200 bg-blue-50";
 
-  const contentPadding = isCalendarMode ? "p-2" : "p-3";
-  const titleSize = isCalendarMode ? "text-xs" : "text-sm";
-  const textSize = isCalendarMode ? "text-[10px]" : "text-xs";
+  const contentPadding = isCalendarMode ? "p-1.5" : "p-3";
+  const titleSize = isCalendarMode ? "text-[10px]" : "text-sm";
+  const textSize = isCalendarMode ? "text-[9px]" : "text-xs";
   const spacing = isCalendarMode ? "mb-1" : "mb-2";
-  const maxHeight = isCalendarMode ? "max-h-12" : "max-h-20";
+  const maxHeight = isCalendarMode ? "max-h-8" : "max-h-20";
 
   return (
     <Card
@@ -99,29 +98,20 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
     >
       <CardContent className={contentPadding}>
         <div className={spacing}>
-          <h3 className={`font-semibold ${titleSize} text-blue-800`}>{group?.separation || 'אזור לא מוגדר'}</h3>
+          <h3 className={`font-semibold ${titleSize} text-blue-800 truncate`}>{group?.separation || 'אזור לא מוגדר'}</h3>
           <div className={`${textSize} text-muted-foreground`}>
-            <div>מזהה: {scheduleId}</div>
-            {isCalendarMode && (
-              <div>נהג: {driver?.nahag || 'לא מוגדר'}</div>
-            )}
-            {!isCalendarMode && (
-              <div className="flex justify-between items-center">
-                <span>מזהה: {scheduleId}</span>
-                <span>נהג: {driver?.nahag || 'לא מוגדר'}</span>
-              </div>
-            )}
+            <div className="truncate">מזהה: {scheduleId}</div>
           </div>
         </div>
 
         <div className={spacing}>
-          <div className={`${textSize} font-medium text-gray-700 mb-1`}>נקודות:</div>
+          <div className={`${textSize} font-medium text-gray-700 mb-0.5`}>נקודות:</div>
           <div className={`${maxHeight} overflow-y-auto ${textSize} space-y-0.5`}>
-            {uniqueCustomersList.slice(0, isCalendarMode ? 3 : undefined).map((customer, index) => (
-              <div key={index} className="text-gray-600">• {customer}</div>
+            {uniqueCustomersList.slice(0, isCalendarMode ? 2 : undefined).map((customer, index) => (
+              <div key={index} className="text-gray-600 truncate">• {customer}</div>
             ))}
-            {isCalendarMode && uniqueCustomersList.length > 3 && (
-              <div className="text-gray-500">...ועוד {uniqueCustomersList.length - 3}</div>
+            {isCalendarMode && uniqueCustomersList.length > 2 && (
+              <div className="text-gray-500">...ועוד {uniqueCustomersList.length - 2}</div>
             )}
           </div>
         </div>
@@ -140,9 +130,14 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
             <span className="font-medium">₪{totalReturnsAmount.toLocaleString()}</span>
           </div>
           {isCalendarMode && (
-            <div className={`${textSize} text-gray-500 mt-1`}>
-              {totalOrders} הזמנות, {totalReturns} החזרות
-            </div>
+            <>
+              <div className={`${textSize} text-gray-700 font-medium`}>
+                נהג: {driver?.nahag || 'לא מוגדר'}
+              </div>
+              <div className={`${textSize} text-gray-500`}>
+                {totalOrders} הזמנות, {totalReturns} החזרות
+              </div>
+            </>
           )}
           {!isCalendarMode && (
             <div className={`flex justify-between ${textSize} text-gray-500 mt-1`}>

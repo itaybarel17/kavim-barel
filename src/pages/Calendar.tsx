@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -252,7 +253,7 @@ const Calendar = () => {
   const updateDestinationsCount = async (scheduleId: number) => {
     try {
       const scheduleOrders = orders.filter(order => order.schedule_id === scheduleId);
-      const scheduleReturns = returns.filter(returnItem => returnItem.schedule_id === schedule.schedule_id);
+      const scheduleReturns = returns.filter(returnItem => returnItem.schedule_id === scheduleId);
       
       const uniqueCustomers = new Set([
         ...scheduleOrders.map(order => order.customername),
