@@ -77,27 +77,32 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
     setItemToDelete(null);
   };
 
-  // Function to check if an order/return has a blue or red icon
-  const hasIcon = (item: Order | Return) => {
-    const customerKey = `${item.customername}-${item.city}`;
-    return multiOrderActiveCustomerList.some(customer => `${customer.name}-${customer.city}` === customerKey) ||
-           dualActiveOrderReturnCustomers.some(customer => `${customer.name}-${customer.city}` === customerKey);
+  // Helper function to check if an item has special icons
+  const hasSpecialIcon = (item: Order | Return, type: 'order' | 'return') => {
+    const isMultiOrderActive = multiOrderActiveCustomerList.some(
+      (cust) => cust.name === item.customername && cust.city === item.city
+    );
+    const isDualActiveOrderReturn = dualActiveOrderReturnCustomers.some(
+      (cust) => cust.name === item.customername && cust.city === item.city
+    );
+    
+    return isMultiOrderActive || isDualActiveOrderReturn;
   };
 
-  // Sort orders: items with icons first, then others
+  // Sort orders - prioritize those with special icons
   const sortedOrders = [...unassignedOrders].sort((a, b) => {
-    const aHasIcon = hasIcon(a);
-    const bHasIcon = hasIcon(b);
+    const aHasIcon = hasSpecialIcon(a, 'order');
+    const bHasIcon = hasSpecialIcon(b, 'order');
     
     if (aHasIcon && !bHasIcon) return -1;
     if (!aHasIcon && bHasIcon) return 1;
     return 0;
   });
 
-  // Sort returns: items with icons first, then others
+  // Sort returns - prioritize those with special icons
   const sortedReturns = [...unassignedReturns].sort((a, b) => {
-    const aHasIcon = hasIcon(a);
-    const bHasIcon = hasIcon(b);
+    const aHasIcon = hasSpecialIcon(a, 'return');
+    const bHasIcon = hasSpecialIcon(b, 'return');
     
     if (aHasIcon && !bHasIcon) return -1;
     if (!aHasIcon && bHasIcon) return 1;
