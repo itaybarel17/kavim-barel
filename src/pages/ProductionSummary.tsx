@@ -18,22 +18,6 @@ import {
   type ReturnWithSchedule
 } from '@/utils/scheduleUtils';
 
-interface Order extends OrderWithSchedule {
-  address: string;
-  city: string;
-  icecream?: string;
-  customernumber?: string;
-  agentnumber?: string;
-}
-
-interface Return extends ReturnWithSchedule {
-  address: string;
-  city: string;
-  icecream?: string;
-  customernumber?: string;
-  agentnumber?: string;
-}
-
 interface CustomerDetails {
   customernumber: string;
   mobile?: string;
@@ -70,8 +54,8 @@ interface CustomerEntry {
   phone?: string;
   supplydetails?: string;
   shotefnumber?: number;
-  orders: Order[];
-  returns: Return[];
+  orders: OrderWithSchedule[];
+  returns: ReturnWithSchedule[];
 }
 
 const ProductionSummary = () => {
@@ -126,32 +110,30 @@ const ProductionSummary = () => {
     enabled: !!schedule?.driver_id
   });
 
-  // Fetch ALL orders from the database
+  // Fetch ALL orders from the database with all required fields
   const { data: allOrders = [] } = useQuery({
     queryKey: ['all-orders'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('mainorder')
-        .select('ordernumber, customername, address, city, totalorder, icecream, customernumber, agentnumber, schedule_id, schedule_id_if_changed')
-        .not('done_mainorder', 'is', null);
+        .select('ordernumber, customername, address, city, totalorder, icecream, customernumber, agentnumber, schedule_id, schedule_id_if_changed');
       
       if (error) throw error;
-      return data as Order[];
+      return data as OrderWithSchedule[];
     },
     enabled: !!scheduleId
   });
 
-  // Fetch ALL returns from the database
+  // Fetch ALL returns from the database with all required fields
   const { data: allReturns = [] } = useQuery({
     queryKey: ['all-returns'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('mainreturns')
-        .select('returnnumber, customername, address, city, totalreturn, icecream, customernumber, agentnumber, schedule_id, schedule_id_if_changed')
-        .not('done_return', 'is', null);
+        .select('returnnumber, customername, address, city, totalreturn, icecream, customernumber, agentnumber, schedule_id, schedule_id_if_changed');
       
       if (error) throw error;
-      return data as Return[];
+      return data as ReturnWithSchedule[];
     },
     enabled: !!scheduleId
   });
@@ -160,7 +142,7 @@ const ProductionSummary = () => {
   const orders = scheduleId ? getOrdersByScheduleId(allOrders, parseInt(scheduleId)) : [];
   const returns = scheduleId ? getReturnsByScheduleId(allReturns, parseInt(scheduleId)) : [];
 
-  // Fetch customer details - Fixed type handling
+  // Fetch customer details
   const { data: customerDetails = [] } = useQuery({
     queryKey: ['customer-details', scheduleId],
     queryFn: async () => {

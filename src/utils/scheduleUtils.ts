@@ -1,10 +1,14 @@
-
 // Utility functions for handling schedule IDs with fallback logic
 
 interface OrderWithSchedule {
   ordernumber: number;
   customername: string;
   totalorder: number;
+  address: string;
+  city: string;
+  customernumber?: string;
+  agentnumber?: string;
+  icecream?: string;
   schedule_id?: number;
   schedule_id_if_changed?: any; // JSONB field that might contain schedule_id
 }
@@ -13,6 +17,11 @@ interface ReturnWithSchedule {
   returnnumber: number;
   customername: string;
   totalreturn: number;
+  address: string;
+  city: string;
+  customernumber?: string;
+  agentnumber?: string;
+  icecream?: string;
   schedule_id?: number;
   schedule_id_if_changed?: any; // JSONB field that might contain schedule_id
 }
