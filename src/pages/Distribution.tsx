@@ -328,13 +328,6 @@ const Distribution = () => {
   console.log('Distribution groups:', distributionGroups.length);
   console.log('Active schedules:', distributionSchedules.length);
 
-  const handleRefreshData = () => {
-    console.log('Refreshing all data after delete...');
-    refetchOrders();
-    refetchReturns();
-    refetchSchedules();
-  };
-
   const isLoading = ordersLoading || returnsLoading || groupsLoading || schedulesLoading || driversLoading;
 
   if (isLoading) {
@@ -378,7 +371,6 @@ const Distribution = () => {
           unassignedReturns={unassignedReturns}
           onDragStart={setDraggedItem}
           onDropToUnassigned={handleDropToUnassigned}
-          onRefresh={handleRefreshData}
         />
 
         {/* 3x4 Grid of drop zones */}
