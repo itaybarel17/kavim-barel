@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -165,13 +166,14 @@ const Calendar = () => {
       .filter((group) => {
         if (!group.agents) return false;
         if (Array.isArray(group.agents)) {
-          return group.agents.includes(currentUser.agentnumber);
+          // Convert currentUser.agentnumber to integer for comparison
+          return group.agents.includes(parseInt(currentUser.agentnumber));
         }
         // fallback in case agents is not an array (shouldn't happen)
         if (typeof group.agents === "string") {
           try {
             const arr = JSON.parse(group.agents);
-            return arr.includes(currentUser.agentnumber);
+            return arr.includes(parseInt(currentUser.agentnumber));
           } catch {
             return false;
           }

@@ -71,7 +71,7 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   // Check if this schedule has produced based on done_schedule timestamp
   const isProduced = schedule?.done_schedule != null;
   
-  // Only admin can drag
+  // Only admin can drag non-produced cards
   const canDrag = currentUser?.agentnumber === "4" && !isProduced;
   
   const [{ isDragging }, drag] = useDrag(() => ({
@@ -114,17 +114,21 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   const hasModifiedItems = schedule?.distribution_date ? 
     [...scheduleOrders, ...scheduleReturns].some(item => isItemModified(item)) : false;
   
-  // Enhanced styling for produced cards - remove modification styling for unscheduled cards
+  // Enhanced styling - all cards have normal visibility, only cursor changes based on permissions
   const cardClasses = isCalendarMode 
     ? `w-full max-w-[160px] overflow-hidden ${
         isProduced 
-          ? 'cursor-not-allowed border-4 border-green-500 bg-green-50 shadow-lg opacity-90' 
-          : 'cursor-move border-blue-200 bg-blue-50'
+          ? 'cursor-not-allowed border-4 border-green-500 bg-green-50 shadow-lg' 
+          : canDrag 
+            ? 'cursor-move border-blue-200 bg-blue-50'
+            : 'cursor-default border-blue-200 bg-blue-50'
       }`
     : `min-w-[250px] max-w-[280px] ${
         isProduced 
-          ? 'cursor-not-allowed border-4 border-green-500 bg-green-50 shadow-lg opacity-90' 
-          : 'cursor-move border-blue-200 bg-blue-50'
+          ? 'cursor-not-allowed border-4 border-green-500 bg-green-50 shadow-lg' 
+          : canDrag 
+            ? 'cursor-move border-blue-200 bg-blue-50'
+            : 'cursor-default border-blue-200 bg-blue-50'
       }`;
 
   const contentPadding = isCalendarMode ? "p-1.5" : "p-3";
@@ -136,7 +140,7 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   return (
     <Card
       ref={canDrag ? drag : null}
-      className={`${cardClasses} ${isDragging ? 'opacity-50' : ''} ${!canDrag ? 'pointer-events-none opacity-40' : ''}`}
+      className={`${cardClasses} ${isDragging ? 'opacity-50' : ''}`}
     >
       <CardContent className={contentPadding}>
         <div className={spacing}>
