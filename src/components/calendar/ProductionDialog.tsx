@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -64,10 +63,23 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
 
   if (!selectedDate) return null;
 
-  const dateStr = selectedDate.toISOString().split('T')[0];
+  // Build date string consistently using date components (same as CalendarGrid)
+  const year = selectedDate.getFullYear();
+  const month = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
+  const day = selectedDate.getDate().toString().padStart(2, '0');
+  const dateStr = `${year}-${month}-${day}`;
+  
+  console.log('ProductionDialog - selectedDate:', selectedDate);
+  console.log('ProductionDialog - dateStr for comparison:', dateStr);
+  
   const schedulesForDate = distributionSchedules.filter(
-    schedule => schedule.distribution_date === dateStr
+    schedule => {
+      console.log('ProductionDialog - comparing schedule.distribution_date:', schedule.distribution_date, 'with dateStr:', dateStr);
+      return schedule.distribution_date === dateStr;
+    }
   );
+  
+  console.log('ProductionDialog - schedulesForDate count:', schedulesForDate.length);
 
   const handleProduce = async (scheduleId: number) => {
     setIsProducing(true);
