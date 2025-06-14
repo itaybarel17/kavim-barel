@@ -179,12 +179,66 @@ const Archive = () => {
 
       if (selectedItem.type === 'order') {
         const order = selectedItem.data as ArchivedOrder;
+        
+        // Fetch existing data first
+        const { data: existingOrder, error: fetchError } = await supabase
+          .from('mainorder')
+          .select('return_reason, schedule_id_if_changed, schedule_id')
+          .eq('ordernumber', order.ordernumber)
+          .single();
+          
+        if (fetchError) throw fetchError;
+        
+        // Prepare updated return_reason array
+        let updatedReturnReasons = [];
+        if (existingOrder.return_reason) {
+          // If it's already an array, add to it
+          if (Array.isArray(existingOrder.return_reason)) {
+            updatedReturnReasons = [...existingOrder.return_reason, returnReason];
+          } else {
+            // If it's a single object, convert to array and add new one
+            updatedReturnReasons = [existingOrder.return_reason, returnReason];
+          }
+        } else {
+          // If no existing return_reason, create new array
+          updatedReturnReasons = [returnReason];
+        }
+        
+        // Prepare updated schedule_id_if_changed array
+        let updatedScheduleIds = [];
+        if (existingOrder.schedule_id_if_changed) {
+          // If it's already an array, add to it if the schedule_id is not already there
+          if (Array.isArray(existingOrder.schedule_id_if_changed)) {
+            updatedScheduleIds = [...existingOrder.schedule_id_if_changed];
+            if (!updatedScheduleIds.includes(order.schedule_id)) {
+              updatedScheduleIds.push(order.schedule_id);
+            }
+          } else if (typeof existingOrder.schedule_id_if_changed === 'number') {
+            // If it's a single number, convert to array and add new one if different
+            updatedScheduleIds = [existingOrder.schedule_id_if_changed];
+            if (order.schedule_id && !updatedScheduleIds.includes(order.schedule_id)) {
+              updatedScheduleIds.push(order.schedule_id);
+            }
+          } else {
+            // If it's an object or other format, preserve it and add new schedule_id
+            updatedScheduleIds = [existingOrder.schedule_id_if_changed];
+            if (order.schedule_id) {
+              updatedScheduleIds.push(order.schedule_id);
+            }
+          }
+        } else {
+          // If no existing schedule_id_if_changed, create new array with current schedule_id
+          if (order.schedule_id) {
+            updatedScheduleIds = [order.schedule_id];
+          }
+        }
+        
         const { error } = await supabase
           .from('mainorder')
           .update({ 
             done_mainorder: null,
-            return_reason: returnReason,
-            schedule_id_if_changed: order.schedule_id ? [order.schedule_id] : null
+            return_reason: updatedReturnReasons,
+            schedule_id_if_changed: updatedScheduleIds.length > 0 ? updatedScheduleIds : null
           })
           .eq('ordernumber', order.ordernumber);
         
@@ -197,12 +251,66 @@ const Archive = () => {
         refetchArchivedOrders();
       } else {
         const returnItem = selectedItem.data as ArchivedReturn;
+        
+        // Fetch existing data first
+        const { data: existingReturn, error: fetchError } = await supabase
+          .from('mainreturns')
+          .select('return_reason, schedule_id_if_changed, schedule_id')
+          .eq('returnnumber', returnItem.returnnumber)
+          .single();
+          
+        if (fetchError) throw fetchError;
+        
+        // Prepare updated return_reason array
+        let updatedReturnReasons = [];
+        if (existingReturn.return_reason) {
+          // If it's already an array, add to it
+          if (Array.isArray(existingReturn.return_reason)) {
+            updatedReturnReasons = [...existingReturn.return_reason, returnReason];
+          } else {
+            // If it's a single object, convert to array and add new one
+            updatedReturnReasons = [existingReturn.return_reason, returnReason];
+          }
+        } else {
+          // If no existing return_reason, create new array
+          updatedReturnReasons = [returnReason];
+        }
+        
+        // Prepare updated schedule_id_if_changed array
+        let updatedScheduleIds = [];
+        if (existingReturn.schedule_id_if_changed) {
+          // If it's already an array, add to it if the schedule_id is not already there
+          if (Array.isArray(existingReturn.schedule_id_if_changed)) {
+            updatedScheduleIds = [...existingReturn.schedule_id_if_changed];
+            if (!updatedScheduleIds.includes(returnItem.schedule_id)) {
+              updatedScheduleIds.push(returnItem.schedule_id);
+            }
+          } else if (typeof existingReturn.schedule_id_if_changed === 'number') {
+            // If it's a single number, convert to array and add new one if different
+            updatedScheduleIds = [existingReturn.schedule_id_if_changed];
+            if (returnItem.schedule_id && !updatedScheduleIds.includes(returnItem.schedule_id)) {
+              updatedScheduleIds.push(returnItem.schedule_id);
+            }
+          } else {
+            // If it's an object or other format, preserve it and add new schedule_id
+            updatedScheduleIds = [existingReturn.schedule_id_if_changed];
+            if (returnItem.schedule_id) {
+              updatedScheduleIds.push(returnItem.schedule_id);
+            }
+          }
+        } else {
+          // If no existing schedule_id_if_changed, create new array with current schedule_id
+          if (returnItem.schedule_id) {
+            updatedScheduleIds = [returnItem.schedule_id];
+          }
+        }
+        
         const { error } = await supabase
           .from('mainreturns')
           .update({ 
             done_return: null,
-            return_reason: returnReason,
-            schedule_id_if_changed: returnItem.schedule_id ? [returnItem.schedule_id] : null
+            return_reason: updatedReturnReasons,
+            schedule_id_if_changed: updatedScheduleIds.length > 0 ? updatedScheduleIds : null
           })
           .eq('returnnumber', returnItem.returnnumber);
         
