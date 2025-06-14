@@ -107,6 +107,7 @@ export type Database = {
           note: string | null
           schedule_id: number
           smallpallet_return: number | null
+          total_customers: number | null
         }
         Insert: {
           create_at_schedule?: string | null
@@ -121,6 +122,7 @@ export type Database = {
           note?: string | null
           schedule_id?: number
           smallpallet_return?: number | null
+          total_customers?: number | null
         }
         Update: {
           create_at_schedule?: string | null
@@ -135,6 +137,7 @@ export type Database = {
           note?: string | null
           schedule_id?: number
           smallpallet_return?: number | null
+          total_customers?: number | null
         }
         Relationships: [
           {
@@ -455,17 +458,17 @@ export type Database = {
       nahagim: {
         Row: {
           id: number
-          nahag: string | null
+          nahag: string
           truck_id: number | null
         }
         Insert: {
           id: number
-          nahag?: string | null
+          nahag: string
           truck_id?: number | null
         }
         Update: {
           id?: number
-          nahag?: string | null
+          nahag?: string
           truck_id?: number | null
         }
         Relationships: [
@@ -642,7 +645,6 @@ export type Database = {
       }
       pallets: {
         Row: {
-          commissionreturn: number | null
           height: number | null
           length: number | null
           pallet: string | null
@@ -650,7 +652,6 @@ export type Database = {
           width: number | null
         }
         Insert: {
-          commissionreturn?: number | null
           height?: number | null
           length?: number | null
           pallet?: string | null
@@ -658,7 +659,6 @@ export type Database = {
           width?: number | null
         }
         Update: {
-          commissionreturn?: number | null
           height?: number | null
           length?: number | null
           pallet?: string | null
@@ -666,47 +666,6 @@ export type Database = {
           width?: number | null
         }
         Relationships: []
-      }
-      palletsreturn: {
-        Row: {
-          created_at: string
-          europallet: number | null
-          nahag: string | null
-          palletsreturn_id: number
-          smallpallet: number | null
-          totaleuro: number | null
-          totalpallets: number | null
-          totalsmall: number | null
-        }
-        Insert: {
-          created_at?: string
-          europallet?: number | null
-          nahag?: string | null
-          palletsreturn_id?: number
-          smallpallet?: number | null
-          totaleuro?: number | null
-          totalpallets?: number | null
-          totalsmall?: number | null
-        }
-        Update: {
-          created_at?: string
-          europallet?: number | null
-          nahag?: string | null
-          palletsreturn_id?: number
-          smallpallet?: number | null
-          totaleuro?: number | null
-          totalpallets?: number | null
-          totalsmall?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "palletsreturn_nahag_fkey"
-            columns: ["nahag"]
-            isOneToOne: false
-            referencedRelation: "nahagim"
-            referencedColumns: ["nahag"]
-          },
-        ]
       }
       po: {
         Row: {
