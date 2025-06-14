@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowRight, Package, RotateCcw, User, Calendar, Printer } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 
@@ -30,6 +31,14 @@ interface Return {
   agentnumber?: string;
 }
 
+interface CustomerDetails {
+  customernumber: string;
+  mobile?: string;
+  phone?: string;
+  supplydetails?: string;
+  shotefnumber?: number;
+}
+
 interface DistributionSchedule {
   schedule_id: number;
   groups_id: number;
@@ -47,6 +56,19 @@ interface DistributionGroup {
 interface Driver {
   id: number;
   nahag: string;
+}
+
+interface CustomerEntry {
+  customername: string;
+  address: string;
+  city: string;
+  customernumber?: string;
+  mobile?: string;
+  phone?: string;
+  supplydetails?: string;
+  shotefnumber?: number;
+  orders: Order[];
+  returns: Return[];
 }
 
 const ProductionSummary = () => {
@@ -133,6 +155,29 @@ const ProductionSummary = () => {
     enabled: !!scheduleId
   });
 
+  // Fetch customer details
+  const { data: customerDetails = [] } = useQuery({
+    queryKey: ['customer-details', scheduleId],
+    queryFn: async () => {
+      // Get unique customer numbers from orders and returns
+      const customerNumbers = Array.from(new Set([
+        ...orders.map(order => order.customernumber).filter(Boolean),
+        ...returns.map(returnItem => returnItem.customernumber).filter(Boolean)
+      ]));
+
+      if (customerNumbers.length === 0) return [];
+
+      const { data, error } = await supabase
+        .from('customerlist')
+        .select('customernumber, mobile, phone, supplydetails, shotefnumber')
+        .in('customernumber', customerNumbers);
+      
+      if (error) throw error;
+      return data as CustomerDetails[];
+    },
+    enabled: orders.length > 0 || returns.length > 0
+  });
+
   const handlePrint = () => {
     window.print();
   };
@@ -161,23 +206,71 @@ const ProductionSummary = () => {
     );
   }
 
-  // Calculate totals
-  const totalOrdersAmount = orders.reduce((sum, order) => sum + (order.totalorder || 0), 0);
-  const totalReturnsAmount = returns.reduce((sum, returnItem) => sum + (returnItem.totalreturn || 0), 0);
-  const netTotal = totalOrdersAmount - totalReturnsAmount;
+  // Create customer lookup map
+  const customerDetailsMap = new Map(
+    customerDetails.map(customer => [customer.customernumber, customer])
+  );
 
-  // Group customers
-  const uniqueCustomers = new Set([
-    ...orders.map(order => order.customername),
-    ...returns.map(returnItem => returnItem.customername)
-  ]);
+  // Combine orders and returns by customer
+  const customerEntries = new Map<string, CustomerEntry>();
+
+  // Process orders
+  orders.forEach(order => {
+    const key = `${order.customername}-${order.city}`;
+    if (!customerEntries.has(key)) {
+      const details = customerDetailsMap.get(order.customernumber || '');
+      customerEntries.set(key, {
+        customername: order.customername,
+        address: order.address,
+        city: order.city,
+        customernumber: order.customernumber,
+        mobile: details?.mobile,
+        phone: details?.phone,
+        supplydetails: details?.supplydetails,
+        shotefnumber: details?.shotefnumber,
+        orders: [],
+        returns: []
+      });
+    }
+    customerEntries.get(key)!.orders.push(order);
+  });
+
+  // Process returns
+  returns.forEach(returnItem => {
+    const key = `${returnItem.customername}-${returnItem.city}`;
+    if (!customerEntries.has(key)) {
+      const details = customerDetailsMap.get(returnItem.customernumber || '');
+      customerEntries.set(key, {
+        customername: returnItem.customername,
+        address: returnItem.address,
+        city: returnItem.city,
+        customernumber: returnItem.customernumber,
+        mobile: details?.mobile,
+        phone: details?.phone,
+        supplydetails: details?.supplydetails,
+        shotefnumber: details?.shotefnumber,
+        orders: [],
+        returns: []
+      });
+    }
+    customerEntries.get(key)!.returns.push(returnItem);
+  });
+
+  // Sort customers by city (Hebrew alphabetically) then by name
+  const sortedCustomers = Array.from(customerEntries.values()).sort((a, b) => {
+    const cityComparison = a.city.localeCompare(b.city, 'he');
+    if (cityComparison !== 0) return cityComparison;
+    return a.customername.localeCompare(b.customername, 'he');
+  });
 
   return (
     <div className="min-h-screen p-6 bg-background">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6 print:hidden">
-          <h1 className="text-3xl font-bold">סיכום הפקה</h1>
+          <h1 className="text-3xl font-bold">
+            סיכום הפקה - {group?.separation || 'אזור לא מוגדר'} #{schedule.dis_number}
+          </h1>
           <div className="flex gap-2">
             <Button onClick={handlePrint} variant="outline" className="flex items-center gap-2">
               <Printer className="h-4 w-4" />
@@ -190,145 +283,114 @@ const ProductionSummary = () => {
           </div>
         </div>
 
+        {/* Print Header */}
+        <div className="hidden print:block mb-6 text-center">
+          <h1 className="text-2xl font-bold mb-2">
+            סיכום הפקה - {group?.separation || 'אזור לא מוגדר'}
+          </h1>
+          <h2 className="text-xl">מספר הפקה: #{schedule.dis_number}</h2>
+        </div>
+
         {/* Production Info */}
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              פרטי הפקה
+              פרטי הפקה ו חלוקה
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div>
                 <div className="text-sm text-gray-600">מספר הפקה</div>
                 <div className="font-semibold text-lg">#{schedule.dis_number}</div>
               </div>
               <div>
-                <div className="text-sm text-gray-600">תאריך הפקה</div>
+                <div className="text-sm text-gray-600">תאריך אספקה</div>
                 <div className="font-semibold">{schedule.distribution_date ? new Date(schedule.distribution_date).toLocaleDateString('he-IL') : 'לא מוגדר'}</div>
               </div>
               <div>
-                <div className="text-sm text-gray-600">אזור</div>
-                <div className="font-semibold">{group?.separation || 'לא מוגדר'}</div>
+                <div className="text-sm text-gray-600">תאריך הפקה</div>
+                <div className="font-semibold">{schedule.done_schedule ? new Date(schedule.done_schedule).toLocaleDateString('he-IL') : 'לא מוגדר'}</div>
               </div>
               <div>
                 <div className="text-sm text-gray-600">נהג</div>
                 <div className="font-semibold">{driver?.nahag || 'לא מוגדר'}</div>
               </div>
+              <div>
+                <div className="text-sm text-gray-600">כמויות</div>
+                <div className="font-semibold">{orders.length} הזמנות, {returns.length} החזרות</div>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600">{uniqueCustomers.size}</div>
-              <div className="text-sm text-gray-600">נקודות חלוקה</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-green-600">{orders.length}</div>
-              <div className="text-sm text-gray-600">הזמנות</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-red-600">{returns.length}</div>
-              <div className="text-sm text-gray-600">החזרות</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-purple-600">₪{netTotal.toLocaleString('he-IL')}</div>
-              <div className="text-sm text-gray-600">סה"כ נטו</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Financial Summary */}
-        <Card className="mb-6">
+        {/* Customer Details Table */}
+        <Card>
           <CardHeader>
-            <CardTitle>סיכום כספי</CardTitle>
+            <CardTitle>פירוט לקוחות - {sortedCustomers.length} נקודות חלוקה</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-green-600">סה"כ הזמנות:</span>
-                <span className="font-semibold text-green-600">₪{totalOrdersAmount.toLocaleString('he-IL')}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-red-600">סה"כ החזרות:</span>
-                <span className="font-semibold text-red-600">₪{totalReturnsAmount.toLocaleString('he-IL')}</span>
-              </div>
-              <hr />
-              <div className="flex justify-between text-lg">
-                <span className="font-semibold">סה"כ נטו:</span>
-                <span className="font-bold">₪{netTotal.toLocaleString('he-IL')}</span>
-              </div>
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-right">שם לקוח</TableHead>
+                  <TableHead className="text-right">כתובת</TableHead>
+                  <TableHead className="text-right">עיר</TableHead>
+                  <TableHead className="text-right">טלפון נייד</TableHead>
+                  <TableHead className="text-right">טלפון</TableHead>
+                  <TableHead className="text-right">פרטי אספקה</TableHead>
+                  <TableHead className="text-right">הזמנות</TableHead>
+                  <TableHead className="text-right">החזרות</TableHead>
+                  <TableHead className="text-right">הערות</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sortedCustomers.map((customer, index) => (
+                  <TableRow key={index}>
+                    <TableCell className="font-medium">{customer.customername}</TableCell>
+                    <TableCell>{customer.address}</TableCell>
+                    <TableCell>{customer.city}</TableCell>
+                    <TableCell>{customer.mobile || '-'}</TableCell>
+                    <TableCell>{customer.phone || '-'}</TableCell>
+                    <TableCell>{customer.supplydetails || '-'}</TableCell>
+                    <TableCell>
+                      {customer.orders.length > 0 && (
+                        <div className="space-y-1">
+                          {customer.orders.map(order => (
+                            <div key={order.ordernumber} className="text-xs">
+                              הזמנה #{order.ordernumber}
+                              {order.icecream && <div className="text-blue-600">{order.icecream}</div>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {customer.returns.length > 0 && (
+                        <div className="space-y-1">
+                          {customer.returns.map(returnItem => (
+                            <div key={returnItem.returnnumber} className="text-xs">
+                              החזרה #{returnItem.returnnumber}
+                              {returnItem.icecream && <div className="text-blue-600">{returnItem.icecream}</div>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {customer.shotefnumber === 5 && (
+                        <div className="text-red-600 font-bold text-sm">
+                          נהג, נא לקחת מזומן
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
-
-        {/* Orders List */}
-        {orders.length > 0 && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5 text-green-600" />
-                הזמנות ({orders.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {orders.map((order) => (
-                  <div key={order.ordernumber} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                    <div>
-                      <div className="font-medium">{order.customername}</div>
-                      <div className="text-sm text-gray-600">{order.address}, {order.city}</div>
-                      <div className="text-xs text-gray-500">הזמנה #{order.ordernumber}</div>
-                    </div>
-                    <div className="text-left">
-                      <div className="font-semibold text-green-600">₪{order.totalorder?.toLocaleString('he-IL')}</div>
-                      {order.icecream && <div className="text-xs text-blue-600">{order.icecream}</div>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Returns List */}
-        {returns.length > 0 && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <RotateCcw className="h-5 w-5 text-red-600" />
-                החזרות ({returns.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {returns.map((returnItem) => (
-                  <div key={returnItem.returnnumber} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                    <div>
-                      <div className="font-medium">{returnItem.customername}</div>
-                      <div className="text-sm text-gray-600">{returnItem.address}, {returnItem.city}</div>
-                      <div className="text-xs text-gray-500">החזרה #{returnItem.returnnumber}</div>
-                    </div>
-                    <div className="text-left">
-                      <div className="font-semibold text-red-600">₪{returnItem.totalreturn?.toLocaleString('he-IL')}</div>
-                      {returnItem.icecream && <div className="text-xs text-blue-600">{returnItem.icecream}</div>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );
