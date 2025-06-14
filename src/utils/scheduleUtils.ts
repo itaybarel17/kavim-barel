@@ -165,4 +165,48 @@ export const getNewScheduleId = (item: OrderWithSchedule | ReturnWithSchedule): 
   return undefined;
 };
 
+/**
+ * Helper: Returns true if the item was assigned to another schedule and migrated to this one.
+ * i.e., currentScheduleId is in schedule_id_if_changed, but the original schedule_id is a different number.
+ */
+export const isTransferredItem = (
+  item: OrderWithSchedule | ReturnWithSchedule,
+  currentScheduleId: number
+): boolean => {
+  // Considered transferred if:
+  // - schedule_id_if_changed includes currentScheduleId
+  // - schedule_id is not equal (or is null)
+  const ids = getAllRelevantScheduleIds(item);
+  if (!ids.includes(currentScheduleId)) return false;
+
+  if (
+    item.schedule_id_if_changed != null &&
+    ((typeof item.schedule_id_if_changed === "object" && (
+      (Array.isArray(item.schedule_id_if_changed) && item.schedule_id_if_changed.includes(currentScheduleId)) ||
+      (!Array.isArray(item.schedule_id_if_changed) && item.schedule_id_if_changed.schedule_id === currentScheduleId)
+    )) ||
+    (typeof item.schedule_id_if_changed === "number" && item.schedule_id_if_changed === currentScheduleId))
+  ) {
+    // Must not be "original" to this schedule
+    if (item.schedule_id == null || item.schedule_id !== currentScheduleId) {
+      return true;
+    }
+  }
+  return false;
+};
+
+/**
+ * Helper: Returns the schedule id from which the item was transferred (returns original schedule id if transferred, else undefined)
+ */
+export const getTransferredFromScheduleId = (
+  item: OrderWithSchedule | ReturnWithSchedule,
+  currentScheduleId: number
+): number | undefined => {
+  if (isTransferredItem(item, currentScheduleId)) {
+    // Only if transferred
+    return item.schedule_id || undefined;
+  }
+  return undefined;
+};
+
 export type { OrderWithSchedule, ReturnWithSchedule };
