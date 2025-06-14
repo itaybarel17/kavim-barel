@@ -44,6 +44,7 @@ interface Return {
 interface DistributionGroup {
   groups_id: number;
   separation: string;
+  agents?: any; // JSONB in DB, יכול להיות string[] או string
 }
 
 interface DistributionSchedule {
@@ -116,7 +117,7 @@ const Calendar = () => {
       console.log('Fetching distribution groups for calendar...');
       const { data, error } = await supabase
         .from('distribution_groups')
-        .select('groups_id, separation');
+        .select('groups_id, separation, agents'); // נוסיף agents כאן
       
       if (error) throw error;
       console.log('Calendar distribution groups fetched:', data);
