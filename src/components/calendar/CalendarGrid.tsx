@@ -66,18 +66,11 @@ const CalendarDay: React.FC<{
     accept: isAdmin ? 'calendar-card' : [],
     drop: (item: { scheduleId: number }) => {
       if (!isAdmin) return;
-      // Check if the schedule being dropped is produced
       const schedule = schedulesForDate.find(s => s.schedule_id === item.scheduleId);
       if (schedule?.done_schedule != null) {
         console.log('Cannot drop produced schedule');
         return;
       }
-      
-      console.log('Dropping to date:', date, 'Date components:', {
-        year: date.getFullYear(),
-        month: date.getMonth() + 1,
-        day: date.getDate()
-      });
       onDropToDate(item.scheduleId, date);
     },
     collect: (monitor) => ({
@@ -87,14 +80,10 @@ const CalendarDay: React.FC<{
 
   const dayNames = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
   const dateStr = date.getDate().toString().padStart(2, '0') + '/' + (date.getMonth() + 1).toString().padStart(2, '0');
-
-  // Build date string consistently using date components (not toISOString)
   const year = date.getFullYear();
   const month = (date.getMonth() + 1).toString().padStart(2, '0');
   const day = date.getDate().toString().padStart(2, '0');
   const dateForComparison = `${year}-${month}-${day}`;
-
-  console.log('CalendarDay rendered:', dateStr, 'dateForComparison:', dateForComparison);
 
   return (
     <Card
@@ -108,7 +97,7 @@ const CalendarDay: React.FC<{
           <div className="font-medium text-sm">{dayNames[date.getDay()]}</div>
           <div className="text-xs text-gray-500">{dateStr}</div>
         </div>
-        {schedulesForDate.length > 0 && (
+        {schedulesForDate.length > 0 && currentUser?.agentnumber === "4" && (
           <Button
             size="sm"
             variant="outline"
@@ -120,7 +109,6 @@ const CalendarDay: React.FC<{
           </Button>
         )}
       </div>
-      
       <div className="space-y-2">
         {schedulesForDate.map((schedule) => (
           <CalendarCard
@@ -274,7 +262,6 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
         orders={orders}
         returns={returns}
         onProduced={() => {
-          // Trigger a refresh of the data if needed
           window.location.reload();
         }}
       />
