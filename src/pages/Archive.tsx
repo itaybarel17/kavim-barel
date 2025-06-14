@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { ArrowLeft, Package, RotateCcw, Undo2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { ReturnReasonDialog } from '@/components/archive/ReturnReasonDialog';
 
 interface ArchivedOrder {
   ordernumber: number;
@@ -50,11 +51,16 @@ interface DeletedReturn {
 
 const Archive = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [returnDialogOpen, setReturnDialogOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<{
+    type: 'order' | 'return';
+    data: ArchivedOrder | ArchivedReturn;
+  } | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   // Fetch archived orders
-  const { data: archivedOrders = [], isLoading: ordersLoading } = useQuery({
+  const { data: archivedOrders = [], refetch: refetchArchivedOrders, isLoading: ordersLoading } = useQuery({
     queryKey: ['archived-orders'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -69,7 +75,7 @@ const Archive = () => {
   });
 
   // Fetch archived returns
-  const { data: archivedReturns = [], isLoading: returnsLoading } = useQuery({
+  const { data: archivedReturns = [], refetch: refetchArchivedReturns, isLoading: returnsLoading } = useQuery({
     queryKey: ['archived-returns'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -159,6 +165,68 @@ const Archive = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleReturnToDistribution = async (reason: { type: string; responsible: string }) => {
+    if (!selectedItem) return;
+
+    try {
+      const returnReason = {
+        type: reason.type,
+        responsible: reason.responsible,
+        timestamp: new Date().toISOString()
+      };
+
+      if (selectedItem.type === 'order') {
+        const order = selectedItem.data as ArchivedOrder;
+        const { error } = await supabase
+          .from('mainorder')
+          .update({ 
+            done_mainorder: null,
+            return_reason: returnReason,
+            schedule_id_if_changed: order.schedule_id ? [order.schedule_id] : null
+          })
+          .eq('ordernumber', order.ordernumber);
+        
+        if (error) throw error;
+        
+        toast({
+          title: "הזמנה הוחזרה",
+          description: `הזמנה #${order.ordernumber} חזרה לממשק ההפצה`,
+        });
+        refetchArchivedOrders();
+      } else {
+        const returnItem = selectedItem.data as ArchivedReturn;
+        const { error } = await supabase
+          .from('mainreturns')
+          .update({ 
+            done_return: null,
+            return_reason: returnReason,
+            schedule_id_if_changed: returnItem.schedule_id ? [returnItem.schedule_id] : null
+          })
+          .eq('returnnumber', returnItem.returnnumber);
+        
+        if (error) throw error;
+        
+        toast({
+          title: "החזרה הוחזרה",
+          description: `החזרה #${returnItem.returnnumber} חזרה לממשק ההפצה`,
+        });
+        refetchArchivedReturns();
+      }
+    } catch (error) {
+      console.error('Error returning item to distribution:', error);
+      toast({
+        title: "שגיאה",
+        description: "אירעה שגיאה בהחזרת הפריט לממשק ההפצה",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openReturnDialog = (type: 'order' | 'return', data: ArchivedOrder | ArchivedReturn) => {
+    setSelectedItem({ type, data });
+    setReturnDialogOpen(true);
   };
 
   // Filter items based on search term
@@ -338,23 +406,34 @@ const Archive = () => {
                 {filteredOrders.map((order) => (
                   <div
                     key={order.ordernumber}
-                    className="p-3 border border-green-200 rounded-lg bg-green-50"
+                    className="p-3 border border-green-200 rounded-lg bg-green-50 flex justify-between items-start"
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="font-medium text-green-800">
-                        הזמנה #{order.ordernumber}
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="font-medium text-green-800">
+                          הזמנה #{order.ordernumber}
+                        </div>
+                        <div className="text-sm text-green-600 font-bold">
+                          ₪{order.totalorder?.toLocaleString('he-IL')}
+                        </div>
                       </div>
-                      <div className="text-sm text-green-600 font-bold">
-                        ₪{order.totalorder?.toLocaleString('he-IL')}
+                      <div className="text-sm text-gray-700">
+                        <div>{order.customername}</div>
+                        <div>{order.address}, {order.city}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          הופק: {new Date(order.done_mainorder).toLocaleDateString('he-IL')} {new Date(order.done_mainorder).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
                       </div>
                     </div>
-                    <div className="text-sm text-gray-700">
-                      <div>{order.customername}</div>
-                      <div>{order.address}, {order.city}</div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        הופק: {new Date(order.done_mainorder).toLocaleDateString('he-IL')} {new Date(order.done_mainorder).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openReturnDialog('order', order)}
+                      className="ml-2 flex items-center gap-1"
+                      title="החזר להפצה"
+                    >
+                      🔙
+                    </Button>
                   </div>
                 ))}
                 {filteredOrders.length === 0 && (
@@ -379,23 +458,34 @@ const Archive = () => {
                 {filteredReturns.map((returnItem) => (
                   <div
                     key={returnItem.returnnumber}
-                    className="p-3 border border-red-200 rounded-lg bg-red-50"
+                    className="p-3 border border-red-200 rounded-lg bg-red-50 flex justify-between items-start"
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="font-medium text-red-800">
-                        החזרה #{returnItem.returnnumber}
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="font-medium text-red-800">
+                          החזרה #{returnItem.returnnumber}
+                        </div>
+                        <div className="text-sm text-red-600 font-bold">
+                          ₪{returnItem.totalreturn?.toLocaleString('he-IL')}
+                        </div>
                       </div>
-                      <div className="text-sm text-red-600 font-bold">
-                        ₪{returnItem.totalreturn?.toLocaleString('he-IL')}
+                      <div className="text-sm text-gray-700">
+                        <div>{returnItem.customername}</div>
+                        <div>{returnItem.address}, {returnItem.city}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          הופק: {new Date(returnItem.done_return).toLocaleDateString('he-IL')} {new Date(returnItem.done_return).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
                       </div>
                     </div>
-                    <div className="text-sm text-gray-700">
-                      <div>{returnItem.customername}</div>
-                      <div>{returnItem.address}, {returnItem.city}</div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        הופק: {new Date(returnItem.done_return).toLocaleDateString('he-IL')} {new Date(returnItem.done_return).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openReturnDialog('return', returnItem)}
+                      className="ml-2 flex items-center gap-1"
+                      title="החזר להפצה"
+                    >
+                      🔙
+                    </Button>
                   </div>
                 ))}
                 {filteredReturns.length === 0 && (
@@ -408,6 +498,16 @@ const Archive = () => {
           </Card>
         </div>
       )}
+
+      <ReturnReasonDialog
+        open={returnDialogOpen}
+        onOpenChange={setReturnDialogOpen}
+        onConfirm={handleReturnToDistribution}
+        itemType={selectedItem?.type || 'order'}
+        itemNumber={selectedItem?.type === 'order' 
+          ? (selectedItem.data as ArchivedOrder).ordernumber 
+          : (selectedItem.data as ArchivedReturn).returnnumber}
+      />
     </div>
   );
 };
