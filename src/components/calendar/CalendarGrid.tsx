@@ -131,17 +131,17 @@ const CalendarDay: React.FC<{
       <div className="space-y-2">
         {schedulesForDate.map((schedule) => (
           <CalendarCard
-            key={schedule.schedule_id}
-            scheduleId={schedule.schedule_id}
-            groupId={schedule.groups_id}
-            distributionGroups={distributionGroups}
-            drivers={drivers}
-            orders={orders}
-            returns={returns}
-            driverId={schedule.driver_id}
-            showAllCustomers={true}
-            isCalendarMode={true}
-            schedule={schedule}
+            key={`schedule-${schedule.schedule_id}`}
+            type="order"
+            data={{
+              ordernumber: schedule.schedule_id,
+              customername: `אזור ${schedule.groups_id}`,
+              address: '',
+              city: '',
+              totalorder: 0,
+              schedule_id: schedule.schedule_id
+            }}
+            onClick={() => console.log('Calendar card clicked')}
           />
         ))}
       </div>

@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigever } from '@/components/ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, Package, RotateCcw, Truck } from 'lucide-react';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -216,8 +216,19 @@ const ProductionSummary = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <CombinedItemsList items={combinedItems} />
-                    <SummarySection items={combinedItems} />
+                    <CombinedItemsList 
+                      combinedItems={combinedItems.map(item => ({ type: item.type, data: item.data }))}
+                      numberedOrdersCount={scheduleOrders.length}
+                      returnsCount={scheduleReturns.length}
+                    />
+                    <SummarySection 
+                      zoneNumber={schedule.schedule_id}
+                      numberedOrdersCount={scheduleOrders.length}
+                      returnsCount={scheduleReturns.length}
+                      totalOrdersAmount={scheduleOrders.reduce((sum, order) => sum + (order.totalorder || 0), 0)}
+                      totalReturnsAmount={scheduleReturns.reduce((sum, returnItem) => sum + (returnItem.totalreturn || 0), 0)}
+                      netTotal={scheduleOrders.reduce((sum, order) => sum + (order.totalorder || 0), 0) - scheduleReturns.reduce((sum, returnItem) => sum + (returnItem.totalreturn || 0), 0)}
+                    />
                   </CardContent>
                 </Card>
               );

@@ -91,23 +91,24 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
           <div className="flex gap-4 overflow-x-auto pb-4">
             {unscheduledSchedules.map((schedule) => (
               <CalendarCard
-                key={schedule.schedule_id}
-                scheduleId={schedule.schedule_id}
-                groupId={schedule.groups_id}
-                distributionGroups={distributionGroups}
-                drivers={drivers}
-                orders={orders}
-                returns={returns}
-                driverId={schedule.driver_id}
-                showAllCustomers={true}
-                onUpdateDestinations={onUpdateDestinations}
+                key={`schedule-${schedule.schedule_id}`}
+                type="order"
+                data={{
+                  ordernumber: schedule.schedule_id,
+                  customername: `אזור ${schedule.groups_id}`,
+                  address: '',
+                  city: '',
+                  totalorder: 0,
+                  schedule_id: schedule.schedule_id
+                }}
+                onClick={() => console.log('Calendar card clicked')}
               />
             ))}
           </div>
         </div>
       ) : (
         <div className="text-center py-8 text-gray-500">
-          {isOver ? 'שחרר כאן כדי להחזיר לקווי חלוקה לא מתוזמנים' : 'אין קווי חלוקה לא מתוזמנים'}
+          {isOver ? 'שחרר כאן כדי להחזיר לקווי חלוקה לא מתוזמנים' : 'אין קווי ח לוקה לא מתוזמנים'}
         </div>
       )}
     </div>
