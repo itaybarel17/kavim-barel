@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from "@/components/ui/textarea"
 import { Loader2 } from 'lucide-react';
+import { Json } from '@/integrations/supabase/types';
 
 interface ReturnReasonEntry {
   reason: string;
@@ -25,8 +26,8 @@ interface Order {
   agentnumber?: string;
   orderdate?: string;
   invoicenumber?: number;
-  return_reason?: any;
-  schedule_id_if_changed?: any;
+  return_reason?: Json;
+  schedule_id_if_changed?: Json;
 }
 
 interface Return {
@@ -39,38 +40,44 @@ interface Return {
   customernumber?: string;
   agentnumber?: string;
   returndate?: string;
-  return_reason?: any;
-  schedule_id_if_changed?: any;
+  return_reason?: Json;
+  schedule_id_if_changed?: Json;
 }
 
 // Helper functions to safely convert Json to typed arrays
-const parseReturnReasonHistory = (data: any): ReturnReasonEntry[] => {
+const parseReturnReasonHistory = (data: Json): ReturnReasonEntry[] => {
   if (!data) return [];
   
   if (Array.isArray(data)) {
     return data.map(item => {
-      if (typeof item === 'object' && item.reason) {
-        return { reason: item.reason, timestamp: item.timestamp || null };
+      if (typeof item === 'object' && item !== null && 'reason' in item) {
+        return { 
+          reason: String(item.reason || ''), 
+          timestamp: String(item.timestamp || '') 
+        };
       }
       if (typeof item === 'string') {
-        return { reason: item, timestamp: null };
+        return { reason: item, timestamp: '' };
       }
-      return { reason: String(item), timestamp: null };
+      return { reason: String(item), timestamp: '' };
     });
   }
   
-  if (typeof data === 'object' && data.reason) {
-    return [{ reason: data.reason, timestamp: data.timestamp || null }];
+  if (typeof data === 'object' && data !== null && 'reason' in data) {
+    return [{ 
+      reason: String(data.reason || ''), 
+      timestamp: String(data.timestamp || '') 
+    }];
   }
   
   if (typeof data === 'string') {
-    return [{ reason: data, timestamp: null }];
+    return [{ reason: data, timestamp: '' }];
   }
   
   return [];
 };
 
-const parseScheduleIdHistory = (data: any): number[] => {
+const parseScheduleIdHistory = (data: Json): number[] => {
   if (!data) return [];
   
   if (Array.isArray(data)) {
@@ -87,6 +94,18 @@ const parseScheduleIdHistory = (data: any): number[] => {
   }
   
   return [];
+};
+
+// Helper functions to convert typed arrays back to Json
+const convertReturnReasonToJson = (entries: ReturnReasonEntry[]): Json => {
+  return entries.map(entry => ({
+    reason: entry.reason,
+    timestamp: entry.timestamp
+  }));
+};
+
+const convertScheduleIdToJson = (ids: number[]): Json => {
+  return ids;
 };
 
 const Archive = () => {
@@ -154,11 +173,11 @@ const Archive = () => {
         ? [...existingScheduleHistory, currentItem.schedule_id]
         : existingScheduleHistory;
 
-      // Update the item: set schedule_id to NULL and preserve history
+      // Convert typed arrays back to Json for database storage
       const updateData = {
         schedule_id: null, // This returns the item to unassigned list
-        return_reason: updatedReasonHistory,
-        schedule_id_if_changed: updatedScheduleHistory
+        return_reason: convertReturnReasonToJson(updatedReasonHistory),
+        schedule_id_if_changed: convertScheduleIdToJson(updatedScheduleHistory)
       };
 
       const { error } = await supabase
