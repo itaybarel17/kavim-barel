@@ -29,24 +29,34 @@ interface ReturnWithSchedule {
 /**
  * Gets all relevant schedule IDs for an order or return
  * Returns array of all schedule IDs where this item should appear
+ * Now supports array/JSON structure (e.g., [92]) as well
  */
 export const getAllRelevantScheduleIds = (item: OrderWithSchedule | ReturnWithSchedule): number[] => {
   const scheduleIds: number[] = [];
-  
-  // Add the main schedule_id if it exists
-  if (item.schedule_id) {
+
+  // Add the main schedule_id if it exists and is a number
+  if (typeof item.schedule_id === 'number' && !isNaN(item.schedule_id)) {
     scheduleIds.push(item.schedule_id);
   }
-  
-  // Add schedule_id from schedule_id_if_changed if it exists
-  if (item.schedule_id_if_changed) {
-    if (typeof item.schedule_id_if_changed === 'object' && item.schedule_id_if_changed.schedule_id) {
-      scheduleIds.push(item.schedule_id_if_changed.schedule_id);
-    } else if (typeof item.schedule_id_if_changed === 'number') {
-      scheduleIds.push(item.schedule_id_if_changed);
+
+  // Handle schedule_id_if_changed in all possible formats (number, object, array)
+  const changed = item.schedule_id_if_changed;
+  if (changed != null) {
+    if (typeof changed === 'object') {
+      // Array format: e.g., [92] or similar
+      if (Array.isArray(changed)) {
+        for (const v of changed) {
+          if (typeof v === 'number' && !isNaN(v)) scheduleIds.push(v);
+          else if (typeof v === 'object' && v?.schedule_id) scheduleIds.push(v.schedule_id);
+        }
+      } else if (changed.schedule_id) {
+        scheduleIds.push(changed.schedule_id);
+      }
+    } else if (typeof changed === 'number' && !isNaN(changed)) {
+      scheduleIds.push(changed);
     }
   }
-  
+
   // Remove duplicates and return
   return [...new Set(scheduleIds)];
 };
@@ -72,18 +82,17 @@ export const getEffectiveScheduleId = (item: OrderWithSchedule | ReturnWithSched
 
 /**
  * Filters orders by schedule ID - checks if order belongs to the target schedule
- * An order belongs to a schedule if the schedule_id appears in any of its schedule fields
+ * An order belongs to a schedule if the schedule_id appears in any of its schedule fields, even if schedule_id is null.
  */
 export const getOrdersByScheduleId = (orders: OrderWithSchedule[], targetScheduleId: number): OrderWithSchedule[] => {
   return orders.filter(order => {
     const relevantScheduleIds = getAllRelevantScheduleIds(order);
-    return relevantScheduleIds.includes(targetScheduleId);
+    return relevantScheduleIds.includes(targetScheduleId); // לא תלוי בזה שschedule_id יהיה שווה
   });
 };
 
 /**
  * Filters returns by schedule ID - checks if return belongs to the target schedule
- * A return belongs to a schedule if the schedule_id appears in any of its schedule fields
  */
 export const getReturnsByScheduleId = (returns: ReturnWithSchedule[], targetScheduleId: number): ReturnWithSchedule[] => {
   return returns.filter(returnItem => {
