@@ -163,7 +163,7 @@ const Distribution = () => {
 
   // 1. multi-active-order customers (blue icon)
   const activeOrders = orders.filter(isOrderActive);
-  const customerMap = {};
+  const customerMap: Record<string, Order[]> = {};
   activeOrders.forEach(order => {
     const key = `${order.customername}^^${order.city}`;
     if (!customerMap[key]) customerMap[key] = [];
