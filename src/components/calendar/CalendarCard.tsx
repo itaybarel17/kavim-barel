@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,7 +9,8 @@ import {
   getUniqueCustomersForSchedule,
   isItemModified,
   getOriginalScheduleId,
-  getNewScheduleId
+  getNewScheduleId,
+  isCustomerCompletelyTransferred
 } from '@/utils/scheduleUtils';
 import type { OrderWithSchedule, ReturnWithSchedule } from '@/utils/scheduleUtils';
 
@@ -92,30 +92,21 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   const totalOrders = scheduleOrders.length;
   const totalReturns = scheduleReturns.length;
 
-  // Check if this schedule has modified items
-  const hasModifiedItems = [...scheduleOrders, ...scheduleReturns].some(item => isItemModified(item));
+  // Check if this schedule has modified items - but only show for scheduled cards
+  const hasModifiedItems = schedule?.distribution_date ? 
+    [...scheduleOrders, ...scheduleReturns].some(item => isItemModified(item)) : false;
   
-  // Count modified items by type
-  const modifiedOrders = scheduleOrders.filter(order => isItemModified(order));
-  const modifiedReturns = scheduleReturns.filter(returnItem => isItemModified(returnItem));
-  const hasModifiedOrdersFromOtherSchedule = modifiedOrders.some(order => getOriginalScheduleId(order) !== scheduleId);
-  const hasModifiedReturnsFromOtherSchedule = modifiedReturns.some(returnItem => getOriginalScheduleId(returnItem) !== scheduleId);
-
-  // Enhanced styling for produced cards
+  // Enhanced styling for produced cards - remove modification styling for unscheduled cards
   const cardClasses = isCalendarMode 
     ? `w-full max-w-[160px] overflow-hidden ${
         isProduced 
           ? 'cursor-not-allowed border-4 border-green-500 bg-green-50 shadow-lg opacity-90' 
-          : hasModifiedItems
-            ? 'cursor-move border-orange-300 bg-orange-50 border-2'
-            : 'cursor-move border-blue-200 bg-blue-50'
+          : 'cursor-move border-blue-200 bg-blue-50'
       }`
     : `min-w-[250px] max-w-[280px] ${
         isProduced 
           ? 'cursor-not-allowed border-4 border-green-500 bg-green-50 shadow-lg opacity-90' 
-          : hasModifiedItems
-            ? 'cursor-move border-orange-300 bg-orange-50 border-2'
-            : 'cursor-move border-blue-200 bg-blue-50'
+          : 'cursor-move border-blue-200 bg-blue-50'
       }`;
 
   const contentPadding = isCalendarMode ? "p-1.5" : "p-3";
@@ -132,16 +123,10 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
       <CardContent className={contentPadding}>
         <div className={spacing}>
           <div className="flex items-center justify-between">
-            <h3 className={`font-semibold ${titleSize} ${isProduced ? 'text-green-800' : hasModifiedItems ? 'text-orange-800' : 'text-blue-800'} truncate`}>
+            <h3 className={`font-semibold ${titleSize} ${isProduced ? 'text-green-800' : 'text-blue-800'} truncate`}>
               {group?.separation || 'אזור לא מוגדר'}
             </h3>
             <div className="flex items-center gap-1">
-              {hasModifiedItems && !isProduced && (
-                <Badge variant="secondary" className="text-[8px] px-1 py-0 bg-orange-100 text-orange-800 border border-orange-300">
-                  <AlertTriangle className="h-2 w-2 mr-0.5" />
-                  שונה
-                </Badge>
-              )}
               {isProduced && (
                 <Badge variant="secondary" className="text-[8px] px-1 py-0 bg-green-100 text-green-800 border border-green-300">
                   הופק #{schedule?.dis_number || 'לא ידוע'}
@@ -157,30 +142,23 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
         <div className={spacing}>
           <div className={`${textSize} font-medium text-gray-700 mb-0.5`}>נקודות:</div>
           <div className={`${maxHeight} overflow-y-auto ${textSize} space-y-0.5`}>
-            {uniqueCustomersList.map((customer, index) => (
-              <div key={index} className="text-gray-600 truncate">• {customer}</div>
-            ))}
+            {uniqueCustomersList.map((customer, index) => {
+              const isCompletelyTransferred = isCustomerCompletelyTransferred(
+                customer, 
+                '', // We don't have city info in the customer list here
+                orders, 
+                returns, 
+                scheduleId
+              );
+              
+              return (
+                <div key={index} className={`text-gray-600 truncate ${isCompletelyTransferred ? 'line-through' : ''}`}>
+                  • {customer}
+                </div>
+              );
+            })}
           </div>
         </div>
-
-        {/* Show modification details if there are modified items */}
-        {hasModifiedItems && !isCalendarMode && (
-          <div className={`${spacing} ${textSize} text-orange-700 bg-orange-50 p-1 rounded border border-orange-200`}>
-            <div className="font-medium mb-1">שינויים:</div>
-            {hasModifiedOrdersFromOtherSchedule && (
-              <div className="flex items-center gap-1">
-                <ArrowRight className="h-2 w-2" />
-                <span>{modifiedOrders.filter(o => getOriginalScheduleId(o) !== scheduleId).length} הזמנות מועברות</span>
-              </div>
-            )}
-            {hasModifiedReturnsFromOtherSchedule && (
-              <div className="flex items-center gap-1">
-                <ArrowRight className="h-2 w-2" />
-                <span>{modifiedReturns.filter(r => getOriginalScheduleId(r) !== scheduleId).length} החזרות מועברות</span>
-              </div>
-            )}
-          </div>
-        )}
 
         <div className={`border-t pt-1 space-y-0.5 ${textSize}`}>
           <div className="flex justify-between">

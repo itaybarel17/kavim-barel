@@ -165,4 +165,54 @@ export const getNewScheduleId = (item: OrderWithSchedule | ReturnWithSchedule): 
   return undefined;
 };
 
+/**
+ * Checks if an item has been transferred from another schedule to the current one
+ */
+export const isTransferredItem = (item: OrderWithSchedule | ReturnWithSchedule, currentScheduleId: number): boolean => {
+  if (!isItemModified(item)) return false;
+  
+  const originalScheduleId = getOriginalScheduleId(item);
+  return originalScheduleId !== undefined && originalScheduleId !== currentScheduleId;
+};
+
+/**
+ * Gets the original schedule ID that an item was transferred from
+ */
+export const getTransferredFromScheduleId = (item: OrderWithSchedule | ReturnWithSchedule): number | undefined => {
+  if (!isItemModified(item)) return undefined;
+  return getOriginalScheduleId(item);
+};
+
+/**
+ * Checks if a customer has ALL their items transferred (for strikethrough logic)
+ */
+export const isCustomerCompletelyTransferred = (
+  customerName: string, 
+  customerCity: string, 
+  allOrders: OrderWithSchedule[], 
+  allReturns: ReturnWithSchedule[], 
+  currentScheduleId: number
+): boolean => {
+  // Get all orders and returns for this customer in this schedule
+  const customerOrders = allOrders.filter(order => 
+    order.customername === customerName && 
+    order.city === customerCity &&
+    getAllRelevantScheduleIds(order).includes(currentScheduleId)
+  );
+  
+  const customerReturns = allReturns.filter(returnItem => 
+    returnItem.customername === customerName && 
+    returnItem.city === customerCity &&
+    getAllRelevantScheduleIds(returnItem).includes(currentScheduleId)
+  );
+  
+  const allCustomerItems = [...customerOrders, ...customerReturns];
+  
+  // If no items, return false
+  if (allCustomerItems.length === 0) return false;
+  
+  // Check if ALL items are transferred FROM other schedules (not original to this schedule)
+  return allCustomerItems.every(item => isTransferredItem(item, currentScheduleId));
+};
+
 export type { OrderWithSchedule, ReturnWithSchedule };
