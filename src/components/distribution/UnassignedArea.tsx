@@ -24,17 +24,19 @@ interface Return {
 }
 
 interface UnassignedAreaProps {
-  orders: Order[];
-  returns: Return[];
+  unassignedOrders: Order[];
+  unassignedReturns: Return[];
   onDragStart: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
-  onDeleteClick: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
+  onDropToUnassigned: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
+  onDeleteItem?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
 }
 
 export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
-  orders,
-  returns,
+  unassignedOrders,
+  unassignedReturns,
   onDragStart,
-  onDeleteClick,
+  onDropToUnassigned,
+  onDeleteItem,
 }) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ type: 'order' | 'return'; data: Order | Return } | null>(null);
@@ -43,7 +45,7 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
     accept: 'card',
     drop: (item: { type: 'order' | 'return'; data: Order | Return }) => {
       console.log('Dropping item back to unassigned area:', item);
-      // Handle drop to unassigned if needed
+      onDropToUnassigned(item);
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
@@ -57,8 +59,8 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
   };
 
   const handleConfirmDelete = () => {
-    if (itemToDelete) {
-      onDeleteClick(itemToDelete);
+    if (itemToDelete && onDeleteItem) {
+      onDeleteItem(itemToDelete);
     }
     setDeleteDialogOpen(false);
     setItemToDelete(null);
@@ -73,39 +75,43 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
           isOver ? 'border-primary bg-primary/5' : 'border-border'
         }`}
       >
-        {orders.map((order) => (
+        {unassignedOrders.map((order) => (
           <div key={`order-${order.ordernumber}`} className="relative group">
             <OrderCard
               type="order"
               data={order}
               onDragStart={onDragStart}
             />
-            <button
-              onClick={(e) => handleDeleteClick({ type: 'order', data: order }, e)}
-              className="absolute -top-2 -right-2 w-6 h-6 bg-transparent hover:bg-gray-100 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
-              title="מחק הזמנה"
-            >
-              <X className="h-4 w-4 text-black" />
-            </button>
+            {onDeleteItem && (
+              <button
+                onClick={(e) => handleDeleteClick({ type: 'order', data: order }, e)}
+                className="absolute -top-2 -right-2 w-6 h-6 bg-transparent hover:bg-gray-100 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                title="מחק הזמנה"
+              >
+                <X className="h-4 w-4 text-black" />
+              </button>
+            )}
           </div>
         ))}
-        {returns.map((returnItem) => (
+        {unassignedReturns.map((returnItem) => (
           <div key={`return-${returnItem.returnnumber}`} className="relative group">
             <OrderCard
               type="return"
               data={returnItem}
               onDragStart={onDragStart}
             />
-            <button
-              onClick={(e) => handleDeleteClick({ type: 'return', data: returnItem }, e)}
-              className="absolute -top-2 -right-2 w-6 h-6 bg-transparent hover:bg-gray-100 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
-              title="מחק החזרה"
-            >
-              <X className="h-4 w-4 text-black" />
-            </button>
+            {onDeleteItem && (
+              <button
+                onClick={(e) => handleDeleteClick({ type: 'return', data: returnItem }, e)}
+                className="absolute -top-2 -right-2 w-6 h-6 bg-transparent hover:bg-gray-100 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                title="מחק החזרה"
+              >
+                <X className="h-4 w-4 text-black" />
+              </button>
+            )}
           </div>
         ))}
-        {orders.length === 0 && returns.length === 0 && (
+        {unassignedOrders.length === 0 && unassignedReturns.length === 0 && (
           <div className="text-center text-muted-foreground text-sm py-8 w-full">
             כל ההזמנות וההחזרות משויכות לאזורים
           </div>

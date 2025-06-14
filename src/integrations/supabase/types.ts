@@ -247,7 +247,6 @@ export type Database = {
           agentnumber: string | null
           american_pallet: number | null
           average_time_for_carton: string | null
-          changedreason: Json | null
           city: string | null
           create_at_order: string | null
           customergroup: string | null
@@ -270,9 +269,7 @@ export type Database = {
           paymentdate: string | null
           priority: string | null
           red_stamp: number | null
-          return_reason: Json | null
           schedule_id: number | null
-          schedule_id_if_changed: Json | null
           start_picking_time: string | null
           time: string | null
           tnuva_pallet: number | null
@@ -287,7 +284,6 @@ export type Database = {
           agentnumber?: string | null
           american_pallet?: number | null
           average_time_for_carton?: string | null
-          changedreason?: Json | null
           city?: string | null
           create_at_order?: string | null
           customergroup?: string | null
@@ -310,9 +306,7 @@ export type Database = {
           paymentdate?: string | null
           priority?: string | null
           red_stamp?: number | null
-          return_reason?: Json | null
           schedule_id?: number | null
-          schedule_id_if_changed?: Json | null
           start_picking_time?: string | null
           time?: string | null
           tnuva_pallet?: number | null
@@ -327,7 +321,6 @@ export type Database = {
           agentnumber?: string | null
           american_pallet?: number | null
           average_time_for_carton?: string | null
-          changedreason?: Json | null
           city?: string | null
           create_at_order?: string | null
           customergroup?: string | null
@@ -350,9 +343,7 @@ export type Database = {
           paymentdate?: string | null
           priority?: string | null
           red_stamp?: number | null
-          return_reason?: Json | null
           schedule_id?: number | null
-          schedule_id_if_changed?: Json | null
           start_picking_time?: string | null
           time?: string | null
           tnuva_pallet?: number | null
@@ -382,7 +373,6 @@ export type Database = {
         Row: {
           address: string | null
           agentnumber: string | null
-          changedreason: Json | null
           city: string | null
           create_at_return: string | null
           customergroup: string | null
@@ -390,18 +380,15 @@ export type Database = {
           customernumber: string | null
           done_return: string | null
           icecream: string | null
-          return_reason: Json | null
           returncancel: string | null
           returndate: string | null
           returnnumber: number
           schedule_id: number | null
-          schedule_id_if_changed: Json | null
           totalreturn: number | null
         }
         Insert: {
           address?: string | null
           agentnumber?: string | null
-          changedreason?: Json | null
           city?: string | null
           create_at_return?: string | null
           customergroup?: string | null
@@ -409,18 +396,15 @@ export type Database = {
           customernumber?: string | null
           done_return?: string | null
           icecream?: string | null
-          return_reason?: Json | null
           returncancel?: string | null
           returndate?: string | null
           returnnumber: number
           schedule_id?: number | null
-          schedule_id_if_changed?: Json | null
           totalreturn?: number | null
         }
         Update: {
           address?: string | null
           agentnumber?: string | null
-          changedreason?: Json | null
           city?: string | null
           create_at_return?: string | null
           customergroup?: string | null
@@ -428,12 +412,10 @@ export type Database = {
           customernumber?: string | null
           done_return?: string | null
           icecream?: string | null
-          return_reason?: Json | null
           returncancel?: string | null
           returndate?: string | null
           returnnumber?: number
           schedule_id?: number | null
-          schedule_id_if_changed?: Json | null
           totalreturn?: number | null
         }
         Relationships: [
