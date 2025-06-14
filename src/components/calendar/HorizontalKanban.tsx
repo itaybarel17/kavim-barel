@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useDrop } from 'react-dnd';
 import { CalendarCard } from './CalendarCard';
@@ -67,12 +68,12 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
       .filter((group) => {
         if (!group.agents) return false;
         if (Array.isArray(group.agents)) {
-          return group.agents.includes(currentUser.agentnumber);
+          return group.agents.includes(parseInt(currentUser.agentnumber));
         }
         if (typeof group.agents === "string") {
           try {
             const arr = JSON.parse(group.agents);
-            return arr.includes(currentUser.agentnumber);
+            return arr.includes(parseInt(currentUser.agentnumber));
           } catch {
             return false;
           }
