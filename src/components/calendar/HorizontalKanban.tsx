@@ -2,20 +2,8 @@
 import React from 'react';
 import { useDrop } from 'react-dnd';
 import { CalendarCard } from './CalendarCard';
-
-interface Order {
-  ordernumber: number;
-  customername: string;
-  totalorder: number;
-  schedule_id?: number;
-}
-
-interface Return {
-  returnnumber: number;
-  customername: string;
-  totalreturn: number;
-  schedule_id?: number;
-}
+import { getUniqueCustomersForSchedule } from '@/utils/scheduleUtils';
+import type { OrderWithSchedule, ReturnWithSchedule } from '@/utils/scheduleUtils';
 
 interface DistributionGroup {
   groups_id: number;
@@ -40,8 +28,8 @@ interface HorizontalKanbanProps {
   distributionSchedules: DistributionSchedule[];
   distributionGroups: DistributionGroup[];
   drivers: Driver[];
-  orders: Order[];
-  returns: Return[];
+  orders: OrderWithSchedule[];
+  returns: ReturnWithSchedule[];
   onUpdateDestinations?: (scheduleId: number) => void;
   onDropToKanban?: (scheduleId: number) => void;
 }
@@ -57,7 +45,7 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
 }) => {
   const [{ isOver }, drop] = useDrop(() => ({
     accept: ['calendar-card', 'card'], // Accept both calendar cards and regular order/return cards
-    drop: (item: { scheduleId?: number; type?: 'order' | 'return'; data?: Order | Return }) => {
+    drop: (item: { scheduleId?: number; type?: 'order' | 'return'; data?: OrderWithSchedule | ReturnWithSchedule }) => {
       if (item.scheduleId && onDropToKanban) {
         onDropToKanban(item.scheduleId);
       }
@@ -67,11 +55,10 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
     }),
   }));
 
-  // Filter schedules that have assigned items (orders or returns)
+  // Filter schedules that have assigned items (orders or returns) using effective schedule ID logic
   const schedulesWithItems = distributionSchedules.filter(schedule => {
-    const hasOrders = orders.some(order => order.schedule_id === schedule.schedule_id);
-    const hasReturns = returns.some(returnItem => returnItem.schedule_id === schedule.schedule_id);
-    return hasOrders || hasReturns;
+    const uniqueCustomers = getUniqueCustomersForSchedule(orders, returns, schedule.schedule_id);
+    return uniqueCustomers.size > 0;
   });
 
   // Separate unscheduled and scheduled items

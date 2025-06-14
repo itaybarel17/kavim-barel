@@ -247,7 +247,6 @@ export type Database = {
           agentnumber: string | null
           american_pallet: number | null
           average_time_for_carton: string | null
-          changedreason: Json | null
           city: string | null
           create_at_order: string | null
           customergroup: string | null
@@ -287,7 +286,6 @@ export type Database = {
           agentnumber?: string | null
           american_pallet?: number | null
           average_time_for_carton?: string | null
-          changedreason?: Json | null
           city?: string | null
           create_at_order?: string | null
           customergroup?: string | null
@@ -327,7 +325,6 @@ export type Database = {
           agentnumber?: string | null
           american_pallet?: number | null
           average_time_for_carton?: string | null
-          changedreason?: Json | null
           city?: string | null
           create_at_order?: string | null
           customergroup?: string | null
@@ -382,7 +379,6 @@ export type Database = {
         Row: {
           address: string | null
           agentnumber: string | null
-          changedreason: Json | null
           city: string | null
           create_at_return: string | null
           customergroup: string | null
@@ -401,7 +397,6 @@ export type Database = {
         Insert: {
           address?: string | null
           agentnumber?: string | null
-          changedreason?: Json | null
           city?: string | null
           create_at_return?: string | null
           customergroup?: string | null
@@ -420,7 +415,6 @@ export type Database = {
         Update: {
           address?: string | null
           agentnumber?: string | null
-          changedreason?: Json | null
           city?: string | null
           create_at_return?: string | null
           customergroup?: string | null

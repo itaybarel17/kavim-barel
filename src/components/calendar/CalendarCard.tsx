@@ -1,22 +1,9 @@
-
 import React from 'react';
 import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-
-interface Order {
-  ordernumber: number;
-  customername: string;
-  totalorder: number;
-  schedule_id?: number;
-}
-
-interface Return {
-  returnnumber: number;
-  customername: string;
-  totalreturn: number;
-  schedule_id?: number;
-}
+import { getOrdersByEffectiveScheduleId, getReturnsByEffectiveScheduleId, getUniqueCustomersForSchedule } from '@/utils/scheduleUtils';
+import type { OrderWithSchedule, ReturnWithSchedule } from '@/utils/scheduleUtils';
 
 interface DistributionGroup {
   groups_id: number;
@@ -44,8 +31,8 @@ interface CalendarCardProps {
   groupId: number;
   distributionGroups: DistributionGroup[];
   drivers: Driver[];
-  orders: Order[];
-  returns: Return[];
+  orders: OrderWithSchedule[];
+  returns: ReturnWithSchedule[];
   driverId?: number;
   showAllCustomers?: boolean;
   onUpdateDestinations?: (scheduleId: number) => void;
@@ -82,15 +69,12 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   const group = distributionGroups.find(g => g.groups_id === groupId);
   const driver = drivers.find(d => d.id === driverId);
 
-  // Get orders and returns for this schedule
-  const scheduleOrders = orders.filter(order => order.schedule_id === scheduleId);
-  const scheduleReturns = returns.filter(returnItem => returnItem.schedule_id === scheduleId);
+  // Get orders and returns for this schedule using effective schedule ID logic
+  const scheduleOrders = getOrdersByEffectiveScheduleId(orders, scheduleId);
+  const scheduleReturns = getReturnsByEffectiveScheduleId(returns, scheduleId);
 
-  // Calculate unique customers
-  const uniqueCustomers = new Set([
-    ...scheduleOrders.map(order => order.customername),
-    ...scheduleReturns.map(returnItem => returnItem.customername)
-  ]);
+  // Calculate unique customers using the utility function
+  const uniqueCustomers = getUniqueCustomersForSchedule(orders, returns, scheduleId);
   const uniqueCustomersList = Array.from(uniqueCustomers);
 
   // Calculate totals in money

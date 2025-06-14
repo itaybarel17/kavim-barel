@@ -18,6 +18,7 @@ interface Order {
   city: string;
   totalorder: number;
   schedule_id?: number;
+  schedule_id_if_changed?: any;
   icecream?: string;
   customernumber?: string;
   agentnumber?: string;
@@ -32,6 +33,7 @@ interface Return {
   city: string;
   totalreturn: number;
   schedule_id?: number;
+  schedule_id_if_changed?: any;
   icecream?: string;
   customernumber?: string;
   agentnumber?: string;
@@ -73,14 +75,14 @@ const Calendar = () => {
   // Set up realtime subscriptions
   useRealtimeSubscription();
 
-  // Fetch orders
+  // Fetch orders with schedule_id_if_changed
   const { data: orders = [], refetch: refetchOrders, isLoading: ordersLoading } = useQuery({
     queryKey: ['calendar-orders'],
     queryFn: async () => {
       console.log('Fetching orders for calendar...');
       const { data, error } = await supabase
         .from('mainorder')
-        .select('ordernumber, customername, address, city, totalorder, schedule_id, icecream, customernumber, agentnumber, orderdate, invoicenumber')
+        .select('ordernumber, customername, address, city, totalorder, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, orderdate, invoicenumber')
         .order('ordernumber', { ascending: false });
       
       if (error) throw error;
@@ -89,14 +91,14 @@ const Calendar = () => {
     }
   });
 
-  // Fetch returns
+  // Fetch returns with schedule_id_if_changed
   const { data: returns = [], refetch: refetchReturns, isLoading: returnsLoading } = useQuery({
     queryKey: ['calendar-returns'],
     queryFn: async () => {
       console.log('Fetching returns for calendar...');
       const { data, error } = await supabase
         .from('mainreturns')
-        .select('returnnumber, customername, address, city, totalreturn, schedule_id, icecream, customernumber, agentnumber, returndate')
+        .select('returnnumber, customername, address, city, totalreturn, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, returndate')
         .order('returnnumber', { ascending: false });
       
       if (error) throw error;
@@ -154,21 +156,17 @@ const Calendar = () => {
   // Update destinations count immediately when orders/returns change
   useEffect(() => {
     const updateAllDestinationsCount = async () => {
+      // Import the utility functions
+      const { getUniqueCustomersForSchedule } = await import('@/utils/scheduleUtils');
+      
       // Only update for schedules that have assigned items
       const schedulesWithItems = distributionSchedules.filter(schedule => {
-        const hasOrders = orders.some(order => order.schedule_id === schedule.schedule_id);
-        const hasReturns = returns.some(returnItem => returnItem.schedule_id === schedule.schedule_id);
-        return hasOrders || hasReturns;
+        const uniqueCustomers = getUniqueCustomersForSchedule(orders, returns, schedule.schedule_id);
+        return uniqueCustomers.size > 0;
       });
 
       for (const schedule of schedulesWithItems) {
-        const scheduleOrders = orders.filter(order => order.schedule_id === schedule.schedule_id);
-        const scheduleReturns = returns.filter(returnItem => returnItem.schedule_id === schedule.schedule_id);
-        
-        const uniqueCustomers = new Set([
-          ...scheduleOrders.map(order => order.customername),
-          ...scheduleReturns.map(returnItem => returnItem.customername)
-        ]);
+        const uniqueCustomers = getUniqueCustomersForSchedule(orders, returns, schedule.schedule_id);
 
         // Update destinations count immediately if it has changed
         if (schedule.destinations !== uniqueCustomers.size) {
@@ -265,13 +263,8 @@ const Calendar = () => {
   // Add function to update destinations count when items are removed
   const updateDestinationsCount = async (scheduleId: number) => {
     try {
-      const scheduleOrders = orders.filter(order => order.schedule_id === scheduleId);
-      const scheduleReturns = returns.filter(returnItem => returnItem.schedule_id === scheduleId);
-      
-      const uniqueCustomers = new Set([
-        ...scheduleOrders.map(order => order.customername),
-        ...scheduleReturns.map(returnItem => returnItem.customername)
-      ]);
+      const { getUniqueCustomersForSchedule } = await import('@/utils/scheduleUtils');
+      const uniqueCustomers = getUniqueCustomersForSchedule(orders, returns, scheduleId);
 
       const { error } = await supabase
         .from('distribution_schedule')

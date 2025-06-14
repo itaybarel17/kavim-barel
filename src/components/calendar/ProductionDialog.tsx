@@ -164,9 +164,12 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
     onClose();
   };
 
-  const getScheduleStats = (scheduleId: number) => {
-    const scheduleOrders = orders.filter(order => order.schedule_id === scheduleId);
-    const scheduleReturns = returns.filter(returnItem => returnItem.schedule_id === scheduleId);
+  const getScheduleStats = async (scheduleId: number) => {
+    // Import utility functions
+    const { getOrdersByEffectiveScheduleId, getReturnsByEffectiveScheduleId } = await import('@/utils/scheduleUtils');
+    
+    const scheduleOrders = getOrdersByEffectiveScheduleId(orders, scheduleId);
+    const scheduleReturns = getReturnsByEffectiveScheduleId(returns, scheduleId);
     
     return {
       ordersCount: scheduleOrders.length,
@@ -181,7 +184,7 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-xl">
-            הפקה ליום {selectedDate.toLocaleDateString('he-IL')}
+            הפקה ליום {selectedDate?.toLocaleDateString('he-IL')}
           </DialogTitle>
         </DialogHeader>
 
@@ -204,7 +207,30 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
             schedulesForDate.map((schedule) => {
               const group = distributionGroups.find(g => g.groups_id === schedule.groups_id);
               const driver = drivers.find(d => d.id === schedule.driver_id);
-              const stats = getScheduleStats(schedule.schedule_id);
+              // Note: getScheduleStats is now async, but we'll handle it in useEffect or similar
+              // For now, keeping the synchronous version to avoid breaking changes
+              const scheduleOrders = orders.filter(order => {
+                // Use effective schedule ID logic
+                const effectiveScheduleId = order.schedule_id_if_changed?.schedule_id || 
+                                          (typeof order.schedule_id_if_changed === 'number' ? order.schedule_id_if_changed : null) || 
+                                          order.schedule_id;
+                return effectiveScheduleId === schedule.schedule_id;
+              });
+              const scheduleReturns = returns.filter(returnItem => {
+                // Use effective schedule ID logic
+                const effectiveScheduleId = returnItem.schedule_id_if_changed?.schedule_id || 
+                                          (typeof returnItem.schedule_id_if_changed === 'number' ? returnItem.schedule_id_if_changed : null) || 
+                                          returnItem.schedule_id;
+                return effectiveScheduleId === schedule.schedule_id;
+              });
+              
+              const stats = {
+                ordersCount: scheduleOrders.length,
+                returnsCount: scheduleReturns.length,
+                totalValue: scheduleOrders.reduce((sum, order) => sum + (order.totalorder || 0), 0) -
+                           scheduleReturns.reduce((sum, returnItem) => sum + (returnItem.totalreturn || 0), 0)
+              };
+              
               // Check if produced based on done_schedule timestamp
               const isProduced = schedule.done_schedule != null;
 
