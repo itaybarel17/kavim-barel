@@ -16,7 +16,7 @@ export type Database = {
           arvot: string | null
           city: string | null
           customername: string | null
-          customernumber: number
+          customernumber: string
           discount: number | null
           discountdetails: string | null
           mobile: string | null
@@ -36,7 +36,7 @@ export type Database = {
           arvot?: string | null
           city?: string | null
           customername?: string | null
-          customernumber: number
+          customernumber: string
           discount?: number | null
           discountdetails?: string | null
           mobile?: string | null
@@ -56,7 +56,7 @@ export type Database = {
           arvot?: string | null
           city?: string | null
           customername?: string | null
-          customernumber?: number
+          customernumber?: string
           discount?: number | null
           discountdetails?: string | null
           mobile?: string | null
@@ -104,6 +104,7 @@ export type Database = {
           europallet_return: number | null
           groups_id: number | null
           nahag_name: string | null
+          note: string | null
           schedule_id: number
           smallpallet_return: number | null
           total_customers: number | null
@@ -118,6 +119,7 @@ export type Database = {
           europallet_return?: number | null
           groups_id?: number | null
           nahag_name?: string | null
+          note?: string | null
           schedule_id?: number
           smallpallet_return?: number | null
           total_customers?: number | null
@@ -132,6 +134,7 @@ export type Database = {
           europallet_return?: number | null
           groups_id?: number | null
           nahag_name?: string | null
+          note?: string | null
           schedule_id?: number
           smallpallet_return?: number | null
           total_customers?: number | null

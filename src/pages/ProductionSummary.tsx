@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -155,15 +154,15 @@ const ProductionSummary = () => {
     enabled: !!scheduleId
   });
 
-  // Fetch customer details
+  // Fetch customer details - Fixed type handling
   const { data: customerDetails = [] } = useQuery({
     queryKey: ['customer-details', scheduleId],
     queryFn: async () => {
-      // Get unique customer numbers from orders and returns
+      // Get unique customer numbers from orders and returns as strings
       const customerNumbers = Array.from(new Set([
         ...orders.map(order => order.customernumber).filter(Boolean),
         ...returns.map(returnItem => returnItem.customernumber).filter(Boolean)
-      ]));
+      ])) as string[];
 
       if (customerNumbers.length === 0) return [];
 
