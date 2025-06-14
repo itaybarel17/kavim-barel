@@ -275,7 +275,7 @@ const ProductionSummary = () => {
         <Card className="mb-4">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between gap-4 text-base">
-              <span>סיכום קו חלוקה {group?.separation || 'אזור לא מוגדר'} לתאריך {schedule.distribution_date ? new Date(schedule.distribution_date).toLocaleDateString('he-IL') : 'לא מוגדר'}</span>
+              <span>סיכום קו חלוקה {group?.separation || 'אזור לא מוגדר'} - מזהה לוח זמנים: {scheduleId} לתאריך {schedule.distribution_date ? new Date(schedule.distribution_date).toLocaleDateString('he-IL') : 'לא מוגדר'}</span>
               <span>מס' הפצה: #{schedule.dis_number}</span>
               <span>נהג: {driver?.nahag || 'לא מוגדר'}</span>
               <span>נקודות: {totalPoints}</span>

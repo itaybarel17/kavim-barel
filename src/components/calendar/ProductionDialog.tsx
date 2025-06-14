@@ -270,14 +270,21 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
                             </Button>
                           </>
                         ) : (
-                          <Button
-                            onClick={() => setShowConfirmation(schedule.schedule_id)}
-                            disabled={isProducing || !hasDriver}
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400"
-                          >
-                            הפק
-                          </Button>
+                          <>
+                            {!hasDriver && (
+                              <div className="text-red-600 text-sm font-medium">
+                                יש להגדיר נהג לפני הפקה
+                              </div>
+                            )}
+                            <Button
+                              onClick={() => setShowConfirmation(schedule.schedule_id)}
+                              disabled={isProducing || !hasDriver}
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400"
+                            >
+                              הפק
+                            </Button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -297,7 +304,7 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
                             size="sm"
                             className="bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400"
                           >
-                            {!hasDriver ? 'נא להגדיר נהג' : (isProducing ? 'מפיק...' : 'כן, הפק')}
+                            {isProducing ? 'מפיק...' : 'כן, הפק'}
                           </Button>
                           <Button
                             onClick={() => setShowConfirmation(null)}
