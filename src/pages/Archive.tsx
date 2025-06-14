@@ -256,6 +256,17 @@ const Archive = () => {
 
   const isLoading = ordersLoading || returnsLoading || deletedOrdersLoading || deletedReturnsLoading;
 
+  // Helper function to safely get item number
+  const getItemNumber = (): number => {
+    if (!selectedItem?.data) return 0;
+    
+    if (selectedItem.type === 'order') {
+      return (selectedItem.data as ArchivedOrder).ordernumber || 0;
+    } else {
+      return (selectedItem.data as ArchivedReturn).returnnumber || 0;
+    }
+  };
+
   return (
     <div className="min-h-screen p-6 bg-background">
       <div className="flex items-center justify-between mb-6">
@@ -504,9 +515,7 @@ const Archive = () => {
         onOpenChange={setReturnDialogOpen}
         onConfirm={handleReturnToDistribution}
         itemType={selectedItem?.type || 'order'}
-        itemNumber={selectedItem?.type === 'order' 
-          ? (selectedItem.data as ArchivedOrder).ordernumber 
-          : (selectedItem.data as ArchivedReturn).returnnumber}
+        itemNumber={getItemNumber()}
       />
     </div>
   );
