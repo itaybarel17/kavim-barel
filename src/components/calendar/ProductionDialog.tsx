@@ -215,6 +215,8 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
               
               // Check if produced based on done_schedule timestamp
               const isProduced = schedule.done_schedule != null;
+              // Check if driver is assigned
+              const hasDriver = schedule.driver_id != null && driver != null;
 
               return (
                 <Card key={schedule.schedule_id} className={`${isProduced ? 'bg-green-50 border-green-200 border-2' : 'bg-white'}`}>
@@ -222,7 +224,7 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <div className="font-semibold text-lg">
-                          {group?.separation || `קו ${schedule.schedule_id}`}
+                          {group?.separation || `קו ${schedule.schedule_id}`} - מזהה: {schedule.schedule_id}
                         </div>
                         {isProduced && (
                           <div className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm font-medium border border-green-300">
@@ -236,10 +238,6 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <User className="h-4 w-4" />
                         {driver?.nahag || 'לא מוגדר נהג'}
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Calendar className="h-4 w-4" />
-                        מזהה: {schedule.schedule_id}
                       </div>
                       <div className="flex items-center gap-2 text-sm text-blue-600">
                         <Package className="h-4 w-4" />
@@ -274,9 +272,9 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
                         ) : (
                           <Button
                             onClick={() => setShowConfirmation(schedule.schedule_id)}
-                            disabled={isProducing}
+                            disabled={isProducing || !hasDriver}
                             size="sm"
-                            className="bg-green-600 hover:bg-green-700 text-white"
+                            className="bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400"
                           >
                             הפק
                           </Button>
@@ -295,11 +293,11 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
                         <div className="flex gap-2 justify-center">
                           <Button
                             onClick={() => handleProduce(schedule.schedule_id)}
-                            disabled={isProducing}
+                            disabled={isProducing || !hasDriver}
                             size="sm"
-                            className="bg-green-600 hover:bg-green-700 text-white"
+                            className="bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400"
                           >
-                            {isProducing ? 'מפיק...' : 'כן, הפק'}
+                            {!hasDriver ? 'נא להגדיר נהג' : (isProducing ? 'מפיק...' : 'כן, הפק')}
                           </Button>
                           <Button
                             onClick={() => setShowConfirmation(null)}
