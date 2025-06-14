@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { useDrop } from 'react-dnd';
 import { useNavigate } from 'react-router-dom';
@@ -94,34 +95,43 @@ export const DropZone: React.FC<DropZoneProps> = ({
     }),
   }), [zoneNumber]);
 
-  // Get assigned items for this zone based on schedule_id
+  // Get assigned items for this zone based on schedule_id - ONLY for ACTIVE schedules
   const assignedOrders = orders.filter(order => 
-    scheduleId && order.schedule_id === scheduleId
+    scheduleId && order.schedule_id === scheduleId &&
+    distributionSchedules.some(schedule => schedule.schedule_id === scheduleId)
   );
   const assignedReturns = returns.filter(returnItem => 
-    scheduleId && returnItem.schedule_id === scheduleId
+    scheduleId && returnItem.schedule_id === scheduleId &&
+    distributionSchedules.some(schedule => schedule.schedule_id === scheduleId)
   );
 
-  // Load existing state for this zone
+  // Load existing state for this zone - ONLY considers ACTIVE schedules
   useEffect(() => {
     console.log('DropZone effect - loading existing state for zone:', zoneNumber);
 
-    // Reset state first
+    // Reset state first - this ensures complete reset after production
     setSelectedGroupId(null);
     setScheduleId(null);
     setSelectedDriverId(null);
 
-    // Find the schedule for this zone - allow flexible assignment
+    // Find items that are assigned to ACTIVE schedules only
+    const activeAssignedOrders = orders.filter(order => order.schedule_id && 
+      distributionSchedules.some(schedule => schedule.schedule_id === order.schedule_id));
+    const activeAssignedReturns = returns.filter(returnItem => returnItem.schedule_id && 
+      distributionSchedules.some(schedule => schedule.schedule_id === returnItem.schedule_id));
+    const allActiveAssignedItems = [...activeAssignedOrders, ...activeAssignedReturns];
+
+    // Find the schedule for this zone - allow flexible assignment but ONLY for ACTIVE schedules
     const zoneSchedules = distributionSchedules
       .filter(schedule => {
-        const hasItems = [...orders, ...returns].some(item => item.schedule_id === schedule.schedule_id);
+        const hasItems = allActiveAssignedItems.some(item => item.schedule_id === schedule.schedule_id);
         return hasItems;
       })
       .sort((a, b) => a.schedule_id - b.schedule_id);
 
     if (zoneSchedules.length >= zoneNumber) {
       const targetSchedule = zoneSchedules[zoneNumber - 1];
-      console.log(`Zone ${zoneNumber} assigned to schedule ${targetSchedule.schedule_id}`);
+      console.log(`Zone ${zoneNumber} assigned to active schedule ${targetSchedule.schedule_id}`);
 
       setSelectedGroupId(targetSchedule.groups_id);
       setScheduleId(targetSchedule.schedule_id);
@@ -129,22 +139,26 @@ export const DropZone: React.FC<DropZoneProps> = ({
       return;
     }
 
-    // Check for empty schedules
-    const emptySchedules = distributionSchedules
+    // Check for empty ACTIVE schedules
+    const emptyActiveSchedules = distributionSchedules
       .filter(schedule => {
-        const hasItems = [...orders, ...returns].some(item => item.schedule_id === schedule.schedule_id);
+        const hasItems = allActiveAssignedItems.some(item => item.schedule_id === schedule.schedule_id);
         return !hasItems;
       })
       .sort((a, b) => a.schedule_id - b.schedule_id);
 
     const emptyScheduleIndex = zoneNumber - 1 - zoneSchedules.length;
-    if (emptyScheduleIndex >= 0 && emptyScheduleIndex < emptySchedules.length) {
-      const targetSchedule = emptySchedules[emptyScheduleIndex];
-      console.log(`Zone ${zoneNumber} assigned to empty schedule ${targetSchedule.schedule_id}`);
+    if (emptyScheduleIndex >= 0 && emptyScheduleIndex < emptyActiveSchedules.length) {
+      const targetSchedule = emptyActiveSchedules[emptyScheduleIndex];
+      console.log(`Zone ${zoneNumber} assigned to empty active schedule ${targetSchedule.schedule_id}`);
       setSelectedGroupId(targetSchedule.groups_id);
       setScheduleId(targetSchedule.schedule_id);
       setSelectedDriverId(targetSchedule.driver_id || null);
+      return;
     }
+
+    // If no active schedule exists for this zone, it remains completely empty
+    console.log(`Zone ${zoneNumber} has no active schedule - completely empty`);
   }, [distributionSchedules, orders, returns, zoneNumber]);
 
   // Updated print function to navigate to report page
@@ -268,7 +282,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
 
       console.log('Schedule deleted successfully');
       
-      // Reset local state
+      // Reset local state to completely empty
       setSelectedGroupId(null);
       setScheduleId(null);
       setSelectedDriverId(null);

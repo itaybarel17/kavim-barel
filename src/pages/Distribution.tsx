@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -114,17 +115,18 @@ const Distribution = () => {
     }
   });
 
-  // Fetch distribution schedules - NOW INCLUDING driver_id
+  // Fetch ONLY ACTIVE distribution schedules - filter out produced ones (done_schedule IS NOT NULL)
   const { data: distributionSchedules = [], refetch: refetchSchedules, isLoading: schedulesLoading } = useQuery({
     queryKey: ['distribution-schedules'],
     queryFn: async () => {
-      console.log('Fetching distribution schedules...');
+      console.log('Fetching active distribution schedules...');
       const { data, error } = await supabase
         .from('distribution_schedule')
-        .select('schedule_id, groups_id, create_at_schedule, driver_id');
+        .select('schedule_id, groups_id, create_at_schedule, driver_id')
+        .is('done_schedule', null); // Only get active schedules, not produced ones
       
       if (error) throw error;
-      console.log('Distribution schedules fetched:', data);
+      console.log('Active distribution schedules fetched:', data);
       return data as DistributionSchedule[];
     }
   });
@@ -258,11 +260,13 @@ const Distribution = () => {
     await handleDropToUnassigned(item);
   };
 
-  // Updated helper function to get the current state of a zone
+  // Updated helper function to get the current state of a zone - ONLY considers ACTIVE schedules
   const getZoneState = (zoneNumber: number) => {
-    // Find items that are assigned to any schedule
-    const assignedOrders = orders.filter(order => order.schedule_id);
-    const assignedReturns = returns.filter(returnItem => returnItem.schedule_id);
+    // Find items that are assigned to any ACTIVE schedule
+    const assignedOrders = orders.filter(order => order.schedule_id && 
+      distributionSchedules.some(schedule => schedule.schedule_id === order.schedule_id));
+    const assignedReturns = returns.filter(returnItem => returnItem.schedule_id && 
+      distributionSchedules.some(schedule => schedule.schedule_id === returnItem.schedule_id));
     const allAssignedItems = [...assignedOrders, ...assignedReturns];
 
     // Group items by schedule_id
@@ -277,7 +281,7 @@ const Distribution = () => {
       }
     });
 
-    // Get schedules with items, sorted by creation time
+    // Get ACTIVE schedules with items, sorted by creation time
     const schedulesWithItems = distributionSchedules
       .filter(schedule => scheduleItemsMap.has(schedule.schedule_id))
       .sort((a, b) => a.schedule_id - b.schedule_id);
@@ -291,7 +295,7 @@ const Distribution = () => {
       };
     }
 
-    // Check for empty schedules
+    // Check for empty ACTIVE schedules
     const emptySchedules = distributionSchedules
       .filter(schedule => !scheduleItemsMap.has(schedule.schedule_id))
       .sort((a, b) => a.schedule_id - b.schedule_id);
@@ -305,15 +309,18 @@ const Distribution = () => {
       };
     }
 
+    // If no active schedule exists for this zone, return completely empty state
     return {
       selectedGroupId: null,
       scheduleId: null
     };
   };
 
-  // Filter unassigned items (those without schedule_id)
-  const unassignedOrders = orders.filter(order => !order.schedule_id);
-  const unassignedReturns = returns.filter(returnItem => !returnItem.schedule_id);
+  // Filter unassigned items (those without schedule_id or with schedule_id pointing to produced schedules)
+  const unassignedOrders = orders.filter(order => !order.schedule_id || 
+    !distributionSchedules.some(schedule => schedule.schedule_id === order.schedule_id));
+  const unassignedReturns = returns.filter(returnItem => !returnItem.schedule_id || 
+    !distributionSchedules.some(schedule => schedule.schedule_id === returnItem.schedule_id));
 
   // Create 12 drop zones (3 rows x 4 columns)
   const dropZones = Array.from({ length: 12 }, (_, index) => index + 1);
@@ -321,6 +328,7 @@ const Distribution = () => {
   console.log('Unassigned orders:', unassignedOrders.length);
   console.log('Unassigned returns:', unassignedReturns.length);
   console.log('Distribution groups:', distributionGroups.length);
+  console.log('Active schedules:', distributionSchedules.length);
 
   const isLoading = ordersLoading || returnsLoading || groupsLoading || schedulesLoading || driversLoading;
 
