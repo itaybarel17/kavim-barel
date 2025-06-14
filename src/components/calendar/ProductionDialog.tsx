@@ -136,7 +136,8 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
               const group = distributionGroups.find(g => g.groups_id === schedule.groups_id);
               const driver = drivers.find(d => d.id === schedule.driver_id);
               const stats = getScheduleStats(schedule.schedule_id);
-              const isProduced = schedule.dis_number && schedule.done_schedule;
+              // Check if produced based on done_schedule timestamp
+              const isProduced = schedule.done_schedule != null;
 
               return (
                 <Card key={schedule.schedule_id} className={`${isProduced ? 'bg-green-50 border-green-200 border-2' : 'bg-white'}`}>
@@ -148,7 +149,7 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
                         </div>
                         {isProduced && (
                           <div className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm font-medium border border-green-300">
-                            הופק #{schedule.dis_number}
+                            הופק #{schedule.dis_number || 'לא ידוע'}
                           </div>
                         )}
                       </div>
@@ -181,7 +182,9 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
                       <div className="flex gap-2 items-center">
                         {isProduced ? (
                           <>
-                            <span className="text-gray-500 text-sm font-medium">הופק</span>
+                            <span className="text-gray-500 text-sm font-medium px-3 py-1 bg-gray-100 rounded">
+                              הופק
+                            </span>
                             <Button
                               onClick={() => handleViewSummary(schedule.schedule_id)}
                               variant="outline"

@@ -66,8 +66,8 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   isCalendarMode = false,
   schedule
 }) => {
-  // Check if this schedule has been produced
-  const isProduced = schedule?.dis_number && schedule?.done_schedule;
+  // Check if this schedule has been produced based on done_schedule timestamp
+  const isProduced = schedule?.done_schedule != null;
   
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'calendar-card',
@@ -103,12 +103,12 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   const cardClasses = isCalendarMode 
     ? `w-full max-w-[160px] overflow-hidden ${
         isProduced 
-          ? 'cursor-not-allowed border-2 border-green-500 bg-green-50 shadow-md' 
+          ? 'cursor-not-allowed border-4 border-green-500 bg-green-50 shadow-lg opacity-90' 
           : 'cursor-move border-blue-200 bg-blue-50'
       }`
     : `min-w-[250px] max-w-[280px] ${
         isProduced 
-          ? 'cursor-not-allowed border-2 border-green-500 bg-green-50 shadow-md' 
+          ? 'cursor-not-allowed border-4 border-green-500 bg-green-50 shadow-lg opacity-90' 
           : 'cursor-move border-blue-200 bg-blue-50'
       }`;
 
@@ -124,7 +124,7 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
       className={`${cardClasses} ${isDragging ? 'opacity-50' : ''} ${isProduced ? 'relative' : ''}`}
     >
       {isProduced && (
-        <div className="absolute top-1 right-1 bg-green-600 text-white text-[8px] px-1 py-0.5 rounded z-10">
+        <div className="absolute top-1 right-1 bg-green-600 text-white text-[8px] px-1 py-0.5 rounded z-10 font-bold">
           נעול
         </div>
       )}
@@ -136,7 +136,7 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
             </h3>
             {isProduced && (
               <Badge variant="secondary" className="text-[8px] px-1 py-0 bg-green-100 text-green-800 border border-green-300">
-                הופק #{schedule?.dis_number}
+                הופק #{schedule?.dis_number || 'לא ידוע'}
               </Badge>
             )}
           </div>
