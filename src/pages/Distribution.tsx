@@ -9,6 +9,7 @@ import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription';
 import { Loader2, Calendar, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 interface Order {
   ordernumber: number;
@@ -57,11 +58,12 @@ interface Driver {
 const Distribution = () => {
   const [draggedItem, setDraggedItem] = useState<{ type: 'order' | 'return'; data: Order | Return } | null>(null);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   // Set up realtime subscriptions
   useRealtimeSubscription();
 
-  // Fetch orders (exclude produced orders: done_mainorder IS NOT NULL)
+  // Fetch orders (exclude produced orders: done_mainorder IS NOT NULL and deleted orders: ordercancel IS NOT NULL)
   const { data: orders = [], refetch: refetchOrders, isLoading: ordersLoading } = useQuery({
     queryKey: ['orders'],
     queryFn: async () => {
@@ -71,6 +73,7 @@ const Distribution = () => {
         .select('ordernumber, customername, address, city, totalorder, schedule_id, icecream, customernumber, agentnumber, orderdate, invoicenumber')
         .or('icecream.is.null,icecream.eq.')
         .is('done_mainorder', null)
+        .is('ordercancel', null) // Exclude deleted orders
         .order('ordernumber', { ascending: false })
         .limit(50);
       
@@ -80,7 +83,7 @@ const Distribution = () => {
     }
   });
 
-  // Fetch returns (exclude produced returns: done_return IS NOT NULL)
+  // Fetch returns (exclude produced returns: done_return IS NOT NULL and deleted returns: returncancel IS NOT NULL)
   const { data: returns = [], refetch: refetchReturns, isLoading: returnsLoading } = useQuery({
     queryKey: ['returns'],
     queryFn: async () => {
@@ -90,6 +93,7 @@ const Distribution = () => {
         .select('returnnumber, customername, address, city, totalreturn, schedule_id, icecream, customernumber, agentnumber, returndate')
         .or('icecream.is.null,icecream.eq.')
         .is('done_return', null)
+        .is('returncancel', null) // Exclude deleted returns
         .order('returnnumber', { ascending: false })
         .limit(50);
       
@@ -248,6 +252,53 @@ const Distribution = () => {
     await handleDropToUnassigned(item);
   };
 
+  const handleDeleteItem = async (item: { type: 'order' | 'return'; data: Order | Return }) => {
+    try {
+      console.log('Deleting item:', item);
+
+      if (item.type === 'order') {
+        const { error } = await supabase
+          .from('mainorder')
+          .update({ ordercancel: new Date().toISOString() })
+          .eq('ordernumber', (item.data as Order).ordernumber);
+        
+        if (error) {
+          console.error('Error deleting order:', error);
+          throw error;
+        }
+        console.log('Order deleted successfully');
+        toast({
+          title: "הזמנה נמחקה",
+          description: `הזמנה #${(item.data as Order).ordernumber} הועברה לארכיון`,
+        });
+        refetchOrders();
+      } else {
+        const { error } = await supabase
+          .from('mainreturns')
+          .update({ returncancel: new Date().toISOString() })
+          .eq('returnnumber', (item.data as Return).returnnumber);
+        
+        if (error) {
+          console.error('Error deleting return:', error);
+          throw error;
+        }
+        console.log('Return deleted successfully');
+        toast({
+          title: "החזרה נמחקה",
+          description: `החזרה #${(item.data as Return).returnnumber} הועברה לארכיון`,
+        });
+        refetchReturns();
+      }
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      toast({
+        title: "שגיאה",
+        description: "אירעה שגיאה במחיקת הפריט",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Updated helper function to get the current state of a zone - ONLY considers ACTIVE schedules
   const getZoneState = (zoneNumber: number) => {
     console.log('getZoneState called for zone:', zoneNumber);
@@ -365,12 +416,13 @@ const Distribution = () => {
           </div>
         </div>
         
-        {/* Unassigned items area with drop functionality */}
+        {/* Unassigned items area with drop functionality and delete buttons */}
         <UnassignedArea
           unassignedOrders={unassignedOrders}
           unassignedReturns={unassignedReturns}
           onDragStart={setDraggedItem}
           onDropToUnassigned={handleDropToUnassigned}
+          onDeleteItem={handleDeleteItem}
         />
 
         {/* 3x4 Grid of drop zones */}

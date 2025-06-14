@@ -247,7 +247,6 @@ export type Database = {
           agentnumber: string | null
           american_pallet: number | null
           average_time_for_carton: string | null
-          cancellation_reason: string | null
           city: string | null
           create_at_order: string | null
           customergroup: string | null
@@ -263,6 +262,7 @@ export type Database = {
           melaketID: number | null
           mistake_melaket: string | null
           office_mistake: string | null
+          ordercancel: string | null
           orderdate: string | null
           ordernumber: number
           orders_PROFIT_id: string | null
@@ -284,7 +284,6 @@ export type Database = {
           agentnumber?: string | null
           american_pallet?: number | null
           average_time_for_carton?: string | null
-          cancellation_reason?: string | null
           city?: string | null
           create_at_order?: string | null
           customergroup?: string | null
@@ -300,6 +299,7 @@ export type Database = {
           melaketID?: number | null
           mistake_melaket?: string | null
           office_mistake?: string | null
+          ordercancel?: string | null
           orderdate?: string | null
           ordernumber: number
           orders_PROFIT_id?: string | null
@@ -321,7 +321,6 @@ export type Database = {
           agentnumber?: string | null
           american_pallet?: number | null
           average_time_for_carton?: string | null
-          cancellation_reason?: string | null
           city?: string | null
           create_at_order?: string | null
           customergroup?: string | null
@@ -337,6 +336,7 @@ export type Database = {
           melaketID?: number | null
           mistake_melaket?: string | null
           office_mistake?: string | null
+          ordercancel?: string | null
           orderdate?: string | null
           ordernumber?: number
           orders_PROFIT_id?: string | null
@@ -373,7 +373,6 @@ export type Database = {
         Row: {
           address: string | null
           agentnumber: string | null
-          cancellation_reason: string | null
           city: string | null
           create_at_return: string | null
           customergroup: string | null
@@ -381,6 +380,7 @@ export type Database = {
           customernumber: string | null
           done_return: string | null
           icecream: string | null
+          returncancel: string | null
           returndate: string | null
           returnnumber: number
           schedule_id: number | null
@@ -389,7 +389,6 @@ export type Database = {
         Insert: {
           address?: string | null
           agentnumber?: string | null
-          cancellation_reason?: string | null
           city?: string | null
           create_at_return?: string | null
           customergroup?: string | null
@@ -397,6 +396,7 @@ export type Database = {
           customernumber?: string | null
           done_return?: string | null
           icecream?: string | null
+          returncancel?: string | null
           returndate?: string | null
           returnnumber: number
           schedule_id?: number | null
@@ -405,7 +405,6 @@ export type Database = {
         Update: {
           address?: string | null
           agentnumber?: string | null
-          cancellation_reason?: string | null
           city?: string | null
           create_at_return?: string | null
           customergroup?: string | null
@@ -413,6 +412,7 @@ export type Database = {
           customernumber?: string | null
           done_return?: string | null
           icecream?: string | null
+          returncancel?: string | null
           returndate?: string | null
           returnnumber?: number
           schedule_id?: number | null

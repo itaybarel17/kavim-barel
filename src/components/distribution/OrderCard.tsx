@@ -64,7 +64,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ type, data, onDragStart })
       <CardContent className="p-4">
         <div className="flex justify-between items-start mb-2">
           <span className={`text-sm font-semibold ${isOrder ? 'text-blue-600' : 'text-red-600'}`}>
-            {isOrder ? 'הזמנה' : 'החזרה'} #{number}
+            {isOrder ? `#${number}` : `החזרה #${number}`}
           </span>
           <span className="text-sm font-bold">₪{total?.toLocaleString()}</span>
         </div>

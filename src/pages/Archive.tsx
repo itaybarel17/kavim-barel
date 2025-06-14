@@ -1,12 +1,12 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Package, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Package, RotateCcw, Undo2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 interface ArchivedOrder {
   ordernumber: number;
@@ -28,9 +28,30 @@ interface ArchivedReturn {
   schedule_id: number;
 }
 
+interface DeletedOrder {
+  ordernumber: number;
+  customername: string;
+  address: string;
+  city: string;
+  totalorder: number;
+  ordercancel: string;
+  schedule_id: number;
+}
+
+interface DeletedReturn {
+  returnnumber: number;
+  customername: string;
+  address: string;
+  city: string;
+  totalreturn: number;
+  returncancel: string;
+  schedule_id: number;
+}
+
 const Archive = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   // Fetch archived orders
   const { data: archivedOrders = [], isLoading: ordersLoading } = useQuery({
@@ -62,6 +83,84 @@ const Archive = () => {
     }
   });
 
+  // Fetch deleted orders
+  const { data: deletedOrders = [], refetch: refetchDeletedOrders, isLoading: deletedOrdersLoading } = useQuery({
+    queryKey: ['deleted-orders'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('mainorder')
+        .select('ordernumber, customername, address, city, totalorder, ordercancel, schedule_id')
+        .not('ordercancel', 'is', null)
+        .order('ordercancel', { ascending: false });
+      
+      if (error) throw error;
+      return data as DeletedOrder[];
+    }
+  });
+
+  // Fetch deleted returns
+  const { data: deletedReturns = [], refetch: refetchDeletedReturns, isLoading: deletedReturnsLoading } = useQuery({
+    queryKey: ['deleted-returns'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('mainreturns')
+        .select('returnnumber, customername, address, city, totalreturn, returncancel, schedule_id')
+        .not('returncancel', 'is', null)
+        .order('returncancel', { ascending: false });
+      
+      if (error) throw error;
+      return data as DeletedReturn[];
+    }
+  });
+
+  const handleRestoreOrder = async (order: DeletedOrder) => {
+    try {
+      const { error } = await supabase
+        .from('mainorder')
+        .update({ ordercancel: null })
+        .eq('ordernumber', order.ordernumber);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "הזמנה שוחזרה",
+        description: `הזמנה #${order.ordernumber} חזרה לממשק ההפצה`,
+      });
+      refetchDeletedOrders();
+    } catch (error) {
+      console.error('Error restoring order:', error);
+      toast({
+        title: "שגיאה",
+        description: "אירעה שגיאה בשחזור ההזמנה",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRestoreReturn = async (returnItem: DeletedReturn) => {
+    try {
+      const { error } = await supabase
+        .from('mainreturns')
+        .update({ returncancel: null })
+        .eq('returnnumber', returnItem.returnnumber);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "החזרה שוחזרה",
+        description: `החזרה #${returnItem.returnnumber} חזרה לממשק ההפצה`,
+      });
+      refetchDeletedReturns();
+    } catch (error) {
+      console.error('Error restoring return:', error);
+      toast({
+        title: "שגיאה",
+        description: "אירעה שגיאה בשחזור ההחזרה",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Filter items based on search term
   const filteredOrders = archivedOrders.filter(order =>
     order.customername?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -75,7 +174,19 @@ const Archive = () => {
     returnItem.returnnumber.toString().includes(searchTerm)
   );
 
-  const isLoading = ordersLoading || returnsLoading;
+  const filteredDeletedOrders = deletedOrders.filter(order =>
+    order.customername?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.ordernumber.toString().includes(searchTerm)
+  );
+
+  const filteredDeletedReturns = deletedReturns.filter(returnItem =>
+    returnItem.customername?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    returnItem.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    returnItem.returnnumber.toString().includes(searchTerm)
+  );
+
+  const isLoading = ordersLoading || returnsLoading || deletedOrdersLoading || deletedReturnsLoading;
 
   return (
     <div className="min-h-screen p-6 bg-background">
@@ -87,7 +198,7 @@ const Archive = () => {
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            חזור לממشק הפצה
+            חזור לממשק הפצה
           </Button>
           <h1 className="text-3xl font-bold">ארכיון הזמנות והחזרות</h1>
         </div>
@@ -106,7 +217,114 @@ const Archive = () => {
       {isLoading ? (
         <div className="text-center py-8">טוען נתוני ארכיון...</div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-6">
+          {/* Deleted Items Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Deleted Orders */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  הזמנות מחוקות ({filteredDeletedOrders.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {filteredDeletedOrders.map((order) => (
+                    <div
+                      key={order.ordernumber}
+                      className="p-3 border border-gray-300 rounded-lg bg-gray-50 flex justify-between items-start"
+                    >
+                      <div className="flex-1">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="font-medium text-gray-800">
+                            #{order.ordernumber}
+                          </div>
+                          <div className="text-sm text-gray-600 font-bold">
+                            ₪{order.totalorder?.toLocaleString('he-IL')}
+                          </div>
+                        </div>
+                        <div className="text-sm text-gray-700">
+                          <div>{order.customername}</div>
+                          <div>{order.address}, {order.city}</div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            נמחק: {new Date(order.ordercancel).toLocaleDateString('he-IL')} {new Date(order.ordercancel).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleRestoreOrder(order)}
+                        className="ml-2 flex items-center gap-1"
+                        title="שחזר הזמנה"
+                      >
+                        <Undo2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                  {filteredDeletedOrders.length === 0 && (
+                    <div className="text-center text-gray-500 py-4">
+                      אין הזמנות מחוקות
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Deleted Returns */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <RotateCcw className="h-5 w-5" />
+                  החזרות מחוקות ({filteredDeletedReturns.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {filteredDeletedReturns.map((returnItem) => (
+                    <div
+                      key={returnItem.returnnumber}
+                      className="p-3 border border-gray-300 rounded-lg bg-gray-50 flex justify-between items-start"
+                    >
+                      <div className="flex-1">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="font-medium text-gray-800">
+                            החזרה #{returnItem.returnnumber}
+                          </div>
+                          <div className="text-sm text-gray-600 font-bold">
+                            ₪{returnItem.totalreturn?.toLocaleString('he-IL')}
+                          </div>
+                        </div>
+                        <div className="text-sm text-gray-700">
+                          <div>{returnItem.customername}</div>
+                          <div>{returnItem.address}, {returnItem.city}</div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            נמחק: {new Date(returnItem.returncancel).toLocaleDateString('he-IL')} {new Date(returnItem.returncancel).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleRestoreReturn(returnItem)}
+                        className="ml-2 flex items-center gap-1"
+                        title="שחזר החזרה"
+                      >
+                        <Undo2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                  {filteredDeletedReturns.length === 0 && (
+                    <div className="text-center text-gray-500 py-4">
+                      אין החזרות מחוקות
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Archived Orders */}
           <Card>
             <CardHeader>
