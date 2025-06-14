@@ -14,6 +14,7 @@ interface Order {
   agentnumber?: string;
   orderdate?: string;
   invoicenumber?: number;
+  totalinvoice?: number;
 }
 
 interface Return {
@@ -53,6 +54,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ type, data, onDragStart })
   
   // Check if invoice number exists (for orders only)
   const hasInvoiceNumber = isOrder && (data as Order).invoicenumber != null;
+  const totalInvoice = isOrder ? (data as Order).totalinvoice : undefined;
 
   return (
     <Card
@@ -91,8 +93,11 @@ export const OrderCard: React.FC<OrderCardProps> = ({ type, data, onDragStart })
         </div>
 
         {hasInvoiceNumber && (
-          <div className="mt-2 text-xs text-green-600 font-medium">
-            חשבונית: {(data as Order).invoicenumber}
+          <div className="mt-2 text-xs text-green-600 font-medium space-y-1">
+            <div>חשבונית: {(data as Order).invoicenumber}</div>
+            {totalInvoice && (
+              <div>סה"כ: ₪{totalInvoice.toLocaleString('he-IL')}</div>
+            )}
           </div>
         )}
       </CardContent>

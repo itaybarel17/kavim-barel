@@ -23,6 +23,7 @@ interface Order {
   agentnumber?: string;
   orderdate?: string;
   invoicenumber?: number;
+  totalinvoice?: number;
 }
 
 interface Return {
@@ -70,7 +71,7 @@ const Distribution = () => {
       console.log('Fetching orders...');
       const { data, error } = await supabase
         .from('mainorder')
-        .select('ordernumber, customername, address, city, totalorder, schedule_id, icecream, customernumber, agentnumber, orderdate, invoicenumber')
+        .select('ordernumber, customername, address, city, totalorder, schedule_id, icecream, customernumber, agentnumber, orderdate, invoicenumber, totalinvoice')
         .or('icecream.is.null,icecream.eq.')
         .is('done_mainorder', null)
         .is('ordercancel', null) // Exclude deleted orders

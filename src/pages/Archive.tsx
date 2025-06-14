@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,6 +17,9 @@ interface ArchivedOrder {
   totalorder: number;
   done_mainorder: string;
   schedule_id: number;
+  orderdate?: string;
+  invoicenumber?: number;
+  totalinvoice?: number;
 }
 
 interface ArchivedReturn {
@@ -28,6 +30,7 @@ interface ArchivedReturn {
   totalreturn: number;
   done_return: string;
   schedule_id: number;
+  returndate?: string;
 }
 
 interface DeletedOrder {
@@ -38,6 +41,9 @@ interface DeletedOrder {
   totalorder: number;
   ordercancel: string;
   schedule_id: number;
+  orderdate?: string;
+  invoicenumber?: number;
+  totalinvoice?: number;
 }
 
 interface DeletedReturn {
@@ -48,6 +54,7 @@ interface DeletedReturn {
   totalreturn: number;
   returncancel: string;
   schedule_id: number;
+  returndate?: string;
 }
 
 const Archive = () => {
@@ -66,7 +73,7 @@ const Archive = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('mainorder')
-        .select('ordernumber, customername, address, city, totalorder, done_mainorder, schedule_id')
+        .select('ordernumber, customername, address, city, totalorder, done_mainorder, schedule_id, orderdate, invoicenumber, totalinvoice')
         .not('done_mainorder', 'is', null)
         .order('done_mainorder', { ascending: false });
       
@@ -81,7 +88,7 @@ const Archive = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('mainreturns')
-        .select('returnnumber, customername, address, city, totalreturn, done_return, schedule_id')
+        .select('returnnumber, customername, address, city, totalreturn, done_return, schedule_id, returndate')
         .not('done_return', 'is', null)
         .order('done_return', { ascending: false });
       
@@ -96,7 +103,7 @@ const Archive = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('mainorder')
-        .select('ordernumber, customername, address, city, totalorder, ordercancel, schedule_id')
+        .select('ordernumber, customername, address, city, totalorder, ordercancel, schedule_id, orderdate, invoicenumber, totalinvoice')
         .not('ordercancel', 'is', null)
         .order('ordercancel', { ascending: false });
       
@@ -111,7 +118,7 @@ const Archive = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('mainreturns')
-        .select('returnnumber, customername, address, city, totalreturn, returncancel, schedule_id')
+        .select('returnnumber, customername, address, city, totalreturn, returncancel, schedule_id, returndate')
         .not('returncancel', 'is', null)
         .order('returncancel', { ascending: false });
       
@@ -361,6 +368,11 @@ const Archive = () => {
                         <div className="flex justify-between items-start mb-2">
                           <div className="font-medium text-gray-800">
                             #{order.ordernumber}
+                            {order.orderdate && (
+                              <span className="text-sm text-gray-600 mr-2">
+                                - {new Date(order.orderdate).toLocaleDateString('he-IL')}
+                              </span>
+                            )}
                           </div>
                           <div className="text-sm text-gray-600 font-bold">
                             ₪{order.totalorder?.toLocaleString('he-IL')}
@@ -413,6 +425,11 @@ const Archive = () => {
                         <div className="flex justify-between items-start mb-2">
                           <div className="font-medium text-gray-800">
                             החזרה #{returnItem.returnnumber}
+                            {returnItem.returndate && (
+                              <span className="text-sm text-gray-600 mr-2">
+                                - {new Date(returnItem.returndate).toLocaleDateString('he-IL')}
+                              </span>
+                            )}
                           </div>
                           <div className="text-sm text-gray-600 font-bold">
                             ₪{returnItem.totalreturn?.toLocaleString('he-IL')}
@@ -466,6 +483,11 @@ const Archive = () => {
                       <div className="flex justify-between items-start mb-2">
                         <div className="font-medium text-green-800">
                           הזמנה #{order.ordernumber}
+                          {order.orderdate && (
+                            <span className="text-sm text-green-600 mr-2">
+                              - {new Date(order.orderdate).toLocaleDateString('he-IL')}
+                            </span>
+                          )}
                         </div>
                         <div className="text-sm text-green-600 font-bold">
                           ₪{order.totalorder?.toLocaleString('he-IL')}
@@ -477,6 +499,14 @@ const Archive = () => {
                         <div className="text-xs text-gray-500 mt-1">
                           הופק: {new Date(order.done_mainorder).toLocaleDateString('he-IL')} {new Date(order.done_mainorder).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
                         </div>
+                        {order.invoicenumber && (
+                          <div className="text-xs text-green-600 font-medium mt-1">
+                            <span>חשבונית: {order.invoicenumber}</span>
+                            {order.totalinvoice && (
+                              <span className="mr-3">סכום: ₪{order.totalinvoice.toLocaleString('he-IL')}</span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <Button
@@ -518,6 +548,11 @@ const Archive = () => {
                       <div className="flex justify-between items-start mb-2">
                         <div className="font-medium text-red-800">
                           החזרה #{returnItem.returnnumber}
+                          {returnItem.returndate && (
+                            <span className="text-sm text-red-600 mr-2">
+                              - {new Date(returnItem.returndate).toLocaleDateString('he-IL')}
+                            </span>
+                          )}
                         </div>
                         <div className="text-sm text-red-600 font-bold">
                           ₪{returnItem.totalreturn?.toLocaleString('he-IL')}
