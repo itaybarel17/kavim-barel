@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -13,6 +14,8 @@ import {
   isItemModified,
   getOriginalScheduleId,
   getNewScheduleId,
+  isTransferredItem,
+  getTransferredFromScheduleId,
   type OrderWithSchedule,
   type ReturnWithSchedule
 } from '@/utils/scheduleUtils';
