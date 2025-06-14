@@ -262,8 +262,11 @@ const ProductionSummary = () => {
     return a.customername.localeCompare(b.customername, 'he');
   });
 
+  // Calculate total unique customers (נקודות)
+  const totalPoints = sortedCustomers.length;
+
   return (
-    <div className="min-h-screen p-4 bg-background">
+    <div className="min-h-screen p-2 bg-background">
       <div className="max-w-full mx-auto">
         {/* Header - hidden on print */}
         <div className="flex items-center justify-between mb-4 print:hidden">
@@ -282,33 +285,18 @@ const ProductionSummary = () => {
         {/* Distribution Line Summary */}
         <Card className="mb-4">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Calendar className="h-4 w-4" />
-              סיכום קו חלוקה {group?.separation || 'אזור לא מוגדר'} לתאריך {schedule.distribution_date ? new Date(schedule.distribution_date).toLocaleDateString('he-IL') : 'לא מוגדר'}
+            <CardTitle className="flex items-center justify-between gap-4 text-base">
+              <span>סיכום קו חלוקה {group?.separation || 'אזור לא מוגדר'} לתאריך {schedule.distribution_date ? new Date(schedule.distribution_date).toLocaleDateString('he-IL') : 'לא מוגדר'}</span>
+              <span>מס' הפצה: #{schedule.dis_number}</span>
+              <span>נהג: {driver?.nahag || 'לא מוגדר'}</span>
+              <span>נקודות: {totalPoints}</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0">
-            <div className="grid grid-cols-4 gap-3 text-sm">
-              <div>
-                <div className="text-gray-600">מס' הפצה:</div>
-                <div className="font-semibold">#{schedule.dis_number}</div>
-              </div>
-              <div>
-                <div className="text-gray-600">נהג:</div>
-                <div className="font-semibold">{driver?.nahag || 'לא מוגדר'}</div>
-              </div>
-              <div>
-                <div className="text-gray-600">כמויות:</div>
-                <div className="font-semibold">{orders.length} הזמנות, {returns.length} החזרות</div>
-              </div>
-              <div></div>
-            </div>
-          </CardContent>
         </Card>
 
         {/* Customer Details Table */}
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-2">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -321,7 +309,7 @@ const ProductionSummary = () => {
                     <TableHead className="text-left p-1 text-xs">פרטי אספקה</TableHead>
                     <TableHead className="text-left p-1 text-xs">הזמנות</TableHead>
                     <TableHead className="text-left p-1 text-xs">החזרות</TableHead>
-                    <TableHead className="text-left p-1 text-xs">הערות</TableHead>
+                    <TableHead className="text-left p-1 text-xs">תשלום</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -377,7 +365,7 @@ const ProductionSummary = () => {
         @media print {
           @page {
             size: landscape;
-            margin: 10mm;
+            margin: 5mm;
           }
           
           body {
@@ -390,17 +378,17 @@ const ProductionSummary = () => {
           
           table {
             width: 100% !important;
-            font-size: 12px !important;
+            font-size: 10px !important;
           }
           
           th, td {
-            padding: 2px !important;
-            font-size: 12px !important;
+            padding: 1px !important;
+            font-size: 10px !important;
             text-align: left !important;
           }
           
           .text-xs {
-            font-size: 12px !important;
+            font-size: 10px !important;
           }
         }
       `}</style>
