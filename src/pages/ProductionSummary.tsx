@@ -14,8 +14,6 @@ import {
   isItemModified,
   getOriginalScheduleId,
   getNewScheduleId,
-  isTransferredItem,
-  getTransferredFromScheduleId,
   type OrderWithSchedule,
   type ReturnWithSchedule
 } from '@/utils/scheduleUtils';
@@ -255,12 +253,6 @@ const ProductionSummary = () => {
   // Calculate total unique customers (נקודות)
   const totalPoints = sortedCustomers.length;
 
-  // --- new helper for transferred display ---
-  import {
-    isTransferredItem,
-    getTransferredFromScheduleId,
-  } from '@/utils/scheduleUtils';
-
   return (
     <div className="min-h-screen p-2 bg-background">
       <div className="max-w-full mx-auto">
@@ -311,78 +303,43 @@ const ProductionSummary = () => {
                 <TableBody>
                   {sortedCustomers.map((customer, index) => (
                     <TableRow key={index} className="text-xs border-b h-8">
-                      <TableCell className="font-medium p-1 text-left text-xs">
-                        {/* קו חוצה לכל הזמנה/החזרה שעברה קו */}
-                        {(() => {
-                          // if some order/return for this customer was transferred, and not all: special handling
-                          // We'll just render the cell raw, and apply <span className="line-through"> value </span> per item below
-                          return customer.customername;
-                        })()}
-                      </TableCell>
-                      <TableCell className="p-1 text-left text-xs">
-                        {customer.address}
-                      </TableCell>
-                      <TableCell className="p-1 text-left text-xs">
-                        {customer.city}
-                      </TableCell>
+                      <TableCell className="font-medium p-1 text-left text-xs">{customer.customername}</TableCell>
+                      <TableCell className="p-1 text-left text-xs">{customer.address}</TableCell>
+                      <TableCell className="p-1 text-left text-xs">{customer.city}</TableCell>
                       <TableCell className="p-1 text-left text-xs">{customer.mobile || '-'}</TableCell>
                       <TableCell className="p-1 text-left text-xs">{customer.phone || '-'}</TableCell>
                       <TableCell className="p-1 text-left text-xs">{customer.supplydetails || '-'}</TableCell>
                       <TableCell className="p-1 text-left">
                         {customer.orders.length > 0 && (
                           <div className="space-y-0.5">
-                            {customer.orders.map(order => {
-                              // Check transfer status
-                              const transferredFrom = getTransferredFromScheduleId(order, parseInt(scheduleId!));
-                              const isTransferred = isTransferredItem(order, parseInt(scheduleId!));
-                              return (
-                                <div key={order.ordernumber} className="text-xs flex items-center gap-1">
-                                  <span>
-                                    {/* Remove "הזמנה" label, just show number */}
-                                    {isTransferred ? (
-                                      <span className="line-through">{order.ordernumber}</span>
-                                    ) : (
-                                      <span>{order.ordernumber}</span>
-                                    )}
+                            {customer.orders.map(order => (
+                              <div key={order.ordernumber} className="text-xs flex items-center gap-1">
+                                <span>הזמנה #{order.ordernumber}</span>
+                                {isItemModified(order) && (
+                                  <span className="bg-orange-100 text-orange-700 px-1 text-[8px] rounded-sm border border-orange-300">
+                                    {getOriginalScheduleId(order) === parseInt(scheduleId!) ? 'הועבר מקו זה' : 'הועבר לקו זה'}
                                   </span>
-                                  {isTransferred && (
-                                    <span className="bg-orange-100 text-orange-700 px-1 text-[8px] rounded-sm border border-orange-300">
-                                      {/* עבר #[schedule_id המקורי] */}
-                                      {transferredFrom ? `עבר #${transferredFrom}` : 'עבר'}
-                                    </span>
-                                  )}
-                                  {order.icecream && <div className="text-blue-600 text-xs">{order.icecream}</div>}
-                                </div>
-                              );
-                            })}
+                                )}
+                                {order.icecream && <div className="text-blue-600 text-xs">{order.icecream}</div>}
+                              </div>
+                            ))}
                           </div>
                         )}
                       </TableCell>
                       <TableCell className="p-1 text-left">
                         {customer.returns.length > 0 && (
                           <div className="space-y-0.5">
-                            {customer.returns.map(returnItem => {
-                              const transferredFrom = getTransferredFromScheduleId(returnItem, parseInt(scheduleId!));
-                              const isTransferred = isTransferredItem(returnItem, parseInt(scheduleId!));
-                              return (
-                                <div key={returnItem.returnnumber} className="text-xs flex items-center gap-1">
-                                  <span>
-                                    {/* Remove "החזרה" label, just show number */}
-                                    {isTransferred ? (
-                                      <span className="line-through">{returnItem.returnnumber}</span>
-                                    ) : (
-                                      <span>{returnItem.returnnumber}</span>
-                                    )}
+                            {customer.returns.map(returnItem => (
+                              <div key={returnItem.returnnumber} className="text-xs flex items-center gap-1">
+                                <span>החזרה #{returnItem.returnnumber}</span>
+                                {isItemModified(returnItem) && (
+                                  <span className="bg-orange-100 text-orange-700 px-1 text-[8px] rounded-sm border border-orange-300">
+                                    {getOriginalScheduleId(returnItem) === parseInt(scheduleId!) ? 'הועבר מקו זה' : 'הועבר לקו זה'}
                                   </span>
-                                  {isTransferred && (
-                                    <span className="bg-orange-100 text-orange-700 px-1 text-[8px] rounded-sm border border-orange-300">
-                                      {transferredFrom ? `עבר #${transferredFrom}` : 'עבר'}
-                                    </span>
-                                  )}
-                                  {returnItem.icecream && <div className="text-blue-600 text-xs">{returnItem.icecream}</div>}
-                                </div>
-                              );
-                            })}
+                                )}
+                                {returnItem.icecream && <div className="text-blue-600 text-xs">{returnItem.icecream}</div>}
+                              </div>
+                            ))}
                           </div>
                         )}
                       </TableCell>
