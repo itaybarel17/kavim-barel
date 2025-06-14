@@ -1,18 +1,33 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from "@/components/ui/textarea"
 import { Loader2 } from 'lucide-react';
-import type { Database } from '@/integrations/supabase/types';
 
-// Use Supabase types directly
-type Order = Database['public']['Tables']['mainorder']['Row'];
-type Return = Database['public']['Tables']['mainreturns']['Row'];
+// Simple types to avoid recursion issues
+interface SimpleOrder {
+  ordernumber: number;
+  customername: string | null;
+  city: string | null;
+  totalorder: number | null;
+  schedule_id: number | null;
+  return_reason: any;
+  schedule_id_if_changed: any;
+}
+
+interface SimpleReturn {
+  returnnumber: number;
+  customername: string | null;
+  city: string | null;
+  totalreturn: number | null;
+  schedule_id: number | null;
+  return_reason: any;
+  schedule_id_if_changed: any;
+}
 
 // Define return reason entry type
 interface ReturnReasonEntry {
@@ -22,26 +37,25 @@ interface ReturnReasonEntry {
 }
 
 // Helper functions to safely convert data to typed arrays
-const parseReturnReasonHistory = (data: unknown): ReturnReasonEntry[] => {
+const parseReturnReasonHistory = (data: any): ReturnReasonEntry[] => {
   if (!data) return [];
   
   if (Array.isArray(data)) {
     return data.map(item => {
       if (typeof item === 'object' && item !== null) {
-        const obj = item as Record<string, unknown>;
         // Handle both old format (reason) and new format (type)
-        if ('type' in obj) {
+        if ('type' in item) {
           return { 
-            type: String(obj.type || ''), 
-            responsible: String(obj.responsible || ''),
-            timestamp: String(obj.timestamp || '') 
+            type: String(item.type || ''), 
+            responsible: String(item.responsible || ''),
+            timestamp: String(item.timestamp || '') 
           };
-        } else if ('reason' in obj) {
+        } else if ('reason' in item) {
           // Convert old format to new format
           return { 
-            type: String(obj.reason || ''), 
+            type: String(item.reason || ''), 
             responsible: 'לא צוין',
-            timestamp: String(obj.timestamp || '') 
+            timestamp: String(item.timestamp || '') 
           };
         }
       }
@@ -53,19 +67,18 @@ const parseReturnReasonHistory = (data: unknown): ReturnReasonEntry[] => {
   }
   
   if (typeof data === 'object' && data !== null) {
-    const obj = data as Record<string, unknown>;
-    if ('type' in obj) {
+    if ('type' in data) {
       return [{ 
-        type: String(obj.type || ''), 
-        responsible: String(obj.responsible || ''),
-        timestamp: String(obj.timestamp || '') 
+        type: String(data.type || ''), 
+        responsible: String(data.responsible || ''),
+        timestamp: String(data.timestamp || '') 
       }];
-    } else if ('reason' in obj) {
+    } else if ('reason' in data) {
       // Convert old format to new format
       return [{ 
-        type: String(obj.reason || ''), 
+        type: String(data.reason || ''), 
         responsible: 'לא צוין',
-        timestamp: String(obj.timestamp || '') 
+        timestamp: String(data.timestamp || '') 
       }];
     }
   }
@@ -77,7 +90,7 @@ const parseReturnReasonHistory = (data: unknown): ReturnReasonEntry[] => {
   return [];
 };
 
-const parseScheduleIdHistory = (data: unknown): number[] => {
+const parseScheduleIdHistory = (data: any): number[] => {
   if (!data) return [];
   
   if (Array.isArray(data)) {
@@ -105,12 +118,12 @@ const Archive = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('mainorder')
-        .select('*')
+        .select('ordernumber, customername, city, totalorder, schedule_id, return_reason, schedule_id_if_changed')
         .not('schedule_id', 'is', null)
         .order('ordernumber', { ascending: false });
 
       if (error) throw error;
-      return data as Order[];
+      return data as SimpleOrder[];
     }
   });
 
@@ -119,12 +132,12 @@ const Archive = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('mainreturns')
-        .select('*')
+        .select('returnnumber, customername, city, totalreturn, schedule_id, return_reason, schedule_id_if_changed')
         .not('schedule_id', 'is', null)
         .order('returnnumber', { ascending: false });
 
       if (error) throw error;
-      return data as Return[];
+      return data as SimpleReturn[];
     }
   });
 
@@ -152,7 +165,7 @@ const Archive = () => {
       // Create new return reason entry with the correct structure
       const newReasonEntry: ReturnReasonEntry = {
         type: reason,
-        responsible: 'משרד', // Default to office responsibility
+        responsible: 'משרד',
         timestamp: new Date().toISOString()
       };
 
@@ -205,7 +218,7 @@ const Archive = () => {
 
   const handleOpenReturnDialog = (type: 'order' | 'return', itemId: number) => {
     setSelectedItem({ type, itemId });
-    setReturnReason(''); // Clear previous reason
+    setReturnReason('');
   };
 
   const handleCloseReturnDialog = () => {
