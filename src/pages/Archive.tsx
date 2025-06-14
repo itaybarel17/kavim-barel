@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -183,6 +184,7 @@ const Archive = () => {
           .from('mainorder')
           .update({ 
             done_mainorder: null,
+            schedule_id: null,
             return_reason: returnReason,
             schedule_id_if_changed: order.schedule_id ? [order.schedule_id] : null
           })
@@ -201,6 +203,7 @@ const Archive = () => {
           .from('mainreturns')
           .update({ 
             done_return: null,
+            schedule_id: null,
             return_reason: returnReason,
             schedule_id_if_changed: returnItem.schedule_id ? [returnItem.schedule_id] : null
           })
