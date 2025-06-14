@@ -151,6 +151,43 @@ const Distribution = () => {
     }
   });
 
+  // --- BEGIN CUSTOMER STATUS LOGIC FOR ICONS ---
+  // ACTIVE order: done_mainorder == null && ordercancel == null
+  // ACTIVE return: done_return == null && returncancel == null
+  function isOrderActive(order) {
+    return !order.done_mainorder && !order.ordercancel;
+  }
+  function isReturnActive(ret) {
+    return !ret.done_return && !ret.returncancel;
+  }
+
+  // 1. multi-active-order customers (blue icon)
+  const activeOrders = orders.filter(isOrderActive);
+  const customerMap = {};
+  activeOrders.forEach(order => {
+    const key = `${order.customername}^^${order.city}`;
+    if (!customerMap[key]) customerMap[key] = [];
+    customerMap[key].push(order);
+  });
+  const multiOrderActiveCustomerList = Object.entries(customerMap)
+    .filter(([_, arr]) => arr.length >= 2)
+    .map(([key]) => {
+      const [name, city] = key.split('^^');
+      return { name, city };
+    });
+
+  // 2. customers with BOTH active order and active return (red icon)
+  const activeReturns = returns.filter(isReturnActive);
+  const orderKeys = new Set(activeOrders.map(o => `${o.customername}^^${o.city}`));
+  const returnKeys = new Set(activeReturns.map(r => `${r.customername}^^${r.city}`));
+  const dualActiveOrderReturnCustomers = [];
+  orderKeys.forEach(k => {
+    if (returnKeys.has(k)) {
+      const [name, city] = k.split('^^');
+      dualActiveOrderReturnCustomers.push({ name, city });
+    }
+  });
+
   const handleDrop = async (zoneNumber: number, item: { type: 'order' | 'return'; data: Order | Return }) => {
     try {
       console.log('handleDrop called with zoneNumber:', zoneNumber, 'item:', item);
@@ -424,6 +461,8 @@ const Distribution = () => {
           onDragStart={setDraggedItem}
           onDropToUnassigned={handleDropToUnassigned}
           onDeleteItem={handleDeleteItem}
+          multiOrderActiveCustomerList={multiOrderActiveCustomerList}
+          dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
         />
 
         {/* 3x4 Grid of drop zones */}
@@ -442,6 +481,9 @@ const Distribution = () => {
               onScheduleCreated={handleScheduleCreated}
               onRemoveFromZone={handleRemoveFromZone}
               getZoneState={getZoneState}
+              // icons data
+              multiOrderActiveCustomerList={multiOrderActiveCustomerList}
+              dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
             />
           ))}
         </div>

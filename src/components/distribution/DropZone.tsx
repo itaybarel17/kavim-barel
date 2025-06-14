@@ -64,6 +64,9 @@ interface DropZoneProps {
   onScheduleCreated: () => void;
   onRemoveFromZone: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
   getZoneState: (zoneNumber: number) => { selectedGroupId: number | null; scheduleId: number | null };
+  // NEW: pass down multi-active-customer/dual-orderreturn customers.
+  multiOrderActiveCustomerList?: any[];
+  dualActiveOrderReturnCustomers?: any[];
 }
 
 export const DropZone: React.FC<DropZoneProps> = ({
@@ -78,6 +81,9 @@ export const DropZone: React.FC<DropZoneProps> = ({
   onScheduleCreated,
   onRemoveFromZone,
   getZoneState,
+  // NEW: pass down multi-active-customer/dual-orderreturn customers.
+  multiOrderActiveCustomerList = [],
+  dualActiveOrderReturnCustomers = [],
 }) => {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [scheduleId, setScheduleId] = useState<number | null>(null);
@@ -381,6 +387,8 @@ export const DropZone: React.FC<DropZoneProps> = ({
             type="order"
             data={order}
             onDragStart={handleItemDragStart}
+            multiOrderActiveCustomerList={multiOrderActiveCustomerList}
+            dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
           />
         ))}
         {assignedReturns.map((returnItem) => (
@@ -389,6 +397,8 @@ export const DropZone: React.FC<DropZoneProps> = ({
             type="return"
             data={returnItem}
             onDragStart={handleItemDragStart}
+            multiOrderActiveCustomerList={multiOrderActiveCustomerList}
+            dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
           />
         ))}
         {assignedOrders.length === 0 && assignedReturns.length === 0 && (

@@ -12,6 +12,9 @@ interface Order {
   city: string;
   totalorder: number;
   schedule_id?: number;
+  customernumber?: string;
+  done_mainorder?: string | null;
+  ordercancel?: string | null;
 }
 
 interface Return {
@@ -21,6 +24,9 @@ interface Return {
   city: string;
   totalreturn: number;
   schedule_id?: number;
+  customernumber?: string;
+  done_return?: string | null;
+  returncancel?: string | null;
 }
 
 interface UnassignedAreaProps {
@@ -29,6 +35,9 @@ interface UnassignedAreaProps {
   onDragStart: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
   onDropToUnassigned: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
   onDeleteItem?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
+  // new props for icons
+  multiOrderActiveCustomerList?: { name: string; city: string }[];
+  dualActiveOrderReturnCustomers?: { name: string; city: string }[];
 }
 
 export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
@@ -37,6 +46,8 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
   onDragStart,
   onDropToUnassigned,
   onDeleteItem,
+  multiOrderActiveCustomerList = [],
+  dualActiveOrderReturnCustomers = [],
 }) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ type: 'order' | 'return'; data: Order | Return } | null>(null);
@@ -81,6 +92,8 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
               type="order"
               data={order}
               onDragStart={onDragStart}
+              multiOrderActiveCustomerList={multiOrderActiveCustomerList}
+              dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
             />
             {onDeleteItem && (
               <button
@@ -99,6 +112,8 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
               type="return"
               data={returnItem}
               onDragStart={onDragStart}
+              multiOrderActiveCustomerList={multiOrderActiveCustomerList}
+              dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
             />
             {onDeleteItem && (
               <button
@@ -117,7 +132,6 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
           </div>
         )}
       </div>
-
       <DeleteConfirmDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
