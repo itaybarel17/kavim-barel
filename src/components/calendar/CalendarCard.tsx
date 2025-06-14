@@ -1,183 +1,97 @@
 
 import React from 'react';
-import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 
 interface Order {
   ordernumber: number;
   customername: string;
+  address: string;
+  city: string;
   totalorder: number;
-  schedule_id?: number;
+  invoicenumber?: number;
+  return_reason?: any;
 }
 
 interface Return {
   returnnumber: number;
   customername: string;
+  address: string;
+  city: string;
   totalreturn: number;
-  schedule_id?: number;
-}
-
-interface DistributionGroup {
-  groups_id: number;
-  separation: string;
-}
-
-interface Driver {
-  id: number;
-  nahag: string;
-}
-
-interface DistributionSchedule {
-  schedule_id: number;
-  groups_id: number;
-  create_at_schedule: string;
-  distribution_date?: string;
-  destinations?: number;
-  driver_id?: number;
-  dis_number?: number;
-  done_schedule?: string;
+  return_reason?: any;
 }
 
 interface CalendarCardProps {
-  scheduleId: number;
-  groupId: number;
-  distributionGroups: DistributionGroup[];
-  drivers: Driver[];
-  orders: Order[];
-  returns: Return[];
-  driverId?: number;
-  showAllCustomers?: boolean;
-  onUpdateDestinations?: (scheduleId: number) => void;
-  isCalendarMode?: boolean;
-  schedule?: DistributionSchedule;
+  type: 'order' | 'return';
+  data: Order | Return;
+  onClick?: () => void;
 }
 
-export const CalendarCard: React.FC<CalendarCardProps> = ({
-  scheduleId,
-  groupId,
-  distributionGroups,
-  drivers,
-  orders,
-  returns,
-  driverId,
-  showAllCustomers = false,
-  onUpdateDestinations,
-  isCalendarMode = false,
-  schedule
-}) => {
-  // Check if this schedule has been produced based on done_schedule timestamp
-  const isProduced = schedule?.done_schedule != null;
+export const CalendarCard: React.FC<CalendarCardProps> = ({ type, data, onClick }) => {
+  const isOrder = type === 'order';
+  const number = isOrder ? (data as Order).ordernumber : (data as Return).returnnumber;
+  const total = isOrder ? (data as Order).totalorder : (data as Return).totalreturn;
   
-  const [{ isDragging }, drag] = useDrag(() => ({
-    type: 'calendar-card',
-    item: { scheduleId },
-    canDrag: !isProduced, // Prevent dragging if produced
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  }));
-
-  // Find the group info
-  const group = distributionGroups.find(g => g.groups_id === groupId);
-  const driver = drivers.find(d => d.id === driverId);
-
-  // Get orders and returns for this schedule
-  const scheduleOrders = orders.filter(order => order.schedule_id === scheduleId);
-  const scheduleReturns = returns.filter(returnItem => returnItem.schedule_id === scheduleId);
-
-  // Calculate unique customers
-  const uniqueCustomers = new Set([
-    ...scheduleOrders.map(order => order.customername),
-    ...scheduleReturns.map(returnItem => returnItem.customername)
-  ]);
-  const uniqueCustomersList = Array.from(uniqueCustomers);
-
-  // Calculate totals in money
-  const totalOrdersAmount = scheduleOrders.reduce((sum, order) => sum + (order.totalorder || 0), 0);
-  const totalReturnsAmount = scheduleReturns.reduce((sum, returnItem) => sum + (returnItem.totalreturn || 0), 0);
-  const totalOrders = scheduleOrders.length;
-  const totalReturns = scheduleReturns.length;
-
-  // Enhanced styling for produced cards - removed the locked badge
-  const cardClasses = isCalendarMode 
-    ? `w-full max-w-[160px] overflow-hidden ${
-        isProduced 
-          ? 'cursor-not-allowed border-4 border-green-500 bg-green-50 shadow-lg opacity-90' 
-          : 'cursor-move border-blue-200 bg-blue-50'
-      }`
-    : `min-w-[250px] max-w-[280px] ${
-        isProduced 
-          ? 'cursor-not-allowed border-4 border-green-500 bg-green-50 shadow-lg opacity-90' 
-          : 'cursor-move border-blue-200 bg-blue-50'
-      }`;
-
-  const contentPadding = isCalendarMode ? "p-1.5" : "p-3";
-  const titleSize = isCalendarMode ? "text-[10px]" : "text-sm";
-  const textSize = isCalendarMode ? "text-[9px]" : "text-xs";
-  const spacing = isCalendarMode ? "mb-1" : "mb-2";
-  const maxHeight = isCalendarMode ? "max-h-20" : "max-h-20";
+  // Check if this item was returned
+  const wasReturned = data.return_reason != null;
+  
+  // Check if invoice number exists (for orders only)
+  const hasInvoiceNumber = isOrder && (data as Order).invoicenumber != null;
 
   return (
     <Card
-      ref={!isProduced ? drag : null}
-      className={`${cardClasses} ${isDragging ? 'opacity-50' : ''}`}
+      className={`min-w-[200px] cursor-pointer transition-all hover:shadow-md ${
+        isOrder ? 'border-blue-200 bg-blue-50' : 'border-red-200 bg-red-50'
+      } ${hasInvoiceNumber ? 'ring-2 ring-green-300' : ''} ${
+        wasReturned ? 'opacity-75' : ''
+      }`}
+      onClick={onClick}
     >
-      <CardContent className={contentPadding}>
-        <div className={spacing}>
-          <div className="flex items-center justify-between">
-            <h3 className={`font-semibold ${titleSize} ${isProduced ? 'text-green-800' : 'text-blue-800'} truncate`}>
-              {group?.separation || 'אזור לא מוגדר'}
-            </h3>
-            {isProduced && (
-              <Badge variant="secondary" className="text-[8px] px-1 py-0 bg-green-100 text-green-800 border border-green-300">
-                הופק #{schedule?.dis_number || 'לא ידוע'}
-              </Badge>
-            )}
-          </div>
-          <div className={`${textSize} text-muted-foreground`}>
-            <div className="truncate">מזהה: {scheduleId}</div>
-          </div>
+      <CardContent className="p-3">
+        <div className="flex justify-between items-start mb-2">
+          <span 
+            className={`text-sm font-semibold ${
+              isOrder ? 'text-blue-600' : 'text-red-600'
+            } ${wasReturned ? 'line-through' : ''}`}
+          >
+            {isOrder ? `#${number}` : `החזרה #${number}`}
+          </span>
+          <span 
+            className={`text-sm font-bold ${wasReturned ? 'line-through' : ''}`}
+          >
+            ₪{total?.toLocaleString()}
+          </span>
         </div>
+        
+        <h3 
+          className={`font-medium text-sm mb-1 ${wasReturned ? 'line-through' : ''}`}
+        >
+          {data.customername}
+        </h3>
+        
+        <p 
+          className={`text-xs text-muted-foreground ${wasReturned ? 'line-through' : ''}`}
+        >
+          {data.address}
+        </p>
+        
+        <p 
+          className={`text-xs text-muted-foreground ${wasReturned ? 'line-through' : ''}`}
+        >
+          {data.city}
+        </p>
 
-        <div className={spacing}>
-          <div className={`${textSize} font-medium text-gray-700 mb-0.5`}>נקודות:</div>
-          <div className={`${maxHeight} overflow-y-auto ${textSize} space-y-0.5`}>
-            {uniqueCustomersList.map((customer, index) => (
-              <div key={index} className="text-gray-600 truncate">• {customer}</div>
-            ))}
+        {hasInvoiceNumber && !wasReturned && (
+          <div className="mt-2 text-xs text-green-600 font-medium">
+            חשבונית: {(data as Order).invoicenumber}
           </div>
-        </div>
+        )}
 
-        <div className={`border-t pt-1 space-y-0.5 ${textSize}`}>
-          <div className="flex justify-between">
-            <span>סה"כ נקודות:</span>
-            <span className="font-medium">{uniqueCustomersList.length}</span>
+        {wasReturned && (
+          <div className="mt-2 text-xs text-orange-600 font-medium">
+            הוחזר: {data.return_reason.action} - {data.return_reason.entity}
           </div>
-          <div className="flex justify-between text-green-600">
-            <span>הזמנות:</span>
-            <span className="font-medium">₪{totalOrdersAmount.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between text-red-600">
-            <span>החזרות:</span>
-            <span className="font-medium">₪{totalReturnsAmount.toLocaleString()}</span>
-          </div>
-          
-          {/* Show driver information for both modes */}
-          <div className={`${textSize} text-gray-700 font-medium`}>
-            נהג: {driver?.nahag || 'לא מוגדר'}
-          </div>
-          
-          {isCalendarMode ? (
-            <div className={`${textSize} text-gray-500`}>
-              {totalOrders} הזמנות, {totalReturns} החזרות
-            </div>
-          ) : (
-            <div className={`${textSize} text-gray-500`}>
-              {totalOrders} הזמנות, {totalReturns} החזרות
-            </div>
-          )}
-        </div>
+        )}
       </CardContent>
     </Card>
   );
