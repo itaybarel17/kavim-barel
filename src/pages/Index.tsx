@@ -1,21 +1,30 @@
 
-import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 
 const Index = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      // Admin (Agent 4) goes to distribution
+      if (user.agentnumber === "4") {
+        navigate("/distribution");
+      } else {
+        // All other agents go to calendar
+        navigate("/calendar");
+      }
+    }
+  }, [user, navigate]);
+
+  // Show loading while redirecting
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center space-y-6">
-        <h1 className="text-4xl font-bold mb-4">ברוכים הבאים למערכת ההפצה</h1>
-        <p className="text-xl text-muted-foreground mb-8">מערכת ניהול הזמנות והחזרות</p>
-        
-        <div className="space-y-4">
-          <Link 
-            to="/distribution" 
-            className="inline-block bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-lg font-semibold transition-colors"
-          >
-            עבור לממשק ההפצה
-          </Link>
-        </div>
+      <div className="text-center space-y-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+        <p className="text-muted-foreground">מעביר לדף המתאים...</p>
       </div>
     </div>
   );
