@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { useDrop } from 'react-dnd';
 import { useNavigate } from 'react-router-dom';
@@ -64,6 +63,7 @@ interface DropZoneProps {
   onScheduleDeleted: () => void;
   onScheduleCreated: () => void;
   onRemoveFromZone: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
+  getZoneState: (zoneNumber: number) => { selectedGroupId: number | null; scheduleId: number | null };
 }
 
 export const DropZone: React.FC<DropZoneProps> = ({
@@ -77,23 +77,33 @@ export const DropZone: React.FC<DropZoneProps> = ({
   onScheduleDeleted,
   onScheduleCreated,
   onRemoveFromZone,
+  getZoneState,
 }) => {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [scheduleId, setScheduleId] = useState<number | null>(null);
   const [selectedDriverId, setSelectedDriverId] = useState<number | null>(null);
   const navigate = useNavigate();
 
+  // Get current zone state from parent
+  const currentZoneState = getZoneState(zoneNumber);
+
   const [{ isOver }, drop] = useDrop(() => ({
     accept: 'card',
     drop: (item: { type: 'order' | 'return'; data: Order | Return }) => {
       console.log('Drop triggered in zone', zoneNumber, 'with item:', item);
-      // Always allow drop - the handleDrop will create a new schedule if needed
-      onDrop(zoneNumber, item);
+      console.log('Current zone state:', currentZoneState);
+      
+      // Only allow drop if there's a valid schedule
+      if (currentZoneState.scheduleId) {
+        onDrop(zoneNumber, item);
+      } else {
+        console.log('Cannot drop - no schedule available for zone', zoneNumber);
+      }
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
     }),
-  }), [zoneNumber]);
+  }), [zoneNumber, currentZoneState.scheduleId]);
 
   // Get assigned items for this zone based on schedule_id - ONLY for ACTIVE schedules
   const assignedOrders = orders.filter(order => 
@@ -105,61 +115,22 @@ export const DropZone: React.FC<DropZoneProps> = ({
     distributionSchedules.some(schedule => schedule.schedule_id === scheduleId)
   );
 
-  // Load existing state for this zone - ONLY considers ACTIVE schedules
+  // Update local state based on zone state from parent
   useEffect(() => {
-    console.log('DropZone effect - loading existing state for zone:', zoneNumber);
+    console.log('DropZone effect - updating state for zone:', zoneNumber);
+    console.log('Zone state from parent:', currentZoneState);
 
-    // Reset state first - this ensures complete reset after production
-    setSelectedGroupId(null);
-    setScheduleId(null);
-    setSelectedDriverId(null);
-
-    // Find items that are assigned to ACTIVE schedules only
-    const activeAssignedOrders = orders.filter(order => order.schedule_id && 
-      distributionSchedules.some(schedule => schedule.schedule_id === order.schedule_id));
-    const activeAssignedReturns = returns.filter(returnItem => returnItem.schedule_id && 
-      distributionSchedules.some(schedule => schedule.schedule_id === returnItem.schedule_id));
-    const allActiveAssignedItems = [...activeAssignedOrders, ...activeAssignedReturns];
-
-    // Find the schedule for this zone - allow flexible assignment but ONLY for ACTIVE schedules
-    const zoneSchedules = distributionSchedules
-      .filter(schedule => {
-        const hasItems = allActiveAssignedItems.some(item => item.schedule_id === schedule.schedule_id);
-        return hasItems;
-      })
-      .sort((a, b) => a.schedule_id - b.schedule_id);
-
-    if (zoneSchedules.length >= zoneNumber) {
-      const targetSchedule = zoneSchedules[zoneNumber - 1];
-      console.log(`Zone ${zoneNumber} assigned to active schedule ${targetSchedule.schedule_id}`);
-
-      setSelectedGroupId(targetSchedule.groups_id);
-      setScheduleId(targetSchedule.schedule_id);
-      setSelectedDriverId(targetSchedule.driver_id || null);
-      return;
+    setSelectedGroupId(currentZoneState.selectedGroupId);
+    setScheduleId(currentZoneState.scheduleId);
+    
+    // Update driver selection if we have a schedule
+    if (currentZoneState.scheduleId) {
+      const schedule = distributionSchedules.find(s => s.schedule_id === currentZoneState.scheduleId);
+      setSelectedDriverId(schedule?.driver_id || null);
+    } else {
+      setSelectedDriverId(null);
     }
-
-    // Check for empty ACTIVE schedules
-    const emptyActiveSchedules = distributionSchedules
-      .filter(schedule => {
-        const hasItems = allActiveAssignedItems.some(item => item.schedule_id === schedule.schedule_id);
-        return !hasItems;
-      })
-      .sort((a, b) => a.schedule_id - b.schedule_id);
-
-    const emptyScheduleIndex = zoneNumber - 1 - zoneSchedules.length;
-    if (emptyScheduleIndex >= 0 && emptyScheduleIndex < emptyActiveSchedules.length) {
-      const targetSchedule = emptyActiveSchedules[emptyScheduleIndex];
-      console.log(`Zone ${zoneNumber} assigned to empty active schedule ${targetSchedule.schedule_id}`);
-      setSelectedGroupId(targetSchedule.groups_id);
-      setScheduleId(targetSchedule.schedule_id);
-      setSelectedDriverId(targetSchedule.driver_id || null);
-      return;
-    }
-
-    // If no active schedule exists for this zone, it remains completely empty
-    console.log(`Zone ${zoneNumber} has no active schedule - completely empty`);
-  }, [distributionSchedules, orders, returns, zoneNumber]);
+  }, [currentZoneState.selectedGroupId, currentZoneState.scheduleId, distributionSchedules, zoneNumber]);
 
   // Updated print function to navigate to report page
   const handlePrint = () => {
@@ -305,8 +276,8 @@ export const DropZone: React.FC<DropZoneProps> = ({
     <Card
       ref={drop}
       className={`min-h-[300px] transition-colors relative ${
-        isOver ? 'border-primary bg-primary/5' : 'border-border'
-      }`}
+        isOver && currentZoneState.scheduleId ? 'border-primary bg-primary/5' : 'border-border'
+      } ${!currentZoneState.scheduleId && isOver ? 'border-red-300 bg-red-50' : ''}`}
     >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
