@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -263,13 +264,10 @@ const ProductionSummary = () => {
   });
 
   return (
-    <div className="min-h-screen p-6 bg-background">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6 print:hidden">
-          <h1 className="text-3xl font-bold">
-            סיכום הפקה - {group?.separation || 'אזור לא מוגדר'} #{schedule.dis_number}
-          </h1>
+    <div className="min-h-screen p-4 bg-background">
+      <div className="max-w-full mx-auto">
+        {/* Header - hidden on print */}
+        <div className="flex items-center justify-between mb-4 print:hidden">
           <div className="flex gap-2">
             <Button onClick={handlePrint} variant="outline" className="flex items-center gap-2">
               <Printer className="h-4 w-4" />
@@ -282,115 +280,127 @@ const ProductionSummary = () => {
           </div>
         </div>
 
-        {/* Print Header */}
-        <div className="hidden print:block mb-6 text-center">
-          <h1 className="text-2xl font-bold mb-2">
-            סיכום הפקה - {group?.separation || 'אזור לא מוגדר'}
-          </h1>
-          <h2 className="text-xl">מספר הפקה: #{schedule.dis_number}</h2>
-        </div>
-
-        {/* Production Info */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              פרטי הפקה ו חלוקה
+        {/* Distribution Line Summary */}
+        <Card className="mb-4">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Calendar className="h-4 w-4" />
+              סיכום קו חלוקה {group?.separation || 'אזור לא מוגדר'} לתאריך {schedule.distribution_date ? new Date(schedule.distribution_date).toLocaleDateString('he-IL') : 'לא מוגדר'}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-4 gap-3 text-sm">
               <div>
-                <div className="text-sm text-gray-600">מספר הפקה</div>
-                <div className="font-semibold text-lg">#{schedule.dis_number}</div>
+                <div className="text-gray-600">מס' הפצה:</div>
+                <div className="font-semibold">#{schedule.dis_number}</div>
               </div>
               <div>
-                <div className="text-sm text-gray-600">תאריך אספקה</div>
-                <div className="font-semibold">{schedule.distribution_date ? new Date(schedule.distribution_date).toLocaleDateString('he-IL') : 'לא מוגדר'}</div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">תאריך הפקה</div>
-                <div className="font-semibold">{schedule.done_schedule ? new Date(schedule.done_schedule).toLocaleDateString('he-IL') : 'לא מוגדר'}</div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">נהג</div>
+                <div className="text-gray-600">נהג:</div>
                 <div className="font-semibold">{driver?.nahag || 'לא מוגדר'}</div>
               </div>
               <div>
-                <div className="text-sm text-gray-600">כמויות</div>
+                <div className="text-gray-600">כמויות:</div>
                 <div className="font-semibold">{orders.length} הזמנות, {returns.length} החזרות</div>
               </div>
+              <div></div>
             </div>
           </CardContent>
         </Card>
 
         {/* Customer Details Table */}
         <Card>
-          <CardHeader>
-            <CardTitle>פירוט לקוחות - {sortedCustomers.length} נקודות חלוקה</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-right">שם לקוח</TableHead>
-                  <TableHead className="text-right">כתובת</TableHead>
-                  <TableHead className="text-right">עיר</TableHead>
-                  <TableHead className="text-right">טלפון נייד</TableHead>
-                  <TableHead className="text-right">טלפון</TableHead>
-                  <TableHead className="text-right">פרטי אספקה</TableHead>
-                  <TableHead className="text-right">הזמנות</TableHead>
-                  <TableHead className="text-right">החזרות</TableHead>
-                  <TableHead className="text-right">הערות</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedCustomers.map((customer, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="font-medium">{customer.customername}</TableCell>
-                    <TableCell>{customer.address}</TableCell>
-                    <TableCell>{customer.city}</TableCell>
-                    <TableCell>{customer.mobile || '-'}</TableCell>
-                    <TableCell>{customer.phone || '-'}</TableCell>
-                    <TableCell>{customer.supplydetails || '-'}</TableCell>
-                    <TableCell>
-                      {customer.orders.length > 0 && (
-                        <div className="space-y-1">
-                          {customer.orders.map(order => (
-                            <div key={order.ordernumber} className="text-xs">
-                              הזמנה #{order.ordernumber}
-                              {order.icecream && <div className="text-blue-600">{order.icecream}</div>}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {customer.returns.length > 0 && (
-                        <div className="space-y-1">
-                          {customer.returns.map(returnItem => (
-                            <div key={returnItem.returnnumber} className="text-xs">
-                              החזרה #{returnItem.returnnumber}
-                              {returnItem.icecream && <div className="text-blue-600">{returnItem.icecream}</div>}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {customer.shotefnumber === 5 && (
-                        <div className="text-red-600 font-bold text-sm">
-                          נהג, נא לקחת מזומן
-                        </div>
-                      )}
-                    </TableCell>
+          <CardContent className="p-4">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="text-xs">
+                    <TableHead className="text-left p-2">שם לקוח</TableHead>
+                    <TableHead className="text-left p-2">כתובת</TableHead>
+                    <TableHead className="text-left p-2">עיר</TableHead>
+                    <TableHead className="text-left p-2">טלפון נייד</TableHead>
+                    <TableHead className="text-left p-2">טלפון</TableHead>
+                    <TableHead className="text-left p-2">פרטי אספקה</TableHead>
+                    <TableHead className="text-left p-2">הזמנות</TableHead>
+                    <TableHead className="text-left p-2">החזרות</TableHead>
+                    <TableHead className="text-left p-2">הערות</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {sortedCustomers.map((customer, index) => (
+                    <TableRow key={index} className="text-xs border-b-0">
+                      <TableCell className="font-medium p-2 text-left text-xs">{customer.customername}</TableCell>
+                      <TableCell className="p-2 text-left text-xs">{customer.address}</TableCell>
+                      <TableCell className="p-2 text-left text-xs">{customer.city}</TableCell>
+                      <TableCell className="p-2 text-left text-xs">{customer.mobile || '-'}</TableCell>
+                      <TableCell className="p-2 text-left text-xs">{customer.phone || '-'}</TableCell>
+                      <TableCell className="p-2 text-left text-xs">{customer.supplydetails || '-'}</TableCell>
+                      <TableCell className="p-2 text-left">
+                        {customer.orders.length > 0 && (
+                          <div className="space-y-0.5">
+                            {customer.orders.map(order => (
+                              <div key={order.ordernumber} className="text-xs">
+                                הזמנה #{order.ordernumber}
+                                {order.icecream && <div className="text-blue-600 text-xs">{order.icecream}</div>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="p-2 text-left">
+                        {customer.returns.length > 0 && (
+                          <div className="space-y-0.5">
+                            {customer.returns.map(returnItem => (
+                              <div key={returnItem.returnnumber} className="text-xs">
+                                החזרה #{returnItem.returnnumber}
+                                {returnItem.icecream && <div className="text-blue-600 text-xs">{returnItem.icecream}</div>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="p-2 text-left">
+                        {customer.shotefnumber === 5 && (
+                          <div className="text-red-600 font-bold text-xs">
+                            נהג, נא לקחת מזומן
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>
+
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: landscape;
+            margin: 10mm;
+          }
+          
+          body {
+            font-size: 10px !important;
+          }
+          
+          .print\\:hidden {
+            display: none !important;
+          }
+          
+          table {
+            width: 100% !important;
+            font-size: 10px !important;
+          }
+          
+          th, td {
+            padding: 2px !important;
+            font-size: 10px !important;
+            text-align: left !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };
