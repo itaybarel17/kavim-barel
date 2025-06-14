@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -90,11 +89,10 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
         throw new Error('הכרטיס כבר הופק');
       }
       
-      // Get current max dis_number for this date to ensure uniqueness
+      // Get current max dis_number from the entire table (not just for this date)
       const { data: existingSchedules, error: fetchError } = await supabase
         .from('distribution_schedule')
         .select('dis_number')
-        .eq('distribution_date', dateStr)
         .not('dis_number', 'is', null)
         .order('dis_number', { ascending: false })
         .limit(1);
@@ -106,10 +104,10 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
       
       const nextDisNumber = existingSchedules.length > 0 ? 
         (existingSchedules[0].dis_number || 0) + 1 : 1;
-      
+  
       console.log('Next dis_number will be:', nextDisNumber);
       
-      // Update the schedule manually instead of using the RPC function
+      // Update the schedule with the new dis_number
       const { error: updateError } = await supabase
         .from('distribution_schedule')
         .update({ 
