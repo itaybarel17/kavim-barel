@@ -1,9 +1,11 @@
+
 import React, { useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { supabase } from '@/integrations/supabase/client';
 import { DropZone } from '@/components/distribution/DropZone';
 import { UnassignedArea } from '@/components/distribution/UnassignedArea';
+import { HorizontalKanban } from '@/components/calendar/HorizontalKanban';
 import { useQuery } from '@tanstack/react-query';
 import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription';
 import { Loader2, Calendar, Archive } from 'lucide-react';
@@ -453,6 +455,17 @@ const Distribution = () => {
             </Button>
           </div>
         </div>
+        
+        {/* Horizontal Kanban for unscheduled distribution lines */}
+        <HorizontalKanban
+          distributionSchedules={distributionSchedules}
+          distributionGroups={distributionGroups}
+          drivers={drivers}
+          orders={orders}
+          returns={returns}
+          multiOrderActiveCustomerList={multiOrderActiveCustomerList}
+          dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
+        />
         
         {/* Unassigned items area with drop functionality and delete buttons */}
         <UnassignedArea

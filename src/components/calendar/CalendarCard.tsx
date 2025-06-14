@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
@@ -48,6 +47,8 @@ interface CalendarCardProps {
   onUpdateDestinations?: (scheduleId: number) => void;
   isCalendarMode?: boolean;
   schedule?: DistributionSchedule;
+  multiOrderActiveCustomerList?: { name: string; city: string }[];
+  dualActiveOrderReturnCustomers?: { name: string; city: string }[];
 }
 
 export const CalendarCard: React.FC<CalendarCardProps> = ({
@@ -61,9 +62,11 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   showAllCustomers = false,
   onUpdateDestinations,
   isCalendarMode = false,
-  schedule
+  schedule,
+  multiOrderActiveCustomerList = [],
+  dualActiveOrderReturnCustomers = [],
 }) => {
-  // Check if this schedule has been produced based on done_schedule timestamp
+  // Check if this schedule has produced based on done_schedule timestamp
   const isProduced = schedule?.done_schedule != null;
   
   const [{ isDragging }, drag] = useDrag(() => ({
