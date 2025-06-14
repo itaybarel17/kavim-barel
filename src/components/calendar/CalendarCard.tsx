@@ -85,6 +85,15 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
 
   // Calculate unique customers using the utility function
   const uniqueCustomers = getUniqueCustomersForSchedule(orders, returns, scheduleId);
+  
+  // Create a map of customers with their cities for proper strikethrough logic
+  const customerCityMap = new Map<string, string>();
+  [...scheduleOrders, ...scheduleReturns].forEach(item => {
+    if (!customerCityMap.has(item.customername)) {
+      customerCityMap.set(item.customername, item.city);
+    }
+  });
+  
   const uniqueCustomersList = Array.from(uniqueCustomers);
 
   // Calculate totals in money
@@ -144,9 +153,10 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
           <div className={`${textSize} font-medium text-gray-700 mb-0.5`}>נקודות:</div>
           <div className={`${maxHeight} overflow-y-auto ${textSize} space-y-0.5`}>
             {uniqueCustomersList.map((customer, index) => {
+              const customerCity = customerCityMap.get(customer) || '';
               const isCompletelyTransferred = isCustomerCompletelyTransferred(
                 customer, 
-                '', // We don't have city info in the customer list here
+                customerCity,
                 orders, 
                 returns, 
                 scheduleId
