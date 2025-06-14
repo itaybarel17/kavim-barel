@@ -1,8 +1,17 @@
+
 import React from 'react';
 import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { getOrdersByEffectiveScheduleId, getReturnsByEffectiveScheduleId, getUniqueCustomersForSchedule } from '@/utils/scheduleUtils';
+import { AlertTriangle, ArrowRight } from 'lucide-react';
+import { 
+  getOrdersByScheduleId, 
+  getReturnsByScheduleId, 
+  getUniqueCustomersForSchedule,
+  isItemModified,
+  getOriginalScheduleId,
+  getNewScheduleId
+} from '@/utils/scheduleUtils';
 import type { OrderWithSchedule, ReturnWithSchedule } from '@/utils/scheduleUtils';
 
 interface DistributionGroup {
@@ -69,9 +78,9 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   const group = distributionGroups.find(g => g.groups_id === groupId);
   const driver = drivers.find(d => d.id === driverId);
 
-  // Get orders and returns for this schedule using effective schedule ID logic
-  const scheduleOrders = getOrdersByEffectiveScheduleId(orders, scheduleId);
-  const scheduleReturns = getReturnsByEffectiveScheduleId(returns, scheduleId);
+  // Get orders and returns for this schedule using the new logic
+  const scheduleOrders = getOrdersByScheduleId(orders, scheduleId);
+  const scheduleReturns = getReturnsByScheduleId(returns, scheduleId);
 
   // Calculate unique customers using the utility function
   const uniqueCustomers = getUniqueCustomersForSchedule(orders, returns, scheduleId);
@@ -83,17 +92,30 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   const totalOrders = scheduleOrders.length;
   const totalReturns = scheduleReturns.length;
 
-  // Enhanced styling for produced cards - removed the locked badge
+  // Check if this schedule has modified items
+  const hasModifiedItems = [...scheduleOrders, ...scheduleReturns].some(item => isItemModified(item));
+  
+  // Count modified items by type
+  const modifiedOrders = scheduleOrders.filter(order => isItemModified(order));
+  const modifiedReturns = scheduleReturns.filter(returnItem => isItemModified(returnItem));
+  const hasModifiedOrdersFromOtherSchedule = modifiedOrders.some(order => getOriginalScheduleId(order) !== scheduleId);
+  const hasModifiedReturnsFromOtherSchedule = modifiedReturns.some(returnItem => getOriginalScheduleId(returnItem) !== scheduleId);
+
+  // Enhanced styling for produced cards
   const cardClasses = isCalendarMode 
     ? `w-full max-w-[160px] overflow-hidden ${
         isProduced 
           ? 'cursor-not-allowed border-4 border-green-500 bg-green-50 shadow-lg opacity-90' 
-          : 'cursor-move border-blue-200 bg-blue-50'
+          : hasModifiedItems
+            ? 'cursor-move border-orange-300 bg-orange-50 border-2'
+            : 'cursor-move border-blue-200 bg-blue-50'
       }`
     : `min-w-[250px] max-w-[280px] ${
         isProduced 
           ? 'cursor-not-allowed border-4 border-green-500 bg-green-50 shadow-lg opacity-90' 
-          : 'cursor-move border-blue-200 bg-blue-50'
+          : hasModifiedItems
+            ? 'cursor-move border-orange-300 bg-orange-50 border-2'
+            : 'cursor-move border-blue-200 bg-blue-50'
       }`;
 
   const contentPadding = isCalendarMode ? "p-1.5" : "p-3";
@@ -110,14 +132,22 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
       <CardContent className={contentPadding}>
         <div className={spacing}>
           <div className="flex items-center justify-between">
-            <h3 className={`font-semibold ${titleSize} ${isProduced ? 'text-green-800' : 'text-blue-800'} truncate`}>
+            <h3 className={`font-semibold ${titleSize} ${isProduced ? 'text-green-800' : hasModifiedItems ? 'text-orange-800' : 'text-blue-800'} truncate`}>
               {group?.separation || 'אזור לא מוגדר'}
             </h3>
-            {isProduced && (
-              <Badge variant="secondary" className="text-[8px] px-1 py-0 bg-green-100 text-green-800 border border-green-300">
-                הופק #{schedule?.dis_number || 'לא ידוע'}
-              </Badge>
-            )}
+            <div className="flex items-center gap-1">
+              {hasModifiedItems && !isProduced && (
+                <Badge variant="secondary" className="text-[8px] px-1 py-0 bg-orange-100 text-orange-800 border border-orange-300">
+                  <AlertTriangle className="h-2 w-2 mr-0.5" />
+                  שונה
+                </Badge>
+              )}
+              {isProduced && (
+                <Badge variant="secondary" className="text-[8px] px-1 py-0 bg-green-100 text-green-800 border border-green-300">
+                  הופק #{schedule?.dis_number || 'לא ידוע'}
+                </Badge>
+              )}
+            </div>
           </div>
           <div className={`${textSize} text-muted-foreground`}>
             <div className="truncate">מזהה: {scheduleId}</div>
@@ -132,6 +162,25 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
             ))}
           </div>
         </div>
+
+        {/* Show modification details if there are modified items */}
+        {hasModifiedItems && !isCalendarMode && (
+          <div className={`${spacing} ${textSize} text-orange-700 bg-orange-50 p-1 rounded border border-orange-200`}>
+            <div className="font-medium mb-1">שינויים:</div>
+            {hasModifiedOrdersFromOtherSchedule && (
+              <div className="flex items-center gap-1">
+                <ArrowRight className="h-2 w-2" />
+                <span>{modifiedOrders.filter(o => getOriginalScheduleId(o) !== scheduleId).length} הזמנות מועברות</span>
+              </div>
+            )}
+            {hasModifiedReturnsFromOtherSchedule && (
+              <div className="flex items-center gap-1">
+                <ArrowRight className="h-2 w-2" />
+                <span>{modifiedReturns.filter(r => getOriginalScheduleId(r) !== scheduleId).length} החזרות מועברות</span>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className={`border-t pt-1 space-y-0.5 ${textSize}`}>
           <div className="flex justify-between">

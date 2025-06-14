@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,7 @@ interface Order {
   customername: string;
   totalorder: number;
   schedule_id?: number;
+  schedule_id_if_changed?: any;
 }
 
 interface Return {
@@ -39,6 +41,7 @@ interface Return {
   customername: string;
   totalreturn: number;
   schedule_id?: number;
+  schedule_id_if_changed?: any;
 }
 
 interface ProductionDialogProps {
@@ -207,17 +210,16 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
             schedulesForDate.map((schedule) => {
               const group = distributionGroups.find(g => g.groups_id === schedule.groups_id);
               const driver = drivers.find(d => d.id === schedule.driver_id);
-              // Note: getScheduleStats is now async, but we'll handle it in useEffect or similar
-              // For now, keeping the synchronous version to avoid breaking changes
+              
+              // Use effective schedule ID logic to get all relevant items
               const scheduleOrders = orders.filter(order => {
-                // Use effective schedule ID logic
                 const effectiveScheduleId = order.schedule_id_if_changed?.schedule_id || 
                                           (typeof order.schedule_id_if_changed === 'number' ? order.schedule_id_if_changed : null) || 
                                           order.schedule_id;
                 return effectiveScheduleId === schedule.schedule_id;
               });
+              
               const scheduleReturns = returns.filter(returnItem => {
-                // Use effective schedule ID logic
                 const effectiveScheduleId = returnItem.schedule_id_if_changed?.schedule_id || 
                                           (typeof returnItem.schedule_id_if_changed === 'number' ? returnItem.schedule_id_if_changed : null) || 
                                           returnItem.schedule_id;
