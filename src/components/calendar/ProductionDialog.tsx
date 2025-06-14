@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { Package, RotateCcw, User, Calendar, Printer } from 'lucide-react';
+import { Package, RotateCcw, User, Calendar, Printer, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface DistributionSchedule {
@@ -67,6 +67,7 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
 }) => {
   const [isProducing, setIsProducing] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   if (!selectedDate) return null;
@@ -78,19 +79,73 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
 
   const handleProduce = async (scheduleId: number) => {
     setIsProducing(true);
+    setError(null);
+    
     try {
       console.log('Starting production for schedule:', scheduleId);
       
-      const { data, error } = await supabase.rpc('produce_schedule', {
-        schedule_id_param: scheduleId
-      });
-
-      if (error) {
-        console.error('Production error:', error);
-        throw error;
+      // First, let's check if this schedule is already produced
+      const schedule = distributionSchedules.find(s => s.schedule_id === scheduleId);
+      if (schedule?.done_schedule) {
+        throw new Error('הכרטיס כבר הופק');
+      }
+      
+      // Get current max dis_number for this date to ensure uniqueness
+      const { data: existingSchedules, error: fetchError } = await supabase
+        .from('distribution_schedule')
+        .select('dis_number')
+        .eq('distribution_date', dateStr)
+        .not('dis_number', 'is', null)
+        .order('dis_number', { ascending: false })
+        .limit(1);
+        
+      if (fetchError) {
+        console.error('Error fetching existing schedules:', fetchError);
+        throw fetchError;
+      }
+      
+      const nextDisNumber = existingSchedules.length > 0 ? 
+        (existingSchedules[0].dis_number || 0) + 1 : 1;
+      
+      console.log('Next dis_number will be:', nextDisNumber);
+      
+      // Update the schedule manually instead of using the RPC function
+      const { error: updateError } = await supabase
+        .from('distribution_schedule')
+        .update({ 
+          dis_number: nextDisNumber,
+          done_schedule: new Date().toISOString()
+        })
+        .eq('schedule_id', scheduleId);
+        
+      if (updateError) {
+        console.error('Error updating schedule:', updateError);
+        throw updateError;
+      }
+      
+      // Mark orders as done
+      const { error: ordersError } = await supabase
+        .from('mainorder')
+        .update({ done_mainorder: new Date().toISOString() })
+        .eq('schedule_id', scheduleId);
+        
+      if (ordersError) {
+        console.error('Error updating orders:', ordersError);
+        // Continue even if this fails - it's not critical
+      }
+      
+      // Mark returns as done
+      const { error: returnsError } = await supabase
+        .from('mainreturns')
+        .update({ done_return: new Date().toISOString() })
+        .eq('schedule_id', scheduleId);
+        
+      if (returnsError) {
+        console.error('Error updating returns:', returnsError);
+        // Continue even if this fails - it's not critical
       }
 
-      console.log('Production completed with dis_number:', data);
+      console.log('Production completed with dis_number:', nextDisNumber);
       
       if (onProduced) {
         onProduced();
@@ -100,6 +155,7 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
       onClose();
     } catch (error) {
       console.error('Error producing schedule:', error);
+      setError(error instanceof Error ? error.message : 'שגיאה בהפקת הכרטיס');
     } finally {
       setIsProducing(false);
     }
@@ -130,6 +186,16 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
             הפקה ליום {selectedDate.toLocaleDateString('he-IL')}
           </DialogTitle>
         </DialogHeader>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded p-3 mb-4">
+            <div className="flex items-center gap-2 text-red-800">
+              <AlertCircle className="h-4 w-4" />
+              <span className="font-medium">שגיאה:</span>
+              <span>{error}</span>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-4 max-h-96 overflow-y-auto">
           {schedulesForDate.length === 0 ? (
