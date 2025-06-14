@@ -14,6 +14,7 @@ interface Order {
   agentnumber?: string;
   orderdate?: string;
   invoicenumber?: number;
+  ordercancel?: string | null;
 }
 
 interface Return {
@@ -26,6 +27,7 @@ interface Return {
   customernumber?: string;
   agentnumber?: string;
   returndate?: string;
+  returncancel?: string | null;
 }
 
 interface OrderCardProps {
@@ -50,8 +52,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({ type, data, onDragStart })
   const number = isOrder ? (data as Order).ordernumber : (data as Return).returnnumber;
   const total = isOrder ? (data as Order).totalorder : (data as Return).totalreturn;
   const date = isOrder ? (data as Order).orderdate : (data as Return).returndate;
-  
-  // Check if invoice number exists (for orders only)
   const hasInvoiceNumber = isOrder && (data as Order).invoicenumber != null;
 
   return (
@@ -63,8 +63,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({ type, data, onDragStart })
     >
       <CardContent className="p-4">
         <div className="flex justify-between items-start mb-2">
-          <span className={`text-sm font-semibold ${isOrder ? 'text-blue-600' : 'text-red-600'}`}>
-            {isOrder ? 'הזמנה' : 'החזרה'} #{number}
+          <span className="text-sm font-semibold text-gray-800">
+            #{number}
           </span>
           <span className="text-sm font-bold">₪{total?.toLocaleString()}</span>
         </div>
