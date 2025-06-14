@@ -77,6 +77,33 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
     setItemToDelete(null);
   };
 
+  // Function to check if an order/return has a blue or red icon
+  const hasIcon = (item: Order | Return) => {
+    const customerKey = `${item.customername}-${item.city}`;
+    return multiOrderActiveCustomerList.some(customer => `${customer.name}-${customer.city}` === customerKey) ||
+           dualActiveOrderReturnCustomers.some(customer => `${customer.name}-${customer.city}` === customerKey);
+  };
+
+  // Sort orders: items with icons first, then others
+  const sortedOrders = [...unassignedOrders].sort((a, b) => {
+    const aHasIcon = hasIcon(a);
+    const bHasIcon = hasIcon(b);
+    
+    if (aHasIcon && !bHasIcon) return -1;
+    if (!aHasIcon && bHasIcon) return 1;
+    return 0;
+  });
+
+  // Sort returns: items with icons first, then others
+  const sortedReturns = [...unassignedReturns].sort((a, b) => {
+    const aHasIcon = hasIcon(a);
+    const bHasIcon = hasIcon(b);
+    
+    if (aHasIcon && !bHasIcon) return -1;
+    if (!aHasIcon && bHasIcon) return 1;
+    return 0;
+  });
+
   return (
     <div className="mb-8">
       <h2 className="text-xl font-semibold mb-4">הזמנות והחזרות ללא שיוך</h2>
@@ -86,7 +113,7 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
           isOver ? 'border-primary bg-primary/5' : 'border-border'
         }`}
       >
-        {unassignedOrders.map((order) => (
+        {sortedOrders.map((order) => (
           <div key={`order-${order.ordernumber}`} className="relative group">
             <OrderCard
               type="order"
@@ -106,7 +133,7 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
             )}
           </div>
         ))}
-        {unassignedReturns.map((returnItem) => (
+        {sortedReturns.map((returnItem) => (
           <div key={`return-${returnItem.returnnumber}`} className="relative group">
             <OrderCard
               type="return"

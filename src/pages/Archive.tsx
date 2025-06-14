@@ -1,14 +1,17 @@
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Package, RotateCcw, Undo2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
-import { ReturnReasonDialog } from '@/components/archive/ReturnReasonDialog';
+import { Label } from '@/components/ui/label';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon, Package, RotateCcw, Search, X } from 'lucide-react';
+import { format } from 'date-fns';
+import { he } from 'date-fns/locale';
 
 interface ArchivedOrder {
   ordernumber: number;
@@ -17,12 +20,13 @@ interface ArchivedOrder {
   city: string;
   totalorder: number;
   done_mainorder: string;
-  schedule_id: number;
-  orderdate?: string;
-  invoicenumber?: number;
-  totalinvoice?: number;
-  invoicedate?: string;
   agentnumber?: string;
+  invoicenumber?: number;
+  invoicedate?: string;
+  distribution_date?: string;
+  dis_number?: number;
+  schedule_id?: number;
+  nahag_name?: string;
 }
 
 interface ArchivedReturn {
@@ -32,793 +36,337 @@ interface ArchivedReturn {
   city: string;
   totalreturn: number;
   done_return: string;
-  schedule_id: number;
-  returndate?: string;
   agentnumber?: string;
-}
-
-interface DeletedOrder {
-  ordernumber: number;
-  customername: string;
-  address: string;
-  city: string;
-  totalorder: number;
-  ordercancel: string;
-  schedule_id: number;
-  orderdate?: string;
-  invoicenumber?: number;
-  totalinvoice?: number;
-  agentnumber?: string;
-}
-
-interface DeletedReturn {
-  returnnumber: number;
-  customername: string;
-  address: string;
-  city: string;
-  totalreturn: number;
-  returncancel: string;
-  schedule_id: number;
-  returndate?: string;
-  agentnumber?: string;
-}
-
-interface ScheduleData {
-  schedule_id: number;
   distribution_date?: string;
   dis_number?: number;
+  schedule_id?: number;
+  nahag_name?: string;
 }
 
 const Archive = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [returnDialogOpen, setReturnDialogOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<{
-    type: 'order' | 'return';
-    data: ArchivedOrder | ArchivedReturn;
-  } | null>(null);
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const [selectedDate, setSelectedDate] = useState<Date>();
 
-  // Fetch archived orders with schedule data
-  const { data: archivedOrders = [], refetch: refetchArchivedOrders, isLoading: ordersLoading } = useQuery({
+  // Fetch archived orders with driver names
+  const { data: archivedOrders = [], isLoading: ordersLoading } = useQuery({
     queryKey: ['archived-orders'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('mainorder')
         .select(`
-          ordernumber, customername, address, city, totalorder, done_mainorder, 
-          schedule_id, orderdate, invoicenumber, totalinvoice, invoicedate, agentnumber
+          ordernumber,
+          customername,
+          address,
+          city,
+          totalorder,
+          done_mainorder,
+          agentnumber,
+          invoicenumber,
+          invoicedate,
+          schedule_id,
+          distribution_schedule!inner(
+            distribution_date,
+            dis_number,
+            nahag_name
+          )
         `)
         .not('done_mainorder', 'is', null)
         .order('done_mainorder', { ascending: false });
       
       if (error) throw error;
-      return data as ArchivedOrder[];
+      
+      return data.map(order => ({
+        ...order,
+        distribution_date: order.distribution_schedule?.distribution_date,
+        dis_number: order.distribution_schedule?.dis_number,
+        nahag_name: order.distribution_schedule?.nahag_name,
+      }));
     }
   });
 
-  // Fetch archived returns with schedule data
-  const { data: archivedReturns = [], refetch: refetchArchivedReturns, isLoading: returnsLoading } = useQuery({
+  // Fetch archived returns with driver names
+  const { data: archivedReturns = [], isLoading: returnsLoading } = useQuery({
     queryKey: ['archived-returns'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('mainreturns')
         .select(`
-          returnnumber, customername, address, city, totalreturn, done_return, 
-          schedule_id, returndate, agentnumber
+          returnnumber,
+          customername,
+          address,
+          city,
+          totalreturn,
+          done_return,
+          agentnumber,
+          schedule_id,
+          distribution_schedule!inner(
+            distribution_date,
+            dis_number,
+            nahag_name
+          )
         `)
         .not('done_return', 'is', null)
         .order('done_return', { ascending: false });
       
       if (error) throw error;
-      return data as ArchivedReturn[];
+      
+      return data.map(returnItem => ({
+        ...returnItem,
+        distribution_date: returnItem.distribution_schedule?.distribution_date,
+        dis_number: returnItem.distribution_schedule?.dis_number,
+        nahag_name: returnItem.distribution_schedule?.nahag_name,
+      }));
     }
   });
-
-  // Fetch schedule data for distribution dates and dis_numbers
-  const { data: scheduleData = [] } = useQuery({
-    queryKey: ['schedule-data'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('distribution_schedule')
-        .select('schedule_id, distribution_date, dis_number');
-      
-      if (error) throw error;
-      return data as ScheduleData[];
-    }
-  });
-
-  // Create a map for quick schedule lookup
-  const scheduleMap = scheduleData.reduce((acc, schedule) => {
-    acc[schedule.schedule_id] = schedule;
-    return acc;
-  }, {} as Record<number, ScheduleData>);
-
-  // Fetch deleted orders
-  const { data: deletedOrders = [], refetch: refetchDeletedOrders, isLoading: deletedOrdersLoading } = useQuery({
-    queryKey: ['deleted-orders'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('mainorder')
-        .select('ordernumber, customername, address, city, totalorder, ordercancel, schedule_id, orderdate, invoicenumber, totalinvoice, agentnumber')
-        .not('ordercancel', 'is', null)
-        .order('ordercancel', { ascending: false });
-      
-      if (error) throw error;
-      return data as DeletedOrder[];
-    }
-  });
-
-  // Fetch deleted returns
-  const { data: deletedReturns = [], refetch: refetchDeletedReturns, isLoading: deletedReturnsLoading } = useQuery({
-    queryKey: ['deleted-returns'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('mainreturns')
-        .select('returnnumber, customername, address, city, totalreturn, returncancel, schedule_id, returndate, agentnumber')
-        .not('returncancel', 'is', null)
-        .order('returncancel', { ascending: false });
-      
-      if (error) throw error;
-      return data as DeletedReturn[];
-    }
-  });
-
-  // ... keep existing code (handleRestoreOrder, handleRestoreReturn, handleReturnToDistribution, openReturnDialog functions)
-
-  const handleRestoreOrder = async (order: DeletedOrder) => {
-    try {
-      const { error } = await supabase
-        .from('mainorder')
-        .update({ ordercancel: null })
-        .eq('ordernumber', order.ordernumber);
-      
-      if (error) throw error;
-      
-      toast({
-        title: "הזמנה שוחזרה",
-        description: `הזמנה #${order.ordernumber} חזרה לממשק ההפצה`,
-      });
-      refetchDeletedOrders();
-    } catch (error) {
-      console.error('Error restoring order:', error);
-      toast({
-        title: "שגיאה",
-        description: "אירעה שגיאה בשחזור ההזמנה",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleRestoreReturn = async (returnItem: DeletedReturn) => {
-    try {
-      const { error } = await supabase
-        .from('mainreturns')
-        .update({ returncancel: null })
-        .eq('returnnumber', returnItem.returnnumber);
-      
-      if (error) throw error;
-      
-      toast({
-        title: "החזרה שוחזרה",
-        description: `החזרה #${returnItem.returnnumber} חזרה לממשק ההפצה`,
-      });
-      refetchDeletedReturns();
-    } catch (error) {
-      console.error('Error restoring return:', error);
-      toast({
-        title: "שגיאה",
-        description: "אירעה שגיאה בשחזור ההחזרה",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleReturnToDistribution = async (reason: { type: string; responsible: string }) => {
-    if (!selectedItem) return;
-
-    try {
-      const returnReason = {
-        type: reason.type,
-        responsible: reason.responsible,
-        timestamp: new Date().toISOString()
-      };
-
-      if (selectedItem.type === 'order') {
-        const order = selectedItem.data as ArchivedOrder;
-        
-        // Get current return_reason and schedule_id_if_changed to accumulate history
-        const { data: currentOrder } = await supabase
-          .from('mainorder')
-          .select('return_reason, schedule_id_if_changed')
-          .eq('ordernumber', order.ordernumber)
-          .single();
-
-        // Build accumulated return reasons
-        const existingReasons = currentOrder?.return_reason ? 
-          (Array.isArray(currentOrder.return_reason) ? currentOrder.return_reason : [currentOrder.return_reason])
-          : [];
-        const updatedReasons = [...existingReasons, returnReason];
-
-        // Build accumulated schedule IDs
-        const existingScheduleIds = currentOrder?.schedule_id_if_changed ?
-          (Array.isArray(currentOrder.schedule_id_if_changed) ? currentOrder.schedule_id_if_changed : [currentOrder.schedule_id_if_changed])
-          : [];
-        const updatedScheduleIds = order.schedule_id ? [...existingScheduleIds, order.schedule_id] : existingScheduleIds;
-
-        const { error } = await supabase
-          .from('mainorder')
-          .update({ 
-            done_mainorder: null,
-            schedule_id: null,
-            return_reason: JSON.parse(JSON.stringify(updatedReasons)),
-            schedule_id_if_changed: updatedScheduleIds.length > 0 ? JSON.parse(JSON.stringify(updatedScheduleIds)) : null
-          })
-          .eq('ordernumber', order.ordernumber);
-        
-        if (error) throw error;
-        
-        toast({
-          title: "הזמנה הוחזרה",
-          description: `הזמנה #${order.ordernumber} חזרה לממשק ההפצה`,
-        });
-        refetchArchivedOrders();
-      } else {
-        const returnItem = selectedItem.data as ArchivedReturn;
-        
-        // Get current return_reason and schedule_id_if_changed to accumulate history
-        const { data: currentReturn } = await supabase
-          .from('mainreturns')
-          .select('return_reason, schedule_id_if_changed')
-          .eq('returnnumber', returnItem.returnnumber)
-          .single();
-
-        // Build accumulated return reasons
-        const existingReasons = currentReturn?.return_reason ? 
-          (Array.isArray(currentReturn.return_reason) ? currentReturn.return_reason : [currentReturn.return_reason])
-          : [];
-        const updatedReasons = [...existingReasons, returnReason];
-
-        // Build accumulated schedule IDs
-        const existingScheduleIds = currentReturn?.schedule_id_if_changed ?
-          (Array.isArray(currentReturn.schedule_id_if_changed) ? currentReturn.schedule_id_if_changed : [currentReturn.schedule_id_if_changed])
-          : [];
-        const updatedScheduleIds = returnItem.schedule_id ? [...existingScheduleIds, returnItem.schedule_id] : existingScheduleIds;
-
-        const { error } = await supabase
-          .from('mainreturns')
-          .update({ 
-            done_return: null,
-            schedule_id: null,
-            return_reason: JSON.parse(JSON.stringify(updatedReasons)),
-            schedule_id_if_changed: updatedScheduleIds.length > 0 ? JSON.parse(JSON.stringify(updatedScheduleIds)) : null
-          })
-          .eq('returnnumber', returnItem.returnnumber);
-        
-        if (error) throw error;
-        
-        toast({
-          title: "החזרה הוחזרה",
-          description: `החזרה #${returnItem.returnnumber} חזרה לממשק ההפצה`,
-        });
-        refetchArchivedReturns();
-      }
-    } catch (error) {
-      console.error('Error returning item to distribution:', error);
-      toast({
-        title: "שגיאה",
-        description: "אירעה שגיאה בהחזרת הפריט לממשק ההפצה",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const openReturnDialog = (type: 'order' | 'return', data: ArchivedOrder | ArchivedReturn) => {
-    setSelectedItem({ type, data });
-    setReturnDialogOpen(true);
-  };
 
   // Group orders by invoice number
-  const groupOrdersByInvoice = (orders: ArchivedOrder[]) => {
-    const groups: { [key: string]: ArchivedOrder[] } = {};
-    const ungrouped: ArchivedOrder[] = [];
-
-    orders.forEach(order => {
-      if (order.invoicenumber) {
-        const key = order.invoicenumber.toString();
-        if (!groups[key]) groups[key] = [];
-        groups[key].push(order);
-      } else {
-        ungrouped.push(order);
+  const groupedOrders = archivedOrders.reduce((acc, order) => {
+    if (order.invoicenumber) {
+      if (!acc[order.invoicenumber]) {
+        acc[order.invoicenumber] = [];
       }
-    });
-
-    return { groups, ungrouped };
-  };
-
-  // Filter items based on search term
-  const filteredOrders = archivedOrders.filter(order =>
-    order.customername?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.ordernumber.toString().includes(searchTerm) ||
-    order.invoicenumber?.toString().includes(searchTerm)
-  );
-
-  const filteredReturns = archivedReturns.filter(returnItem =>
-    returnItem.customername?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    returnItem.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    returnItem.returnnumber.toString().includes(searchTerm)
-  );
-
-  const filteredDeletedOrders = deletedOrders.filter(order =>
-    order.customername?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.ordernumber.toString().includes(searchTerm)
-  );
-
-  const filteredDeletedReturns = deletedReturns.filter(returnItem =>
-    returnItem.customername?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    returnItem.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    returnItem.returnnumber.toString().includes(searchTerm)
-  );
-
-  const isLoading = ordersLoading || returnsLoading || deletedOrdersLoading || deletedReturnsLoading;
-
-  // Helper function to safely get item number
-  const getItemNumber = (): number => {
-    if (!selectedItem?.data) return 0;
-    
-    if (selectedItem.type === 'order') {
-      return (selectedItem.data as ArchivedOrder).ordernumber || 0;
+      acc[order.invoicenumber].push(order);
     } else {
-      return (selectedItem.data as ArchivedReturn).returnnumber || 0;
+      // Orders without invoice numbers get their own group
+      acc[`no-invoice-${order.ordernumber}`] = [order];
     }
+    return acc;
+  }, {} as Record<string, ArchivedOrder[]>);
+
+  // Filter function
+  const filterItems = (items: (ArchivedOrder | ArchivedReturn)[]) => {
+    return items.filter(item => {
+      const matchesSearch = !searchTerm || 
+        item.customername.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        ('ordernumber' in item ? item.ordernumber.toString().includes(searchTerm) : item.returnnumber.toString().includes(searchTerm));
+      
+      const matchesDate = !selectedDate || 
+        ('done_mainorder' in item ? 
+          new Date(item.done_mainorder).toDateString() === selectedDate.toDateString() :
+          new Date(item.done_return).toDateString() === selectedDate.toDateString());
+      
+      return matchesSearch && matchesDate;
+    });
   };
 
-  const { groups: orderGroups, ungrouped: ungroupedOrders } = groupOrdersByInvoice(filteredOrders);
+  const filteredGroupedOrders = Object.entries(groupedOrders)
+    .filter(([_, orders]) => filterItems(orders).length > 0)
+    .reduce((acc, [invoiceNumber, orders]) => {
+      acc[invoiceNumber] = filterItems(orders) as ArchivedOrder[];
+      return acc;
+    }, {} as Record<string, ArchivedOrder[]>);
+
+  const filteredReturns = filterItems(archivedReturns) as ArchivedReturn[];
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedDate(undefined);
+  };
+
+  if (ordersLoading || returnsLoading) {
+    return <div className="p-6">טוען...</div>;
+  }
 
   return (
-    <div className="min-h-screen p-6 bg-background">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            onClick={() => navigate('/distribution')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            חזור לממשק הפצה
-          </Button>
-          <h1 className="text-3xl font-bold">ארכיון הזמנות והחזרות</h1>
-        </div>
-      </div>
-
-      {/* Search input */}
+    <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-6">
-        <Input
-          placeholder="חיפוש לפי שם לקוח, עיר, מספר הזמנה או מספר חשבונית..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-md"
-        />
+        <h1 className="text-2xl font-bold mb-4">ארכיון הזמנות והחזרות</h1>
+        
+        {/* Filters */}
+        <div className="flex gap-4 mb-4 items-end">
+          <div className="flex-1">
+            <Label htmlFor="search">חיפוש</Label>
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                id="search"
+                placeholder="חפש לפי שם לקוח, עיר או מספר הזמנה..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pr-10"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <Label>תאריך</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-[240px] justify-start text-right"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {selectedDate ? format(selectedDate, 'PPP', { locale: he }) : 'בחר תאריך'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          
+          {(searchTerm || selectedDate) && (
+            <Button onClick={clearFilters} variant="outline" size="sm">
+              <X className="h-4 w-4 mr-1" />
+              נקה סינון
+            </Button>
+          )}
+        </div>
       </div>
 
-      {isLoading ? (
-        <div className="text-center py-8">טוען נתוני ארכיון...</div>
-      ) : (
-        <div className="space-y-6">
-          {/* Deleted Items Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Deleted Orders */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="h-5 w-5" />
-                  הזמנות מחוקות ({filteredDeletedOrders.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {filteredDeletedOrders.map((order) => (
-                    <div
-                      key={order.ordernumber}
-                      className="p-3 border border-gray-300 rounded-lg bg-gray-50 flex justify-between items-start"
-                    >
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="font-medium text-gray-800">
-                            #{order.ordernumber}
-                            {order.orderdate && (
-                              <span className="text-sm text-gray-600 mr-2">
-                                - {new Date(order.orderdate).toLocaleDateString('he-IL')}
-                              </span>
+      <div className="grid gap-6">
+        {/* Archived Orders */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            הזמנות מועצות ({Object.keys(filteredGroupedOrders).length})
+          </h2>
+          
+          <div className="grid gap-4">
+            {Object.entries(filteredGroupedOrders).map(([invoiceKey, orders]) => {
+              const hasInvoice = !invoiceKey.startsWith('no-invoice-');
+              const isComplexInvoice = hasInvoice && orders.length > 1;
+              
+              return (
+                <Card key={invoiceKey} className="border">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        {hasInvoice && (
+                          <>
+                            חשבונית #{invoiceKey}
+                            {isComplexInvoice && (
+                              <Badge className="bg-blue-100 text-blue-800 border-blue-300">
+                                חשבונית מורכבת מכמה הזמנות
+                              </Badge>
+                            )}
+                          </>
+                        )}
+                        {!hasInvoice && `הזמנה #${orders[0].ordernumber}`}
+                      </CardTitle>
+                      {orders[0].invoicedate && (
+                        <Badge variant="outline">
+                          תאריך חשבונית: {new Date(orders[0].invoicedate).toLocaleDateString('he-IL')}
+                        </Badge>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {orders.map((order) => (
+                        <div key={order.ordernumber} className="border rounded-lg p-3 bg-gray-50">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <div className="font-medium">הזמנה #{order.ordernumber}</div>
+                              <div className="text-sm text-gray-600">{order.customername}</div>
+                              <div className="text-sm text-gray-500">{order.address}, {order.city}</div>
+                            </div>
+                            <div className="text-left">
+                              <div className="font-bold text-lg">₪{order.totalorder.toLocaleString('he-IL')}</div>
+                              {order.agentnumber && (
+                                <div className="text-sm text-gray-600">סוכן: {order.agentnumber}</div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-wrap gap-6 text-sm text-gray-600 mt-2">
+                            <div>
+                              <span className="font-medium">הופק:</span> {new Date(order.done_mainorder).toLocaleDateString('he-IL')}
+                            </div>
+                            {order.distribution_date && (
+                              <div>
+                                <span className="font-medium">תאריך אספקה:</span> {new Date(order.distribution_date).toLocaleDateString('he-IL')}
+                              </div>
+                            )}
+                            {order.dis_number && (
+                              <div>
+                                <span className="font-medium">מספר הפצה:</span> #{order.dis_number}
+                              </div>
+                            )}
+                            {order.schedule_id && (
+                              <div>
+                                <span className="font-medium">לוח זמנים:</span> #{order.schedule_id}
+                              </div>
+                            )}
+                            {order.nahag_name && (
+                              <div>
+                                <span className="font-medium">נהג:</span> {order.nahag_name}
+                              </div>
                             )}
                           </div>
-                          <div className="text-sm text-gray-600 font-bold">
-                            ₪{order.totalorder?.toLocaleString('he-IL')}
-                          </div>
                         </div>
-                        <div className="text-sm text-gray-700">
-                          <div>{order.customername}</div>
-                          <div>{order.address}, {order.city}</div>
-                          {order.agentnumber && (
-                            <div className="text-xs text-gray-500">סוכן: {order.agentnumber}</div>
-                          )}
-                          <div className="text-xs text-gray-500 mt-1">
-                            נמחק: {new Date(order.ordercancel).toLocaleDateString('he-IL')} {new Date(order.ordercancel).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleRestoreOrder(order)}
-                        className="ml-2 flex items-center gap-1"
-                        title="שחזר הזמנה"
-                      >
-                        <Undo2 className="h-3 w-3" />
-                      </Button>
+                      ))}
                     </div>
-                  ))}
-                  {filteredDeletedOrders.length === 0 && (
-                    <div className="text-center text-gray-500 py-4">
-                      אין הזמנות מחוקות
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Deleted Returns */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <RotateCcw className="h-5 w-5" />
-                  החזרות מחוקות ({filteredDeletedReturns.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {filteredDeletedReturns.map((returnItem) => (
-                    <div
-                      key={returnItem.returnnumber}
-                      className="p-3 border border-gray-300 rounded-lg bg-gray-50 flex justify-between items-start"
-                    >
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="font-medium text-gray-800">
-                            החזרה #{returnItem.returnnumber}
-                            {returnItem.returndate && (
-                              <span className="text-sm text-gray-600 mr-2">
-                                - {new Date(returnItem.returndate).toLocaleDateString('he-IL')}
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-sm text-gray-600 font-bold">
-                            ₪{returnItem.totalreturn?.toLocaleString('he-IL')}
-                          </div>
-                        </div>
-                        <div className="text-sm text-gray-700">
-                          <div>{returnItem.customername}</div>
-                          <div>{returnItem.address}, {returnItem.city}</div>
-                          {returnItem.agentnumber && (
-                            <div className="text-xs text-gray-500">סוכן: {returnItem.agentnumber}</div>
-                          )}
-                          <div className="text-xs text-gray-500 mt-1">
-                            נמחק: {new Date(returnItem.returncancel).toLocaleDateString('he-IL')} {new Date(returnItem.returncancel).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleRestoreReturn(returnItem)}
-                        className="ml-2 flex items-center gap-1"
-                        title="שחזר החזרה"
-                      >
-                        <Undo2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                  {filteredDeletedReturns.length === 0 && (
-                    <div className="text-center text-gray-500 py-4">
-                      אין החזרות מחוקות
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
-
-          {/* Archived Orders */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                הזמנות מופקות ({filteredOrders.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {/* Grouped orders by invoice */}
-                {Object.entries(orderGroups).map(([invoiceNumber, orders]) => (
-                  orders.length > 1 ? (
-                    <div key={invoiceNumber} className="border-2 border-blue-300 rounded-lg p-3 bg-blue-50">
-                      <Badge variant="default" className="mb-3 bg-blue-600 text-white font-bold">
-                        חשבונית מורכבת מכמה הזמנות - מספר חשבונית: {invoiceNumber}
-                      </Badge>
-                      <div className="space-y-2">
-                        {orders.map((order) => (
-                          <div
-                            key={order.ordernumber}
-                            className="p-3 border border-green-200 rounded-lg bg-green-50 flex justify-between items-start"
-                          >
-                            <div className="flex-1">
-                              <div className="flex justify-between items-start mb-2">
-                                <div className="font-medium text-green-800">
-                                  הזמנה #{order.ordernumber}
-                                  {order.orderdate && (
-                                    <span className="text-sm text-green-600 mr-2">
-                                      - {new Date(order.orderdate).toLocaleDateString('he-IL')}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="text-sm text-green-600 font-bold">
-                                  ₪{order.totalorder?.toLocaleString('he-IL')}
-                                </div>
-                              </div>
-                              <div className="text-sm text-gray-700">
-                                <div>{order.customername}</div>
-                                <div>{order.address}, {order.city}</div>
-                                {order.agentnumber && (
-                                  <div className="text-xs text-gray-500">סוכן: {order.agentnumber}</div>
-                                )}
-                                <div className="text-xs text-gray-500 mt-1">
-                                  הופק: {new Date(order.done_mainorder).toLocaleDateString('he-IL')} {new Date(order.done_mainorder).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                                </div>
-                                {scheduleMap[order.schedule_id] && (
-                                  <div className="text-xs text-blue-600 mt-1">
-                                    {scheduleMap[order.schedule_id].distribution_date && (
-                                      <span>תאריך אספקה: {new Date(scheduleMap[order.schedule_id].distribution_date!).toLocaleDateString('he-IL')} </span>
-                                    )}
-                                    {scheduleMap[order.schedule_id].dis_number && (
-                                      <span>מספר הפצה: {scheduleMap[order.schedule_id].dis_number} </span>
-                                    )}
-                                    <span>לוח זמנים: {order.schedule_id}</span>
-                                  </div>
-                                )}
-                                {order.invoicedate && (
-                                  <div className="text-xs text-green-600 font-medium mt-1">
-                                    <span>תאריך חשבונית: {new Date(order.invoicedate).toLocaleDateString('he-IL')}</span>
-                                    {order.totalinvoice && (
-                                      <span className="mr-3">סכום חשבונית: ₪{order.totalinvoice.toLocaleString('he-IL')}</span>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => openReturnDialog('order', order)}
-                              className="ml-2 flex items-center gap-1"
-                              title="החזר להפצה"
-                            >
-                              🔙
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    // Single order with invoice
-                    <div
-                      key={orders[0].ordernumber}
-                      className="p-3 border border-green-200 rounded-lg bg-green-50 flex justify-between items-start"
-                    >
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="font-medium text-green-800">
-                            הזמנה #{orders[0].ordernumber}
-                            {orders[0].orderdate && (
-                              <span className="text-sm text-green-600 mr-2">
-                                - {new Date(orders[0].orderdate).toLocaleDateString('he-IL')}
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-sm text-green-600 font-bold">
-                            ₪{orders[0].totalorder?.toLocaleString('he-IL')}
-                          </div>
-                        </div>
-                        <div className="text-sm text-gray-700">
-                          <div>{orders[0].customername}</div>
-                          <div>{orders[0].address}, {orders[0].city}</div>
-                          {orders[0].agentnumber && (
-                            <div className="text-xs text-gray-500">סוכן: {orders[0].agentnumber}</div>
-                          )}
-                          <div className="text-xs text-gray-500 mt-1">
-                            הופק: {new Date(orders[0].done_mainorder).toLocaleDateString('he-IL')} {new Date(orders[0].done_mainorder).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                          </div>
-                          {scheduleMap[orders[0].schedule_id] && (
-                            <div className="text-xs text-blue-600 mt-1">
-                              {scheduleMap[orders[0].schedule_id].distribution_date && (
-                                <span>תאריך אספקה: {new Date(scheduleMap[orders[0].schedule_id].distribution_date!).toLocaleDateString('he-IL')} </span>
-                              )}
-                              {scheduleMap[orders[0].schedule_id].dis_number && (
-                                <span>מספר הפצה: {scheduleMap[orders[0].schedule_id].dis_number} </span>
-                              )}
-                              <span>לוח זמנים: {orders[0].schedule_id}</span>
-                            </div>
-                          )}
-                          {orders[0].invoicenumber && (
-                            <div className="text-xs text-green-600 font-medium mt-1">
-                              <span>חשבונית: {orders[0].invoicenumber}</span>
-                              {orders[0].totalinvoice && (
-                                <span className="mr-3">סכום: ₪{orders[0].totalinvoice.toLocaleString('he-IL')}</span>
-                              )}
-                              {orders[0].invoicedate && (
-                                <span className="mr-3">תאריך: {new Date(orders[0].invoicedate).toLocaleDateString('he-IL')}</span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => openReturnDialog('order', orders[0])}
-                        className="ml-2 flex items-center gap-1"
-                        title="החזר להפצה"
-                      >
-                        🔙
-                      </Button>
-                    </div>
-                  )
-                ))}
-
-                {/* Ungrouped orders (no invoice) */}
-                {ungroupedOrders.map((order) => (
-                  <div
-                    key={order.ordernumber}
-                    className="p-3 border border-green-200 rounded-lg bg-green-50 flex justify-between items-start"
-                  >
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="font-medium text-green-800">
-                          הזמנה #{order.ordernumber}
-                          {order.orderdate && (
-                            <span className="text-sm text-green-600 mr-2">
-                              - {new Date(order.orderdate).toLocaleDateString('he-IL')}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-sm text-green-600 font-bold">
-                          ₪{order.totalorder?.toLocaleString('he-IL')}
-                        </div>
-                      </div>
-                      <div className="text-sm text-gray-700">
-                        <div>{order.customername}</div>
-                        <div>{order.address}, {order.city}</div>
-                        {order.agentnumber && (
-                          <div className="text-xs text-gray-500">סוכן: {order.agentnumber}</div>
-                        )}
-                        <div className="text-xs text-gray-500 mt-1">
-                          הופק: {new Date(order.done_mainorder).toLocaleDateString('he-IL')} {new Date(order.done_mainorder).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                        {scheduleMap[order.schedule_id] && (
-                          <div className="text-xs text-blue-600 mt-1">
-                            {scheduleMap[order.schedule_id].distribution_date && (
-                              <span>תאריך אספקה: {new Date(scheduleMap[order.schedule_id].distribution_date!).toLocaleDateString('he-IL')} </span>
-                            )}
-                            {scheduleMap[order.schedule_id].dis_number && (
-                              <span>מספר הפצה: {scheduleMap[order.schedule_id].dis_number} </span>
-                            )}
-                            <span>לוח זמנים: {order.schedule_id}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openReturnDialog('order', order)}
-                      className="ml-2 flex items-center gap-1"
-                      title="החזר להפצה"
-                    >
-                      🔙
-                    </Button>
-                  </div>
-                ))}
-
-                {filteredOrders.length === 0 && (
-                  <div className="text-center text-gray-500 py-4">
-                    אין הזמנות מופקות
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Archived Returns */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <RotateCcw className="h-5 w-5" />
-                החזרות מופקות ({filteredReturns.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {filteredReturns.map((returnItem) => (
-                  <div
-                    key={returnItem.returnnumber}
-                    className="p-3 border border-red-200 rounded-lg bg-red-50 flex justify-between items-start"
-                  >
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="font-medium text-red-800">
-                          החזרה #{returnItem.returnnumber}
-                          {returnItem.returndate && (
-                            <span className="text-sm text-red-600 mr-2">
-                              - {new Date(returnItem.returndate).toLocaleDateString('he-IL')}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-sm text-red-600 font-bold">
-                          ₪{returnItem.totalreturn?.toLocaleString('he-IL')}
-                        </div>
-                      </div>
-                      <div className="text-sm text-gray-700">
-                        <div>{returnItem.customername}</div>
-                        <div>{returnItem.address}, {returnItem.city}</div>
-                        {returnItem.agentnumber && (
-                          <div className="text-xs text-gray-500">סוכן: {returnItem.agentnumber}</div>
-                        )}
-                        <div className="text-xs text-gray-500 mt-1">
-                          הופק: {new Date(returnItem.done_return).toLocaleDateString('he-IL')} {new Date(returnItem.done_return).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                        {scheduleMap[returnItem.schedule_id] && (
-                          <div className="text-xs text-blue-600 mt-1">
-                            {scheduleMap[returnItem.schedule_id].distribution_date && (
-                              <span>תאריך אספקה: {new Date(scheduleMap[returnItem.schedule_id].distribution_date!).toLocaleDateString('he-IL')} </span>
-                            )}
-                            {scheduleMap[returnItem.schedule_id].dis_number && (
-                              <span>מספר הפצה: {scheduleMap[returnItem.schedule_id].dis_number} </span>
-                            )}
-                            <span>לוח זמנים: {returnItem.schedule_id}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openReturnDialog('return', returnItem)}
-                      className="ml-2 flex items-center gap-1"
-                      title="החזר להפצה"
-                    >
-                      🔙
-                    </Button>
-                  </div>
-                ))}
-                {filteredReturns.length === 0 && (
-                  <div className="text-center text-gray-500 py-4">
-                    אין החזרות מופקות
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
         </div>
-      )}
 
-      <ReturnReasonDialog
-        open={returnDialogOpen}
-        onOpenChange={setReturnDialogOpen}
-        onConfirm={handleReturnToDistribution}
-        itemType={selectedItem?.type || 'order'}
-        itemNumber={getItemNumber()}
-      />
+        {/* Archived Returns */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <RotateCcw className="h-5 w-5" />
+            החזרות מועצות ({filteredReturns.length})
+          </h2>
+          
+          <div className="grid gap-4">
+            {filteredReturns.map((returnItem) => (
+              <Card key={returnItem.returnnumber} className="border">
+                <CardContent className="pt-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <div className="font-medium">החזרה #{returnItem.returnnumber}</div>
+                      <div className="text-sm text-gray-600">{returnItem.customername}</div>
+                      <div className="text-sm text-gray-500">{returnItem.address}, {returnItem.city}</div>
+                    </div>
+                    <div className="text-left">
+                      <div className="font-bold text-lg text-red-600">₪{returnItem.totalreturn.toLocaleString('he-IL')}</div>
+                      {returnItem.agentnumber && (
+                        <div className="text-sm text-gray-600">סוכן: {returnItem.agentnumber}</div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-6 text-sm text-gray-600 mt-2">
+                    <div>
+                      <span className="font-medium">הופק:</span> {new Date(returnItem.done_return).toLocaleDateString('he-IL')}
+                    </div>
+                    {returnItem.distribution_date && (
+                      <div>
+                        <span className="font-medium">תאריך אספקה:</span> {new Date(returnItem.distribution_date).toLocaleDateString('he-IL')}
+                      </div>
+                    )}
+                    {returnItem.dis_number && (
+                      <div>
+                        <span className="font-medium">מספר הפצה:</span> #{returnItem.dis_number}
+                      </div>
+                    )}
+                    {returnItem.schedule_id && (
+                      <div>
+                        <span className="font-medium">לוח זמנים:</span> #{returnItem.schedule_id}
+                      </div>
+                    )}
+                    {returnItem.nahag_name && (
+                      <div>
+                        <span className="font-medium">נהג:</span> {returnItem.nahag_name}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

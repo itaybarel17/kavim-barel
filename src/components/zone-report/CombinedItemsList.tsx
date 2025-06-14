@@ -51,8 +51,24 @@ export const CombinedItemsList: React.FC<CombinedItemsListProps> = ({
         </div>
         <div className={`text-xs ${isOrder ? 'text-blue-800' : 'text-red-800'}`}>
           <div>{data.address}, {data.city}</div>
-          <div>
-            {isOrder ? 'הזמנה' : 'החזרה'}: {isOrder ? order.ordernumber : returnItem.returnnumber}
+          <div className="flex items-center gap-2">
+            <span>
+              {isOrder ? 'הזמנה' : 'החזרה'}: {isOrder ? order.ordernumber : returnItem.returnnumber}
+            </span>
+            {data.agentnumber && (
+              <span>סוכן: {data.agentnumber}</span>
+            )}
+            {data.customernumber && (
+              <span>{data.customernumber}</span>
+            )}
+            {(isOrder ? order.orderdate : returnItem.returndate) && (
+              <span>
+                {isOrder 
+                  ? new Date(order.orderdate!).toLocaleDateString('he-IL')
+                  : new Date(returnItem.returndate!).toLocaleDateString('he-IL')
+                }
+              </span>
+            )}
           </div>
         </div>
       </div>
