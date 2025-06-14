@@ -4,7 +4,7 @@ import { useDrop } from 'react-dnd';
 import { CalendarCard } from './CalendarCard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Trash } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Order {
@@ -143,7 +143,6 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
                   driverId={schedule.driver_id}
                   showAllCustomers={true}
                   onUpdateDestinations={onUpdateDestinations}
-                  showNumberOnly // this prop will enable number only rendering in CalendarCard if added
                 />
                 {/* Render delete (X) button in horizontal kanban only */}
                 <button
@@ -162,7 +161,7 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
                   aria-label="Archive"
                   title="העבר לארכיון"
                 >
-                  <Trash className="w-4 h-4 text-red-500" />
+                  <Trash2 className="w-4 h-4 text-red-500" />
                 </button>
               </div>
             ))}
@@ -179,9 +178,7 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
           <DialogHeader>
             <DialogTitle>
               {showDelete
-                ? showDelete.type === 'order'
-                  ? `האם למחוק את ההזמנה #${showDelete.number}?`
-                  : `האם למחוק את ההחזרה #${showDelete.number}?`
+                ? `האם למחוק את #${showDelete.number}?`
                 : ""}
             </DialogTitle>
           </DialogHeader>
@@ -202,4 +199,3 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
     </div>
   );
 };
-

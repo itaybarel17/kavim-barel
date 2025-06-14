@@ -1,389 +1,383 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ArrowLeft, Package, RotateCcw, Undo } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Calendar, ArrowLeft, Undo2, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-interface ArchivedOrder {
+interface Order {
   ordernumber: number;
   customername: string;
   address: string;
   city: string;
   totalorder: number;
-  done_mainorder: string | null;
-  schedule_id: number;
+  schedule_id?: number;
+  icecream?: string;
+  customernumber?: string;
+  agentnumber?: string;
+  orderdate?: string;
+  invoicenumber?: number;
   ordercancel?: string | null;
 }
 
-interface ArchivedReturn {
+interface Return {
   returnnumber: number;
   customername: string;
   address: string;
   city: string;
   totalreturn: number;
-  done_return: string | null;
-  schedule_id: number;
+  schedule_id?: number;
+  icecream?: string;
+  customernumber?: string;
+  agentnumber?: string;
+  returndate?: string;
   returncancel?: string | null;
 }
 
-const Archive = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [restoring, setRestoring] = useState<{ type: 'order' | 'return'; num: number } | null>(null);
-  const [loadingRestore, setLoadingRestore] = useState(false);
-  const navigate = useNavigate();
+interface DistributionGroup {
+  groups_id: number;
+  separation: string;
+}
 
-  // Fetch regular archived orders (done_mainorder not null, not ordercancel)
-  const { data: archivedOrders = [], isLoading: ordersLoading, refetch } = useQuery({
-    queryKey: ['archived-orders'],
+interface DistributionSchedule {
+  schedule_id: number;
+  groups_id: number;
+  create_at_schedule: string;
+  driver_id?: number;
+  done_schedule?: string | null;
+}
+
+interface Driver {
+  id: number;
+  nahag: string;
+}
+
+const Archive = () => {
+  const navigate = useNavigate();
+  const [showRestoreDialog, setShowRestoreDialog] = useState<{
+    type: 'order' | 'return';
+    number: number;
+  } | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch produced orders (with done_mainorder timestamp)
+  const { data: producedOrders = [] } = useQuery({
+    queryKey: ['produced-orders'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('mainorder')
-        .select('ordernumber, customername, address, city, totalorder, done_mainorder, schedule_id, ordercancel')
+        .select('ordernumber, customername, address, city, totalorder, done_mainorder, invoicenumber')
         .not('done_mainorder', 'is', null)
-        .is('ordercancel', null)
         .order('done_mainorder', { ascending: false });
+      
       if (error) throw error;
-      return data as ArchivedOrder[];
+      return data;
     }
   });
 
-  // Fetch regular archived returns (done_return not null, not returncancel)
-  const { data: archivedReturns = [], isLoading: returnsLoading } = useQuery({
-    queryKey: ['archived-returns'],
+  // Fetch produced returns (with done_return timestamp)
+  const { data: producedReturns = [] } = useQuery({
+    queryKey: ['produced-returns'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('mainreturns')
-        .select('returnnumber, customername, address, city, totalreturn, done_return, schedule_id, returncancel')
+        .select('returnnumber, customername, address, city, totalreturn, done_return')
         .not('done_return', 'is', null)
-        .is('returncancel', null)
         .order('done_return', { ascending: false });
+      
       if (error) throw error;
-      return data as ArchivedReturn[];
+      return data;
     }
   });
 
-  // Fetch deleted/canceled orders
-  const { data: deletedOrders = [], isLoading: deletedOrdersLoading } = useQuery({
+  // Fetch distribution groups
+  const { data: distributionGroups = [] } = useQuery({
+    queryKey: ['distribution-groups'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('distribution_groups')
+        .select('groups_id, separation');
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  // Fetch produced distribution schedules (with done_schedule timestamp)
+  const { data: producedSchedules = [] } = useQuery({
+    queryKey: ['produced-schedules'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('distribution_schedule')
+        .select('schedule_id, groups_id, create_at_schedule, driver_id, done_schedule')
+        .not('done_schedule', 'is', null)
+        .order('done_schedule', { ascending: false });
+      
+      if (error) throw error;
+      return data as DistributionSchedule[];
+    }
+  });
+
+  // Fetch drivers
+  const { data: drivers = [] } = useQuery({
+    queryKey: ['drivers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('nahagim')
+        .select('id, nahag')
+        .order('nahag');
+      
+      if (error) throw error;
+      return data as Driver[];
+    }
+  });
+
+  // Fetch deleted orders (with ordercancel timestamp)
+  const { data: deletedOrders = [], refetch: refetchDeletedOrders } = useQuery({
     queryKey: ['deleted-orders'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('mainorder')
-        .select('ordernumber, customername, address, city, totalorder, done_mainorder, schedule_id, ordercancel')
+        .select('ordernumber, customername, address, city, totalorder, ordercancel, invoicenumber')
         .not('ordercancel', 'is', null)
         .order('ordercancel', { ascending: false });
+      
       if (error) throw error;
-      return data as ArchivedOrder[];
+      return data;
     }
   });
 
-  // Fetch deleted/canceled returns
-  const { data: deletedReturns = [], isLoading: deletedReturnsLoading } = useQuery({
+  // Fetch deleted returns (with returncancel timestamp)
+  const { data: deletedReturns = [], refetch: refetchDeletedReturns } = useQuery({
     queryKey: ['deleted-returns'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('mainreturns')
-        .select('returnnumber, customername, address, city, totalreturn, done_return, schedule_id, returncancel')
+        .select('returnnumber, customername, address, city, totalreturn, returncancel')
         .not('returncancel', 'is', null)
         .order('returncancel', { ascending: false });
+      
       if (error) throw error;
-      return data as ArchivedReturn[];
+      return data;
     }
   });
 
-  // Filter items based on search term for all sections
-  const filterBySearch = <T extends { customername?: string; city?: string; ordernumber?: number; returnnumber?: number }>(
-    items: T[]
-  ) => {
-    return items.filter(item =>
-      (item.customername?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (item.city?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (typeof item.ordernumber === "number" && item.ordernumber.toString().includes(searchTerm)) ||
-      (typeof item.returnnumber === "number" && item.returnnumber.toString().includes(searchTerm))
-    );
+  const handleRestore = async () => {
+    if (!showRestoreDialog) return;
+    setLoading(true);
+
+    try {
+      if (showRestoreDialog.type === 'order') {
+        const { error } = await supabase
+          .from('mainorder')
+          .update({ ordercancel: null })
+          .eq('ordernumber', showRestoreDialog.number);
+        if (error) throw error;
+        refetchDeletedOrders();
+      } else {
+        const { error } = await supabase
+          .from('mainreturns')
+          .update({ returncancel: null })
+          .eq('returnnumber', showRestoreDialog.number);
+        if (error) throw error;
+        refetchDeletedReturns();
+      }
+    } catch (error) {
+      console.error('Error restoring item:', error);
+      alert('שגיאה בשחזור הפריט');
+    }
+
+    setLoading(false);
+    setShowRestoreDialog(null);
   };
 
-  const filteredOrders = filterBySearch(archivedOrders);
-  const filteredReturns = filterBySearch(archivedReturns);
-  const filteredDeletedOrders = filterBySearch(deletedOrders);
-  const filteredDeletedReturns = filterBySearch(deletedReturns);
+  const isLoading = !deletedOrders || !deletedReturns || loading;
 
-  const isLoading = ordersLoading || returnsLoading || deletedOrdersLoading || deletedReturnsLoading;
-
-  // Restore logic
-  async function handleRestore(type: 'order' | 'return', num: number) {
-    setRestoring({ type, num });
-    setLoadingRestore(true);
-    if (type === 'order') {
-      const { error } = await supabase
-        .from('mainorder')
-        .update({ ordercancel: null })
-        .eq('ordernumber', num);
-      if (error) {
-        setLoadingRestore(false);
-        alert('שגיאה בשחזור ההזמנה');
-        return;
-      }
-    } else {
-      const { error } = await supabase
-        .from('mainreturns')
-        .update({ returncancel: null })
-        .eq('returnnumber', num);
-      if (error) {
-        setLoadingRestore(false);
-        alert('שגיאה בשחזור ההחזרה');
-        return;
-      }
-    }
-    setLoadingRestore(false);
-    setRestoring(null);
-    refetch(); // refresh regular orders display after restore
+  if (isLoading) {
+    return (
+      <div className="min-h-screen p-6 bg-background flex items-center justify-center">
+        <div>טוען נתונים...</div>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen p-6 bg-background">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
+          <Button 
             onClick={() => navigate('/distribution')}
-            className="flex items-center gap-2"
+            variant="outline"
+            size="icon"
           >
             <ArrowLeft className="h-4 w-4" />
-            חזור למממשק הפצה
           </Button>
-          <h1 className="text-3xl font-bold">ארכיון הזמנות והחזרות</h1>
+          <h1 className="text-3xl font-bold">ארכיון</h1>
         </div>
       </div>
 
-      {/* Search input */}
-      <div className="mb-6">
-        <Input
-          placeholder="חיפוש לפי שם לקוח, עיר או מספר הזמנה..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-md"
-        />
-      </div>
-
-      {isLoading ? (
-        <div className="text-center py-8">טוען נתוני ארכיון...</div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Archived Orders */}
+      {/* Deleted Items Section */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+          <Trash2 className="h-6 w-6" />
+          פריטים מחוקים
+        </h2>
+        
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Deleted Orders */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                הזמנות מופקות ({filteredOrders.length})
-              </CardTitle>
+              <CardTitle className="text-lg">הזמנות מחוקות ({deletedOrders.length})</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {filteredOrders.map((order) => (
+                {deletedOrders.map((order) => (
                   <div
                     key={order.ordernumber}
-                    className="p-3 border border-green-200 rounded-lg bg-green-50"
+                    className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg"
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="font-medium text-green-800">
-                        #{order.ordernumber}
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="font-semibold text-red-800">#{order.ordernumber}</span>
+                        <span className="text-sm font-bold text-red-700">₪{order.totalorder?.toLocaleString()}</span>
                       </div>
-                      <div className="text-sm text-green-600 font-bold">
-                        ₪{order.totalorder?.toLocaleString('he-IL')}
-                      </div>
+                      <p className="text-sm text-red-600">{order.customername}</p>
+                      <p className="text-xs text-red-500">{order.address}, {order.city}</p>
+                      {order.invoicenumber && (
+                        <p className="text-xs text-green-600 font-medium mt-1">
+                          חשבונית: {order.invoicenumber}
+                        </p>
+                      )}
+                      <p className="text-xs text-red-400 mt-1">
+                        נמחק: {new Date(order.ordercancel).toLocaleDateString('he-IL')} {new Date(order.ordercancel).toLocaleTimeString('he-IL')}
+                      </p>
                     </div>
-                    <div className="text-sm text-gray-700">
-                      <div>{order.customername}</div>
-                      <div>{order.address}, {order.city}</div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        הופק: {order.done_mainorder
-                          ? new Date(order.done_mainorder).toLocaleDateString('he-IL')
-                          : ""}
-                        {order.done_mainorder && (
-                          <>
-                            {" "}
-                            {new Date(order.done_mainorder).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                          </>
-                        )}
-                      </div>
-                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowRestoreDialog({ type: 'order', number: order.ordernumber })}
+                      className="ml-2 text-blue-600 hover:text-blue-800"
+                      title="שחזר הזמנה"
+                    >
+                      <Undo2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 ))}
-                {filteredOrders.length === 0 && (
-                  <div className="text-center text-gray-500 py-4">
-                    אין הזמנות מופקות
-                  </div>
+                {deletedOrders.length === 0 && (
+                  <p className="text-center text-muted-foreground py-4">אין הזמנות מחוקות</p>
                 )}
               </div>
             </CardContent>
           </Card>
 
-          {/* Archived Returns */}
+          {/* Deleted Returns */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <RotateCcw className="h-5 w-5" />
-                החזרות מופקות ({filteredReturns.length})
-              </CardTitle>
+              <CardTitle className="text-lg">החזרות מחוקות ({deletedReturns.length})</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {filteredReturns.map((returnItem) => (
+                {deletedReturns.map((returnItem) => (
                   <div
                     key={returnItem.returnnumber}
-                    className="p-3 border border-red-200 rounded-lg bg-red-50"
+                    className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg"
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="font-medium text-red-800">
-                        #{returnItem.returnnumber}
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="font-semibold text-red-800">#{returnItem.returnnumber}</span>
+                        <span className="text-sm font-bold text-red-700">₪{returnItem.totalreturn?.toLocaleString()}</span>
                       </div>
-                      <div className="text-sm text-red-600 font-bold">
-                        ₪{returnItem.totalreturn?.toLocaleString('he-IL')}
-                      </div>
+                      <p className="text-sm text-red-600">{returnItem.customername}</p>
+                      <p className="text-xs text-red-500">{returnItem.address}, {returnItem.city}</p>
+                      <p className="text-xs text-red-400 mt-1">
+                        נמחק: {new Date(returnItem.returncancel).toLocaleDateString('he-IL')} {new Date(returnItem.returncancel).toLocaleTimeString('he-IL')}
+                      </p>
                     </div>
-                    <div className="text-sm text-gray-700">
-                      <div>{returnItem.customername}</div>
-                      <div>{returnItem.address}, {returnItem.city}</div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        הופק: {returnItem.done_return
-                          ? new Date(returnItem.done_return).toLocaleDateString('he-IL')
-                          : ""}
-                        {returnItem.done_return && (
-                          <>
-                            {" "}
-                            {new Date(returnItem.done_return).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                          </>
-                        )}
-                      </div>
-                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowRestoreDialog({ type: 'return', number: returnItem.returnnumber })}
+                      className="ml-2 text-blue-600 hover:text-blue-800"
+                      title="שחזר החזרה"
+                    >
+                      <Undo2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 ))}
-                {filteredReturns.length === 0 && (
-                  <div className="text-center text-gray-500 py-4">
-                    אין החזרות מופקות
-                  </div>
+                {deletedReturns.length === 0 && (
+                  <p className="text-center text-muted-foreground py-4">אין החזרות מחוקות</p>
                 )}
               </div>
             </CardContent>
           </Card>
         </div>
-      )}
-
-      {/* Deleted/archived ORDERS - with restore */}
-      <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Trash className="h-5 w-5" />
-              הזמנות מחוקות ({filteredDeletedOrders.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {filteredDeletedOrders.map((order) => (
-                <div
-                  key={order.ordernumber}
-                  className="p-3 border border-gray-200 rounded-lg bg-gray-50 flex items-center justify-between gap-3"
-                >
-                  <div>
-                    <div className="font-medium text-gray-800">#{order.ordernumber}</div>
-                    <div className="text-sm text-gray-700">
-                      <div>{order.customername}</div>
-                      <div>{order.address}, {order.city}</div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {/* Deleted on: */}
-                        נמחק: {order.ordercancel
-                          ? new Date(order.ordercancel).toLocaleDateString('he-IL')
-                          : ""}
-                        {order.ordercancel && (
-                          <>
-                            {" "}
-                            {new Date(order.ordercancel).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    disabled={loadingRestore && restoring?.type === "order" && restoring.num === order.ordernumber}
-                    onClick={() => handleRestore('order', order.ordernumber)}
-                    aria-label="שחזר"
-                    title="שחזר הזמנה"
-                  >
-                    <Undo className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
-              {filteredDeletedOrders.length === 0 && (
-                <div className="text-center text-gray-500 py-4">
-                  אין הזמנות מחוקות
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Deleted/archived RETURNS - with restore */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Trash className="h-5 w-5" />
-              החזרות מחוקות ({filteredDeletedReturns.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {filteredDeletedReturns.map((retItem) => (
-                <div
-                  key={retItem.returnnumber}
-                  className="p-3 border border-gray-200 rounded-lg bg-gray-50 flex items-center justify-between gap-3"
-                >
-                  <div>
-                    <div className="font-medium text-gray-800">#{retItem.returnnumber}</div>
-                    <div className="text-sm text-gray-700">
-                      <div>{retItem.customername}</div>
-                      <div>{retItem.address}, {retItem.city}</div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        נמחק: {retItem.returncancel
-                          ? new Date(retItem.returncancel).toLocaleDateString('he-IL')
-                          : ""}
-                        {retItem.returncancel && (
-                          <>
-                            {" "}
-                            {new Date(retItem.returncancel).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    disabled={loadingRestore && restoring?.type === "return" && restoring.num === retItem.returnnumber}
-                    onClick={() => handleRestore('return', retItem.returnnumber)}
-                    aria-label="שחזר"
-                    title="שחזר החזרה"
-                  >
-                    <Undo className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
-              {filteredDeletedReturns.length === 0 && (
-                <div className="text-center text-gray-500 py-4">
-                  אין החזרות מחוקות
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
+      {/* Produced Schedules Section */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+          <Calendar className="h-6 w-6" />
+          קווי חלוקה שהופקו
+        </h2>
+        
+        <div className="grid gap-6 md:grid-cols-1">
+          {/* Produced Schedules */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">קווי חלוקה שהופקו ({producedSchedules.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {producedSchedules.map((schedule) => (
+                  <div
+                    key={schedule.schedule_id}
+                    className="flex items-start justify-between p-3 bg-green-50 border border-green-200 rounded-lg"
+                  >
+                    <div className="flex-1">
+                      <p className="text-sm text-green-600">
+                        קבוצה: {distributionGroups.find(group => group.groups_id === schedule.groups_id)?.separation}
+                      </p>
+                      <p className="text-xs text-green-500">
+                        נוצר בתאריך: {new Date(schedule.create_at_schedule).toLocaleDateString('he-IL')}
+                      </p>
+                      <p className="text-xs text-green-500">
+                        הופק בתאריך: {schedule.done_schedule ? new Date(schedule.done_schedule).toLocaleDateString('he-IL') : 'לא ידוע'}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {producedSchedules.length === 0 && (
+                  <p className="text-center text-muted-foreground py-4">אין קווי חלוקה שהופקו</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Restore confirmation dialog */}
+      <Dialog open={!!showRestoreDialog} onOpenChange={val => !val && setShowRestoreDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {showRestoreDialog ? `האם לשחזר את #${showRestoreDialog.number}?` : ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowRestoreDialog(null)}
+              disabled={loading}
+            >לא</Button>
+            <Button
+              onClick={handleRestore}
+              disabled={loading}
+            >{loading ? 'משחזר...' : 'כן, לשחזר'}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
