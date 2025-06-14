@@ -238,11 +238,10 @@ const Distribution = () => {
           {/* Unassigned Items Area */}
           <div className="lg:col-span-1">
             <UnassignedArea
-              unassignedOrders={unassignedOrders}
-              unassignedReturns={unassignedReturns}
+              orders={unassignedOrders}
+              returns={unassignedReturns}
               onDragStart={handleDragStart}
-              onDropToUnassigned={handleDragStart}
-              onDeleteItem={handleDeleteClick}
+              onDeleteClick={handleDeleteClick}
             />
           </div>
 
@@ -256,27 +255,11 @@ const Distribution = () => {
                 return (
                   <DropZone
                     key={group.groups_id}
-                    zoneNumber={group.groups_id}
-                    distributionGroups={distributionGroups}
-                    distributionSchedules={distributionSchedules}
-                    drivers={[]}
+                    group={group}
+                    schedule={schedule}
+                    items={items}
                     onDrop={handleDrop}
-                    orders={orders}
-                    returns={returns}
-                    onScheduleDeleted={() => {
-                      queryClient.invalidateQueries({ queryKey: ['distribution-schedules'] });
-                    }}
-                    onScheduleCreated={() => {
-                      queryClient.invalidateQueries({ queryKey: ['distribution-schedules'] });
-                    }}
-                    onRemoveFromZone={handleDeleteClick}
-                    getZoneState={(zoneNumber) => {
-                      const schedule = distributionSchedules.find(s => s.groups_id === zoneNumber);
-                      return {
-                        selectedGroupId: schedule?.groups_id || null,
-                        scheduleId: schedule?.schedule_id || null
-                      };
-                    }}
+                    onDeleteClick={handleDeleteClick}
                   />
                 );
               })}
