@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useDrop } from 'react-dnd';
 import { Card } from '@/components/ui/card';
@@ -37,6 +38,7 @@ interface CalendarGridProps {
   returns: ReturnWithSchedule[];
   onDropToDate: (scheduleId: number, date: Date) => void;
   currentUser?: { agentnumber: string; agentname: string };
+  onRefreshData?: () => void;
 }
 
 const CalendarDay: React.FC<{
@@ -140,6 +142,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
   returns,
   onDropToDate,
   currentUser,
+  onRefreshData,
 }) => {
   const [productionDialogOpen, setProductionDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -212,6 +215,13 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
     setProductionDialogOpen(true);
   };
 
+  const handleProduced = () => {
+    // Simply call the refresh function instead of reloading the page
+    if (onRefreshData) {
+      onRefreshData();
+    }
+  };
+
   return (
     <div>
       <h2 className="text-xl font-semibold mb-4">לוח שנה - שבועיים</h2>
@@ -261,9 +271,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
         drivers={drivers}
         orders={orders}
         returns={returns}
-        onProduced={() => {
-          window.location.reload();
-        }}
+        onProduced={handleProduced}
       />
     </div>
   );

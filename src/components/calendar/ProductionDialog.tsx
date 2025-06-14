@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -166,6 +167,7 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
 
       console.log('Production completed with dis_number:', nextDisNumber);
       
+      // Call the onProduced callback to refresh data without reloading the page
       if (onProduced) {
         onProduced();
       }

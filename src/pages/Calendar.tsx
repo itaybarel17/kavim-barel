@@ -11,6 +11,7 @@ import { CalendarCard } from '@/components/calendar/CalendarCard';
 import { CalendarGrid } from '@/components/calendar/CalendarGrid';
 import { HorizontalKanban } from '@/components/calendar/HorizontalKanban';
 import { useAuth } from '@/context/AuthContext';
+
 interface Order {
   ordernumber: number;
   customername: string;
@@ -362,11 +363,20 @@ const Calendar = () => {
       console.error('Error updating destinations count:', error);
     }
   };
+
+  // Function to refresh all data
+  const handleRefreshData = () => {
+    refetchOrders();
+    refetchReturns();
+    refetchSchedules();
+  };
+
   const navigateWeeks = (direction: 'prev' | 'next') => {
     const newDate = new Date(currentWeekStart);
     newDate.setDate(newDate.getDate() + (direction === 'next' ? 14 : -14));
     setCurrentWeekStart(newDate);
   };
+
   const isLoading = ordersLoading || returnsLoading || groupsLoading || schedulesLoading || driversLoading;
   if (isLoading) {
     return <div className="min-h-screen p-6 bg-background flex items-center justify-center">
@@ -380,7 +390,6 @@ const Calendar = () => {
       <div className="min-h-screen p-6 bg-background">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">לוח שנה הפצה</h1>
-          
         </div>
 
         {/* Horizontal Kanban */}
@@ -404,8 +413,19 @@ const Calendar = () => {
         </div>
 
         {/* Calendar Grid */}
-        <CalendarGrid currentWeekStart={currentWeekStart} distributionSchedules={filteredSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={filteredOrders} returns={filteredReturns} onDropToDate={currentUser?.agentnumber === "4" ? handleDropToDate : undefined} currentUser={currentUser} />
+        <CalendarGrid 
+          currentWeekStart={currentWeekStart} 
+          distributionSchedules={filteredSchedules} 
+          distributionGroups={distributionGroups} 
+          drivers={drivers} 
+          orders={filteredOrders} 
+          returns={filteredReturns} 
+          onDropToDate={currentUser?.agentnumber === "4" ? handleDropToDate : undefined} 
+          currentUser={currentUser}
+          onRefreshData={handleRefreshData}
+        />
       </div>
     </DndProvider>;
 };
+
 export default Calendar;
