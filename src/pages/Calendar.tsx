@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -51,6 +50,8 @@ interface DistributionSchedule {
   distribution_date?: string;
   destinations?: number;
   driver_id?: number;
+  dis_number?: number;
+  done_schedule?: string;
 }
 
 interface Driver {
@@ -119,14 +120,14 @@ const Calendar = () => {
     }
   });
 
-  // Fetch distribution schedules with driver_id
+  // Fetch distribution schedules with driver_id, dis_number, and done_schedule
   const { data: distributionSchedules = [], refetch: refetchSchedules, isLoading: schedulesLoading } = useQuery({
     queryKey: ['calendar-distribution-schedules'],
     queryFn: async () => {
       console.log('Fetching distribution schedules for calendar...');
       const { data, error } = await supabase
         .from('distribution_schedule')
-        .select('schedule_id, groups_id, create_at_schedule, distribution_date, destinations, driver_id');
+        .select('schedule_id, groups_id, create_at_schedule, distribution_date, destinations, driver_id, dis_number, done_schedule');
       
       if (error) throw error;
       console.log('Calendar distribution schedules fetched:', data);

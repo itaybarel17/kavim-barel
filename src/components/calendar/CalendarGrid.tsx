@@ -75,7 +75,7 @@ const CalendarDay: React.FC<{
     drop: (item: { scheduleId: number }) => {
       // Check if the schedule being dropped is produced
       const schedule = schedulesForDate.find(s => s.schedule_id === item.scheduleId);
-      if (schedule?.dis_number && schedule?.done_schedule) {
+      if (schedule?.done_schedule != null) {
         console.log('Cannot drop produced schedule');
         return;
       }
