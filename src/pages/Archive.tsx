@@ -1,630 +1,264 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Package, RotateCcw, Undo2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
-import { ReturnReasonDialog } from '@/components/archive/ReturnReasonDialog';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Textarea } from "@/components/ui/textarea"
+import { Loader2 } from 'lucide-react';
 
-interface ArchivedOrder {
+interface Order {
   ordernumber: number;
   customername: string;
   address: string;
   city: string;
   totalorder: number;
-  done_mainorder: string;
-  schedule_id: number;
+  schedule_id?: number;
+  customernumber?: string;
+  agentnumber?: string;
+  orderdate?: string;
+  invoicenumber?: number;
+  return_reason?: any;
+  schedule_id_if_changed?: any;
 }
 
-interface ArchivedReturn {
+interface Return {
   returnnumber: number;
   customername: string;
   address: string;
   city: string;
   totalreturn: number;
-  done_return: string;
-  schedule_id: number;
-}
-
-interface DeletedOrder {
-  ordernumber: number;
-  customername: string;
-  address: string;
-  city: string;
-  totalorder: number;
-  ordercancel: string;
-  schedule_id: number;
-}
-
-interface DeletedReturn {
-  returnnumber: number;
-  customername: string;
-  address: string;
-  city: string;
-  totalreturn: number;
-  returncancel: string;
-  schedule_id: number;
+  schedule_id?: number;
+  customernumber?: string;
+  agentnumber?: string;
+  returndate?: string;
+  return_reason?: any;
+  schedule_id_if_changed?: any;
 }
 
 const Archive = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [returnDialogOpen, setReturnDialogOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<{
-    type: 'order' | 'return';
-    data: ArchivedOrder | ArchivedReturn;
-  } | null>(null);
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const [returnReason, setReturnReason] = useState('');
+  const [selectedItem, setSelectedItem] = useState<{ type: 'order' | 'return'; itemId: number } | null>(null);
 
-  // Fetch archived orders
   const { data: archivedOrders = [], refetch: refetchArchivedOrders, isLoading: ordersLoading } = useQuery({
     queryKey: ['archived-orders'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('mainorder')
-        .select('ordernumber, customername, address, city, totalorder, done_mainorder, schedule_id')
-        .not('done_mainorder', 'is', null)
-        .order('done_mainorder', { ascending: false });
-      
+        .select('*')
+        .not('schedule_id', 'is', null)
+        .order('ordernumber', { ascending: false });
+
       if (error) throw error;
-      return data as ArchivedOrder[];
+      return data as Order[];
     }
   });
 
-  // Fetch archived returns
   const { data: archivedReturns = [], refetch: refetchArchivedReturns, isLoading: returnsLoading } = useQuery({
     queryKey: ['archived-returns'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('mainreturns')
-        .select('returnnumber, customername, address, city, totalreturn, done_return, schedule_id')
-        .not('done_return', 'is', null)
-        .order('done_return', { ascending: false });
-      
+        .select('*')
+        .not('schedule_id', 'is', null)
+        .order('returnnumber', { ascending: false });
+
       if (error) throw error;
-      return data as ArchivedReturn[];
+      return data as Return[];
     }
   });
 
-  // Fetch deleted orders
-  const { data: deletedOrders = [], refetch: refetchDeletedOrders, isLoading: deletedOrdersLoading } = useQuery({
-    queryKey: ['deleted-orders'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('mainorder')
-        .select('ordernumber, customername, address, city, totalorder, ordercancel, schedule_id')
-        .not('ordercancel', 'is', null)
-        .order('ordercancel', { ascending: false });
-      
-      if (error) throw error;
-      return data as DeletedOrder[];
-    }
-  });
-
-  // Fetch deleted returns
-  const { data: deletedReturns = [], refetch: refetchDeletedReturns, isLoading: deletedReturnsLoading } = useQuery({
-    queryKey: ['deleted-returns'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('mainreturns')
-        .select('returnnumber, customername, address, city, totalreturn, returncancel, schedule_id')
-        .not('returncancel', 'is', null)
-        .order('returncancel', { ascending: false });
-      
-      if (error) throw error;
-      return data as DeletedReturn[];
-    }
-  });
-
-  const handleRestoreOrder = async (order: DeletedOrder) => {
+  const handleReturnToDistribution = async (type: 'order' | 'return', itemId: number, reason: string) => {
     try {
-      const { error } = await supabase
-        .from('mainorder')
-        .update({ ordercancel: null })
-        .eq('ordernumber', order.ordernumber);
+      const table = type === 'order' ? 'mainorder' : 'mainreturns';
+      const idField = type === 'order' ? 'ordernumber' : 'returnnumber';
       
-      if (error) throw error;
-      
-      toast({
-        title: "הזמנה שוחזרה",
-        description: `הזמנה #${order.ordernumber} חזרה לממשק ההפצה`,
-      });
-      refetchDeletedOrders();
-    } catch (error) {
-      console.error('Error restoring order:', error);
-      toast({
-        title: "שגיאה",
-        description: "אירעה שגיאה בשחזור ההזמנה",
-        variant: "destructive",
-      });
-    }
-  };
+      // First, get the current item data to preserve existing history
+      const { data: currentItem, error: fetchError } = await supabase
+        .from(table)
+        .select('schedule_id, schedule_id_if_changed, return_reason')
+        .eq(idField, itemId)
+        .single();
 
-  const handleRestoreReturn = async (returnItem: DeletedReturn) => {
-    try {
-      const { error } = await supabase
-        .from('mainreturns')
-        .update({ returncancel: null })
-        .eq('returnnumber', returnItem.returnnumber);
-      
-      if (error) throw error;
-      
-      toast({
-        title: "החזרה שוחזרה",
-        description: `החזרה #${returnItem.returnnumber} חזרה לממשק ההפצה`,
-      });
-      refetchDeletedReturns();
-    } catch (error) {
-      console.error('Error restoring return:', error);
-      toast({
-        title: "שגיאה",
-        description: "אירעה שגיאה בשחזור ההחזרה",
-        variant: "destructive",
-      });
-    }
-  };
+      if (fetchError) {
+        console.error('Error fetching current item:', fetchError);
+        return;
+      }
 
-  const handleReturnToDistribution = async (reason: { type: string; responsible: string }) => {
-    if (!selectedItem) return;
+      // Prepare the historical data
+      let updatedReturnReason;
+      let updatedScheduleIdIfChanged;
 
-    try {
-      const returnReason = {
-        type: reason.type,
-        responsible: reason.responsible,
-        timestamp: new Date().toISOString()
+      // Handle return_reason history
+      if (currentItem.return_reason) {
+        // If return_reason exists, add new reason to the array/object
+        if (Array.isArray(currentItem.return_reason)) {
+          updatedReturnReason = [...currentItem.return_reason, { reason, timestamp: new Date().toISOString() }];
+        } else if (typeof currentItem.return_reason === 'object') {
+          updatedReturnReason = [currentItem.return_reason, { reason, timestamp: new Date().toISOString() }];
+        } else {
+          updatedReturnReason = [{ reason: currentItem.return_reason, timestamp: null }, { reason, timestamp: new Date().toISOString() }];
+        }
+      } else {
+        updatedReturnReason = [{ reason, timestamp: new Date().toISOString() }];
+      }
+
+      // Handle schedule_id_if_changed history
+      if (currentItem.schedule_id_if_changed) {
+        // If schedule_id_if_changed exists, add current schedule_id to the array/object
+        if (Array.isArray(currentItem.schedule_id_if_changed)) {
+          updatedScheduleIdIfChanged = [...currentItem.schedule_id_if_changed, currentItem.schedule_id];
+        } else if (typeof currentItem.schedule_id_if_changed === 'object') {
+          updatedScheduleIdIfChanged = [currentItem.schedule_id_if_changed, currentItem.schedule_id];
+        } else {
+          updatedScheduleIdIfChanged = [currentItem.schedule_id_if_changed, currentItem.schedule_id];
+        }
+      } else {
+        updatedScheduleIdIfChanged = [currentItem.schedule_id];
+      }
+
+      // Update the item: set schedule_id to NULL and preserve history
+      const updateData = {
+        schedule_id: null, // This returns the item to unassigned list
+        return_reason: updatedReturnReason,
+        schedule_id_if_changed: updatedScheduleIdIfChanged
       };
 
-      if (selectedItem.type === 'order') {
-        const order = selectedItem.data as ArchivedOrder;
-        
-        // Fetch existing data first
-        const { data: existingOrder, error: fetchError } = await supabase
-          .from('mainorder')
-          .select('return_reason, schedule_id_if_changed, schedule_id')
-          .eq('ordernumber', order.ordernumber)
-          .single();
-          
-        if (fetchError) throw fetchError;
-        
-        // Prepare updated return_reason array
-        let updatedReturnReasons = [];
-        if (existingOrder.return_reason) {
-          // If it's already an array, add to it
-          if (Array.isArray(existingOrder.return_reason)) {
-            updatedReturnReasons = [...existingOrder.return_reason, returnReason];
-          } else {
-            // If it's a single object, convert to array and add new one
-            updatedReturnReasons = [existingOrder.return_reason, returnReason];
-          }
-        } else {
-          // If no existing return_reason, create new array
-          updatedReturnReasons = [returnReason];
-        }
-        
-        // Prepare updated schedule_id_if_changed array
-        let updatedScheduleIds = [];
-        if (existingOrder.schedule_id_if_changed) {
-          // If it's already an array, add to it if the schedule_id is not already there
-          if (Array.isArray(existingOrder.schedule_id_if_changed)) {
-            updatedScheduleIds = [...existingOrder.schedule_id_if_changed];
-            if (!updatedScheduleIds.includes(order.schedule_id)) {
-              updatedScheduleIds.push(order.schedule_id);
-            }
-          } else if (typeof existingOrder.schedule_id_if_changed === 'number') {
-            // If it's a single number, convert to array and add new one if different
-            updatedScheduleIds = [existingOrder.schedule_id_if_changed];
-            if (order.schedule_id && !updatedScheduleIds.includes(order.schedule_id)) {
-              updatedScheduleIds.push(order.schedule_id);
-            }
-          } else {
-            // If it's an object or other format, preserve it and add new schedule_id
-            updatedScheduleIds = [existingOrder.schedule_id_if_changed];
-            if (order.schedule_id) {
-              updatedScheduleIds.push(order.schedule_id);
-            }
-          }
-        } else {
-          // If no existing schedule_id_if_changed, create new array with current schedule_id
-          if (order.schedule_id) {
-            updatedScheduleIds = [order.schedule_id];
-          }
-        }
-        
-        const { error } = await supabase
-          .from('mainorder')
-          .update({ 
-            done_mainorder: null,
-            return_reason: updatedReturnReasons,
-            schedule_id_if_changed: updatedScheduleIds.length > 0 ? updatedScheduleIds : null
-          })
-          .eq('ordernumber', order.ordernumber);
-        
-        if (error) throw error;
-        
-        toast({
-          title: "הזמנה הוחזרה",
-          description: `הזמנה #${order.ordernumber} חזרה לממשק ההפצה`,
-        });
+      const { error } = await supabase
+        .from(table)
+        .update(updateData)
+        .eq(idField, itemId);
+
+      if (error) {
+        console.error('Error returning item to distribution:', error);
+        return;
+      }
+
+      console.log(`${type} ${itemId} returned to distribution with reason: ${reason}`);
+      
+      // Refetch the data
+      if (type === 'order') {
         refetchArchivedOrders();
       } else {
-        const returnItem = selectedItem.data as ArchivedReturn;
-        
-        // Fetch existing data first
-        const { data: existingReturn, error: fetchError } = await supabase
-          .from('mainreturns')
-          .select('return_reason, schedule_id_if_changed, schedule_id')
-          .eq('returnnumber', returnItem.returnnumber)
-          .single();
-          
-        if (fetchError) throw fetchError;
-        
-        // Prepare updated return_reason array
-        let updatedReturnReasons = [];
-        if (existingReturn.return_reason) {
-          // If it's already an array, add to it
-          if (Array.isArray(existingReturn.return_reason)) {
-            updatedReturnReasons = [...existingReturn.return_reason, returnReason];
-          } else {
-            // If it's a single object, convert to array and add new one
-            updatedReturnReasons = [existingReturn.return_reason, returnReason];
-          }
-        } else {
-          // If no existing return_reason, create new array
-          updatedReturnReasons = [returnReason];
-        }
-        
-        // Prepare updated schedule_id_if_changed array
-        let updatedScheduleIds = [];
-        if (existingReturn.schedule_id_if_changed) {
-          // If it's already an array, add to it if the schedule_id is not already there
-          if (Array.isArray(existingReturn.schedule_id_if_changed)) {
-            updatedScheduleIds = [...existingReturn.schedule_id_if_changed];
-            if (!updatedScheduleIds.includes(returnItem.schedule_id)) {
-              updatedScheduleIds.push(returnItem.schedule_id);
-            }
-          } else if (typeof existingReturn.schedule_id_if_changed === 'number') {
-            // If it's a single number, convert to array and add new one if different
-            updatedScheduleIds = [existingReturn.schedule_id_if_changed];
-            if (returnItem.schedule_id && !updatedScheduleIds.includes(returnItem.schedule_id)) {
-              updatedScheduleIds.push(returnItem.schedule_id);
-            }
-          } else {
-            // If it's an object or other format, preserve it and add new schedule_id
-            updatedScheduleIds = [existingReturn.schedule_id_if_changed];
-            if (returnItem.schedule_id) {
-              updatedScheduleIds.push(returnItem.schedule_id);
-            }
-          }
-        } else {
-          // If no existing schedule_id_if_changed, create new array with current schedule_id
-          if (returnItem.schedule_id) {
-            updatedScheduleIds = [returnItem.schedule_id];
-          }
-        }
-        
-        const { error } = await supabase
-          .from('mainreturns')
-          .update({ 
-            done_return: null,
-            return_reason: updatedReturnReasons,
-            schedule_id_if_changed: updatedScheduleIds.length > 0 ? updatedScheduleIds : null
-          })
-          .eq('returnnumber', returnItem.returnnumber);
-        
-        if (error) throw error;
-        
-        toast({
-          title: "החזרה הוחזרה",
-          description: `החזרה #${returnItem.returnnumber} חזרה לממשק ההפצה`,
-        });
         refetchArchivedReturns();
       }
+      
     } catch (error) {
-      console.error('Error returning item to distribution:', error);
-      toast({
-        title: "שגיאה",
-        description: "אירעה שגיאה בהחזרת הפריט לממשק ההפצה",
-        variant: "destructive",
-      });
+      console.error('Error in handleReturnToDistribution:', error);
     }
   };
 
-  const openReturnDialog = (type: 'order' | 'return', data: ArchivedOrder | ArchivedReturn) => {
-    setSelectedItem({ type, data });
-    setReturnDialogOpen(true);
+  const handleOpenReturnDialog = (type: 'order' | 'return', itemId: number) => {
+    setSelectedItem({ type, itemId });
+    setReturnReason(''); // Clear previous reason
   };
 
-  // Filter items based on search term
-  const filteredOrders = archivedOrders.filter(order =>
-    order.customername?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.ordernumber.toString().includes(searchTerm)
-  );
-
-  const filteredReturns = archivedReturns.filter(returnItem =>
-    returnItem.customername?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    returnItem.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    returnItem.returnnumber.toString().includes(searchTerm)
-  );
-
-  const filteredDeletedOrders = deletedOrders.filter(order =>
-    order.customername?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.ordernumber.toString().includes(searchTerm)
-  );
-
-  const filteredDeletedReturns = deletedReturns.filter(returnItem =>
-    returnItem.customername?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    returnItem.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    returnItem.returnnumber.toString().includes(searchTerm)
-  );
-
-  const isLoading = ordersLoading || returnsLoading || deletedOrdersLoading || deletedReturnsLoading;
-
-  // Helper function to safely get item number
-  const getItemNumber = (): number => {
-    if (!selectedItem?.data) return 0;
-    
-    if (selectedItem.type === 'order') {
-      return (selectedItem.data as ArchivedOrder).ordernumber || 0;
-    } else {
-      return (selectedItem.data as ArchivedReturn).returnnumber || 0;
-    }
+  const handleCloseReturnDialog = () => {
+    setSelectedItem(null);
+    setReturnReason('');
   };
+
+  const handleConfirmReturn = async () => {
+    if (!selectedItem || !returnReason) return;
+    await handleReturnToDistribution(selectedItem.type, selectedItem.itemId, returnReason);
+    handleCloseReturnDialog();
+  };
+
+  const isLoading = ordersLoading || returnsLoading;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen p-6 bg-background flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>טוען נתונים...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-6 bg-background">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            onClick={() => navigate('/distribution')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            חזור לממשק הפצה
-          </Button>
-          <h1 className="text-3xl font-bold">ארכיון הזמנות והחזרות</h1>
-        </div>
-      </div>
+      <h1 className="text-3xl font-bold mb-6">ארכיון</h1>
 
-      {/* Search input */}
-      <div className="mb-6">
-        <Input
-          placeholder="חיפוש לפי שם לקוח, עיר או מספר הזמנה..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-md"
-        />
-      </div>
-
-      {isLoading ? (
-        <div className="text-center py-8">טוען נתוני ארכיון...</div>
-      ) : (
-        <div className="space-y-6">
-          {/* Deleted Items Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Deleted Orders */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="h-5 w-5" />
-                  הזמנות מחוקות ({filteredDeletedOrders.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {filteredDeletedOrders.map((order) => (
-                    <div
-                      key={order.ordernumber}
-                      className="p-3 border border-gray-300 rounded-lg bg-gray-50 flex justify-between items-start"
-                    >
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="font-medium text-gray-800">
-                            #{order.ordernumber}
-                          </div>
-                          <div className="text-sm text-gray-600 font-bold">
-                            ₪{order.totalorder?.toLocaleString('he-IL')}
-                          </div>
-                        </div>
-                        <div className="text-sm text-gray-700">
-                          <div>{order.customername}</div>
-                          <div>{order.address}, {order.city}</div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            נמחק: {new Date(order.ordercancel).toLocaleDateString('he-IL')} {new Date(order.ordercancel).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleRestoreOrder(order)}
-                        className="ml-2 flex items-center gap-1"
-                        title="שחזר הזמנה"
-                      >
-                        <Undo2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                  {filteredDeletedOrders.length === 0 && (
-                    <div className="text-center text-gray-500 py-4">
-                      אין הזמנות מחוקות
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Deleted Returns */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <RotateCcw className="h-5 w-5" />
-                  החזרות מחוקות ({filteredDeletedReturns.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {filteredDeletedReturns.map((returnItem) => (
-                    <div
-                      key={returnItem.returnnumber}
-                      className="p-3 border border-gray-300 rounded-lg bg-gray-50 flex justify-between items-start"
-                    >
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="font-medium text-gray-800">
-                            החזרה #{returnItem.returnnumber}
-                          </div>
-                          <div className="text-sm text-gray-600 font-bold">
-                            ₪{returnItem.totalreturn?.toLocaleString('he-IL')}
-                          </div>
-                        </div>
-                        <div className="text-sm text-gray-700">
-                          <div>{returnItem.customername}</div>
-                          <div>{returnItem.address}, {returnItem.city}</div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            נמחק: {new Date(returnItem.returncancel).toLocaleDateString('he-IL')} {new Date(returnItem.returncancel).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleRestoreReturn(returnItem)}
-                        className="ml-2 flex items-center gap-1"
-                        title="שחזר החזרה"
-                      >
-                        <Undo2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                  {filteredDeletedReturns.length === 0 && (
-                    <div className="text-center text-gray-500 py-4">
-                      אין החזרות מחוקות
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+      <section className="mb-8">
+        <h2 className="text-2xl font-semibold mb-4">הזמנות בארכיון</h2>
+        {archivedOrders.length === 0 ? (
+          <p className="text-gray-500">אין הזמנות בארכיון.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {archivedOrders.map((order) => (
+              <Card key={order.ordernumber}>
+                <CardHeader>
+                  <CardTitle>הזמנה #{order.ordernumber}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p>לקוח: {order.customername}</p>
+                  <p>עיר: {order.city}</p>
+                  <p>סכום: ₪{order.totalorder}</p>
+                  <Button onClick={() => handleOpenReturnDialog('order', order.ordernumber)} variant="outline">
+                    החזרה להפצה
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
           </div>
+        )}
+      </section>
 
-          {/* Archived Orders */}
-          <Card>
+      <section>
+        <h2 className="text-2xl font-semibold mb-4">החזרות בארכיון</h2>
+        {archivedReturns.length === 0 ? (
+          <p className="text-gray-500">אין החזרות בארכיון.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {archivedReturns.map((returnItem) => (
+              <Card key={returnItem.returnnumber}>
+                <CardHeader>
+                  <CardTitle>החזרה #{returnItem.returnnumber}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p>לקוח: {returnItem.customername}</p>
+                  <p>עיר: {returnItem.city}</p>
+                  <p>סכום: ₪{returnItem.totalreturn}</p>
+                  <Button onClick={() => handleOpenReturnDialog('return', returnItem.returnnumber)} variant="outline">
+                    החזרה להפצה
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Return Confirmation Dialog */}
+      {selectedItem && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <Card className="max-w-md w-full">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                הזמנות מופקות ({filteredOrders.length})
-              </CardTitle>
+              <CardTitle>החזרה להפצה</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {filteredOrders.map((order) => (
-                  <div
-                    key={order.ordernumber}
-                    className="p-3 border border-green-200 rounded-lg bg-green-50 flex justify-between items-start"
-                  >
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="font-medium text-green-800">
-                          הזמנה #{order.ordernumber}
-                        </div>
-                        <div className="text-sm text-green-600 font-bold">
-                          ₪{order.totalorder?.toLocaleString('he-IL')}
-                        </div>
-                      </div>
-                      <div className="text-sm text-gray-700">
-                        <div>{order.customername}</div>
-                        <div>{order.address}, {order.city}</div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          הופק: {new Date(order.done_mainorder).toLocaleDateString('he-IL')} {new Date(order.done_mainorder).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                      </div>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openReturnDialog('order', order)}
-                      className="ml-2 flex items-center gap-1"
-                      title="החזר להפצה"
-                    >
-                      🔙
-                    </Button>
-                  </div>
-                ))}
-                {filteredOrders.length === 0 && (
-                  <div className="text-center text-gray-500 py-4">
-                    אין הזמנות מופקות
-                  </div>
-                )}
+            <CardContent className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="returnReason">סיבת החזרה</Label>
+                <Textarea
+                  id="returnReason"
+                  value={returnReason}
+                  onChange={(e) => setReturnReason(e.target.value)}
+                  placeholder="הזן סיבה להחזרה..."
+                />
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Archived Returns */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <RotateCcw className="h-5 w-5" />
-                החזרות מופקות ({filteredReturns.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {filteredReturns.map((returnItem) => (
-                  <div
-                    key={returnItem.returnnumber}
-                    className="p-3 border border-red-200 rounded-lg bg-red-50 flex justify-between items-start"
-                  >
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="font-medium text-red-800">
-                          החזרה #{returnItem.returnnumber}
-                        </div>
-                        <div className="text-sm text-red-600 font-bold">
-                          ₪{returnItem.totalreturn?.toLocaleString('he-IL')}
-                        </div>
-                      </div>
-                      <div className="text-sm text-gray-700">
-                        <div>{returnItem.customername}</div>
-                        <div>{returnItem.address}, {returnItem.city}</div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          הופק: {new Date(returnItem.done_return).toLocaleDateString('he-IL')} {new Date(returnItem.done_return).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                      </div>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openReturnDialog('return', returnItem)}
-                      className="ml-2 flex items-center gap-1"
-                      title="החזר להפצה"
-                    >
-                      🔙
-                    </Button>
-                  </div>
-                ))}
-                {filteredReturns.length === 0 && (
-                  <div className="text-center text-gray-500 py-4">
-                    אין החזרות מופקות
-                  </div>
-                )}
+              <div className="flex justify-end gap-2">
+                <Button variant="secondary" onClick={handleCloseReturnDialog}>
+                  ביטול
+                </Button>
+                <Button onClick={handleConfirmReturn}>אישור החזרה</Button>
               </div>
             </CardContent>
           </Card>
         </div>
       )}
-
-      <ReturnReasonDialog
-        open={returnDialogOpen}
-        onOpenChange={setReturnDialogOpen}
-        onConfirm={handleReturnToDistribution}
-        itemType={selectedItem?.type || 'order'}
-        itemNumber={getItemNumber()}
-      />
     </div>
   );
 };
