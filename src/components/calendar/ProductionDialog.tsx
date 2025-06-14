@@ -79,11 +79,16 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
   const handleProduce = async (scheduleId: number) => {
     setIsProducing(true);
     try {
+      console.log('Starting production for schedule:', scheduleId);
+      
       const { data, error } = await supabase.rpc('produce_schedule', {
         schedule_id_param: scheduleId
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Production error:', error);
+        throw error;
+      }
 
       console.log('Production completed with dis_number:', data);
       
@@ -199,7 +204,7 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
                             onClick={() => setShowConfirmation(schedule.schedule_id)}
                             disabled={isProducing}
                             size="sm"
-                            className="bg-green-600 hover:bg-green-700"
+                            className="bg-green-600 hover:bg-green-700 text-white"
                           >
                             הפק
                           </Button>
@@ -220,7 +225,7 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
                             onClick={() => handleProduce(schedule.schedule_id)}
                             disabled={isProducing}
                             size="sm"
-                            className="bg-green-600 hover:bg-green-700"
+                            className="bg-green-600 hover:bg-green-700 text-white"
                           >
                             {isProducing ? 'מפיק...' : 'כן, הפק'}
                           </Button>

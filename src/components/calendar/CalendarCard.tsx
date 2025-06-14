@@ -99,7 +99,7 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   const totalOrders = scheduleOrders.length;
   const totalReturns = scheduleReturns.length;
 
-  // Enhanced styling for produced cards
+  // Enhanced styling for produced cards - removed the locked badge
   const cardClasses = isCalendarMode 
     ? `w-full max-w-[160px] overflow-hidden ${
         isProduced 
@@ -121,13 +121,8 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   return (
     <Card
       ref={!isProduced ? drag : null}
-      className={`${cardClasses} ${isDragging ? 'opacity-50' : ''} ${isProduced ? 'relative' : ''}`}
+      className={`${cardClasses} ${isDragging ? 'opacity-50' : ''}`}
     >
-      {isProduced && (
-        <div className="absolute top-1 right-1 bg-green-600 text-white text-[8px] px-1 py-0.5 rounded z-10 font-bold">
-          נעול
-        </div>
-      )}
       <CardContent className={contentPadding}>
         <div className={spacing}>
           <div className="flex items-center justify-between">
