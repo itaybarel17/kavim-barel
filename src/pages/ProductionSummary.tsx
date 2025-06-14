@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -314,27 +313,27 @@ const ProductionSummary = () => {
               <Table>
                 <TableHeader>
                   <TableRow className="text-xs">
-                    <TableHead className="text-left p-2">שם לקוח</TableHead>
-                    <TableHead className="text-left p-2">כתובת</TableHead>
-                    <TableHead className="text-left p-2">עיר</TableHead>
-                    <TableHead className="text-left p-2">טלפון נייד</TableHead>
-                    <TableHead className="text-left p-2">טלפון</TableHead>
-                    <TableHead className="text-left p-2">פרטי אספקה</TableHead>
-                    <TableHead className="text-left p-2">הזמנות</TableHead>
-                    <TableHead className="text-left p-2">החזרות</TableHead>
-                    <TableHead className="text-left p-2">הערות</TableHead>
+                    <TableHead className="text-left p-1 text-xs">שם לקוח</TableHead>
+                    <TableHead className="text-left p-1 text-xs">כתובת</TableHead>
+                    <TableHead className="text-left p-1 text-xs">עיר</TableHead>
+                    <TableHead className="text-left p-1 text-xs">טלפון נייד</TableHead>
+                    <TableHead className="text-left p-1 text-xs">טלפון</TableHead>
+                    <TableHead className="text-left p-1 text-xs">פרטי אספקה</TableHead>
+                    <TableHead className="text-left p-1 text-xs">הזמנות</TableHead>
+                    <TableHead className="text-left p-1 text-xs">החזרות</TableHead>
+                    <TableHead className="text-left p-1 text-xs">הערות</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {sortedCustomers.map((customer, index) => (
-                    <TableRow key={index} className="text-xs border-b-0">
-                      <TableCell className="font-medium p-2 text-left text-xs">{customer.customername}</TableCell>
-                      <TableCell className="p-2 text-left text-xs">{customer.address}</TableCell>
-                      <TableCell className="p-2 text-left text-xs">{customer.city}</TableCell>
-                      <TableCell className="p-2 text-left text-xs">{customer.mobile || '-'}</TableCell>
-                      <TableCell className="p-2 text-left text-xs">{customer.phone || '-'}</TableCell>
-                      <TableCell className="p-2 text-left text-xs">{customer.supplydetails || '-'}</TableCell>
-                      <TableCell className="p-2 text-left">
+                    <TableRow key={index} className="text-xs border-b h-8">
+                      <TableCell className="font-medium p-1 text-left text-xs">{customer.customername}</TableCell>
+                      <TableCell className="p-1 text-left text-xs">{customer.address}</TableCell>
+                      <TableCell className="p-1 text-left text-xs">{customer.city}</TableCell>
+                      <TableCell className="p-1 text-left text-xs">{customer.mobile || '-'}</TableCell>
+                      <TableCell className="p-1 text-left text-xs">{customer.phone || '-'}</TableCell>
+                      <TableCell className="p-1 text-left text-xs">{customer.supplydetails || '-'}</TableCell>
+                      <TableCell className="p-1 text-left">
                         {customer.orders.length > 0 && (
                           <div className="space-y-0.5">
                             {customer.orders.map(order => (
@@ -346,7 +345,7 @@ const ProductionSummary = () => {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="p-2 text-left">
+                      <TableCell className="p-1 text-left">
                         {customer.returns.length > 0 && (
                           <div className="space-y-0.5">
                             {customer.returns.map(returnItem => (
@@ -358,7 +357,7 @@ const ProductionSummary = () => {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="p-2 text-left">
+                      <TableCell className="p-1 text-left">
                         {customer.shotefnumber === 5 && (
                           <div className="text-red-600 font-bold text-xs">
                             נהג, נא לקחת מזומן
@@ -374,7 +373,7 @@ const ProductionSummary = () => {
         </Card>
       </div>
 
-      <style jsx global>{`
+      <style>{`
         @media print {
           @page {
             size: landscape;
@@ -382,7 +381,7 @@ const ProductionSummary = () => {
           }
           
           body {
-            font-size: 10px !important;
+            font-size: 12px !important;
           }
           
           .print\\:hidden {
@@ -391,13 +390,17 @@ const ProductionSummary = () => {
           
           table {
             width: 100% !important;
-            font-size: 10px !important;
+            font-size: 12px !important;
           }
           
           th, td {
             padding: 2px !important;
-            font-size: 10px !important;
+            font-size: 12px !important;
             text-align: left !important;
+          }
+          
+          .text-xs {
+            font-size: 12px !important;
           }
         }
       `}</style>
