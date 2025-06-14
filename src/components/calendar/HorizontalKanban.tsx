@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useDrop } from 'react-dnd';
 import { CalendarCard } from './CalendarCard';
@@ -8,6 +7,7 @@ import type { OrderWithSchedule, ReturnWithSchedule } from '@/utils/scheduleUtil
 interface DistributionGroup {
   groups_id: number;
   separation: string;
+  agents?: any;
 }
 
 interface DistributionSchedule {
@@ -26,6 +26,11 @@ interface Driver {
   nahag: string;
 }
 
+interface User {
+  agentnumber: string;
+  agentname: string;
+}
+
 interface HorizontalKanbanProps {
   distributionSchedules: DistributionSchedule[];
   distributionGroups: DistributionGroup[];
@@ -36,6 +41,7 @@ interface HorizontalKanbanProps {
   onDropToKanban?: (scheduleId: number) => void;
   multiOrderActiveCustomerList?: { name: string; city: string }[];
   dualActiveOrderReturnCustomers?: { name: string; city: string }[];
+  currentUser?: User;
 }
 
 export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
@@ -48,26 +54,43 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
   onDropToKanban,
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
+  currentUser,
 }) => {
-  const [{ isOver }, drop] = useDrop(() => ({
-    accept: ['calendar-card', 'card'],
-    drop: (item: { scheduleId?: number; type?: 'order' | 'return'; data?: OrderWithSchedule | ReturnWithSchedule }) => {
-      if (item.scheduleId && onDropToKanban) {
-        onDropToKanban(item.scheduleId);
-      }
-    },
-    collect: (monitor) => ({
-      isOver: monitor.isOver(),
-    }),
-  }));
+  // Filter schedules by agent (admin sees all)
+  const isAdmin = currentUser?.agentnumber === "4";
 
-  // Filter schedules that have assigned items
-  const schedulesWithItems = distributionSchedules.filter(schedule => {
+  // Calculate for each schedule if allowed for agent
+  const allowedGroupIds = React.useMemo(() => {
+    if (isAdmin) return null; // All
+    if (!currentUser) return [];
+    return distributionGroups
+      .filter((group) => {
+        if (!group.agents) return false;
+        if (Array.isArray(group.agents)) {
+          return group.agents.includes(currentUser.agentnumber);
+        }
+        if (typeof group.agents === "string") {
+          try {
+            const arr = JSON.parse(group.agents);
+            return arr.includes(currentUser.agentnumber);
+          } catch {
+            return false;
+          }
+        }
+        return false;
+      })
+      .map((group) => group.groups_id);
+  }, [currentUser, isAdmin, distributionGroups]);
+
+  const filteredSchedulesWithItems = distributionSchedules.filter(schedule => {
+    if (!isAdmin) {
+      if (!allowedGroupIds || !allowedGroupIds.includes(schedule.groups_id))
+        return false;
+    }
     const uniqueCustomers = getUniqueCustomersForSchedule(orders, returns, schedule.schedule_id);
     return uniqueCustomers.size > 0;
   });
 
-  // Function to check if a schedule has priority customers (blue or red icons)
   const hasPriorityCustomers = (schedule: DistributionSchedule): boolean => {
     const scheduleOrders = orders.filter(order => 
       order.schedule_id === schedule.schedule_id || 
@@ -93,20 +116,23 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
     });
   };
 
-  // Separate unscheduled schedules and sort by priority
+  // Only admin can drop to kanban
+  const [{ isOver }, drop] = useDrop(() => ({
+    accept: (isAdmin ? ['calendar-card', 'card'] : []),
+    drop: (item: { scheduleId?: number; type?: 'order' | 'return'; data?: OrderWithSchedule | ReturnWithSchedule }) => {
+      if (isAdmin && item.scheduleId && onDropToKanban) {
+        onDropToKanban(item.scheduleId);
+      }
+    },
+    collect: (monitor) => ({
+      isOver: isAdmin && monitor.isOver(),
+    }),
+  }), [isAdmin, onDropToKanban]);
+
+  const schedulesWithItems = filteredSchedulesWithItems;
   const unscheduledSchedules = schedulesWithItems
     .filter(schedule => !schedule.distribution_date)
-    .sort((a, b) => {
-      const aPriority = hasPriorityCustomers(a);
-      const bPriority = hasPriorityCustomers(b);
-      
-      // Priority customers first
-      if (aPriority && !bPriority) return -1;
-      if (!aPriority && bPriority) return 1;
-      
-      // Then by schedule_id
-      return a.schedule_id - b.schedule_id;
-    });
+    .sort((a, b) => a.schedule_id - b.schedule_id);
 
   return (
     <div
@@ -114,7 +140,6 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
       className={`mb-8 ${isOver ? 'bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg' : ''}`}
     >
       <h2 className="text-xl font-semibold mb-4">קווי חלוקה</h2>
-      
       {unscheduledSchedules.length > 0 ? (
         <div className="mb-6">
           <h3 className="text-lg font-medium mb-3 text-gray-700">לא מתוזמן</h3>
@@ -134,6 +159,7 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
                 schedule={schedule}
                 multiOrderActiveCustomerList={multiOrderActiveCustomerList}
                 dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
+                currentUser={currentUser}
               />
             ))}
           </div>

@@ -36,6 +36,7 @@ interface CalendarGridProps {
   orders: OrderWithSchedule[];
   returns: ReturnWithSchedule[];
   onDropToDate: (scheduleId: number, date: Date) => void;
+  currentUser?: { agentnumber: string; agentname: string };
 }
 
 const CalendarDay: React.FC<{
@@ -47,6 +48,7 @@ const CalendarDay: React.FC<{
   returns: ReturnWithSchedule[];
   onDropToDate: (scheduleId: number, date: Date) => void;
   onProductionDialogOpen: (date: Date) => void;
+  currentUser?: { agentnumber: string; agentname: string };
 }> = ({ 
   date, 
   schedulesForDate, 
@@ -55,11 +57,15 @@ const CalendarDay: React.FC<{
   orders, 
   returns, 
   onDropToDate,
-  onProductionDialogOpen
+  onProductionDialogOpen,
+  currentUser
 }) => {
+  // Only admin can drop
+  const isAdmin = currentUser?.agentnumber === "4";
   const [{ isOver }, drop] = useDrop(() => ({
-    accept: 'calendar-card',
+    accept: isAdmin ? 'calendar-card' : [],
     drop: (item: { scheduleId: number }) => {
+      if (!isAdmin) return;
       // Check if the schedule being dropped is produced
       const schedule = schedulesForDate.find(s => s.schedule_id === item.scheduleId);
       if (schedule?.done_schedule != null) {
@@ -75,9 +81,9 @@ const CalendarDay: React.FC<{
       onDropToDate(item.scheduleId, date);
     },
     collect: (monitor) => ({
-      isOver: monitor.isOver(),
+      isOver: isAdmin && monitor.isOver(),
     }),
-  }));
+  }), [isAdmin, onDropToDate, date, schedulesForDate]);
 
   const dayNames = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
   const dateStr = date.getDate().toString().padStart(2, '0') + '/' + (date.getMonth() + 1).toString().padStart(2, '0');
@@ -129,6 +135,7 @@ const CalendarDay: React.FC<{
             showAllCustomers={true}
             isCalendarMode={true}
             schedule={schedule}
+            currentUser={currentUser}
           />
         ))}
       </div>
@@ -143,7 +150,8 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
   drivers,
   orders,
   returns,
-  onDropToDate
+  onDropToDate,
+  currentUser,
 }) => {
   const [productionDialogOpen, setProductionDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -233,6 +241,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
             returns={returns}
             onDropToDate={onDropToDate}
             onProductionDialogOpen={handleProductionDialogOpen}
+            currentUser={currentUser}
           />
         ))}
       </div>
@@ -250,6 +259,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
             returns={returns}
             onDropToDate={onDropToDate}
             onProductionDialogOpen={handleProductionDialogOpen}
+            currentUser={currentUser}
           />
         ))}
       </div>

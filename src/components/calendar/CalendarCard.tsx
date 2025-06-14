@@ -49,6 +49,7 @@ interface CalendarCardProps {
   schedule?: DistributionSchedule;
   multiOrderActiveCustomerList?: { name: string; city: string }[];
   dualActiveOrderReturnCustomers?: { name: string; city: string }[];
+  currentUser?: { agentnumber: string; agentname: string };
 }
 
 export const CalendarCard: React.FC<CalendarCardProps> = ({
@@ -65,14 +66,18 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   schedule,
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
+  currentUser,
 }) => {
   // Check if this schedule has produced based on done_schedule timestamp
   const isProduced = schedule?.done_schedule != null;
   
+  // Only admin can drag
+  const canDrag = currentUser?.agentnumber === "4" && !isProduced;
+  
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'calendar-card',
     item: { scheduleId },
-    canDrag: !isProduced, // Prevent dragging if produced
+    canDrag: canDrag,
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
@@ -130,8 +135,8 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
 
   return (
     <Card
-      ref={!isProduced ? drag : null}
-      className={`${cardClasses} ${isDragging ? 'opacity-50' : ''}`}
+      ref={canDrag ? drag : null}
+      className={`${cardClasses} ${isDragging ? 'opacity-50' : ''} ${!canDrag ? 'pointer-events-none opacity-40' : ''}`}
     >
       <CardContent className={contentPadding}>
         <div className={spacing}>

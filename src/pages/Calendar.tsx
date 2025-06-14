@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { CalendarCard } from '@/components/calendar/CalendarCard';
 import { CalendarGrid } from '@/components/calendar/CalendarGrid';
 import { HorizontalKanban } from '@/components/calendar/HorizontalKanban';
+import { useAuth } from '@/context/AuthContext';
 
 interface Order {
   ordernumber: number;
@@ -63,6 +64,7 @@ interface Driver {
 
 const Calendar = () => {
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
     const today = new Date();
     const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
@@ -152,6 +154,80 @@ const Calendar = () => {
       return data as Driver[];
     }
   });
+
+  // AUTHORIZE: Get allowed group ids for this user (except admin "4" sees all)
+  const allowedGroupIds = useMemo(() => {
+    if (!currentUser) return [];
+    if (currentUser.agentnumber === "4") return null; // 4 ("משרד") sees all
+    // Allow only groups where agent is in distribution_groups.agents (array of agentnumbers in jsonb)
+    return distributionGroups
+      .filter((group) => {
+        if (!group.agents) return false;
+        if (Array.isArray(group.agents)) {
+          return group.agents.includes(currentUser.agentnumber);
+        }
+        // fallback in case agents is not an array (shouldn't happen)
+        if (typeof group.agents === "string") {
+          try {
+            const arr = JSON.parse(group.agents);
+            return arr.includes(currentUser.agentnumber);
+          } catch {
+            return false;
+          }
+        }
+        return false;
+      })
+      .map((group) => group.groups_id);
+  }, [currentUser, distributionGroups]);
+
+  // Filtered schedules
+  const filteredSchedules = useMemo(() => {
+    if (!currentUser) return [];
+    if (currentUser.agentnumber === "4") return distributionSchedules;
+    if (!allowedGroupIds || allowedGroupIds.length === 0) return [];
+    return distributionSchedules.filter(sch =>
+      allowedGroupIds.includes(sch.groups_id)
+    );
+  }, [distributionSchedules, allowedGroupIds, currentUser]);
+
+  // Filtered orders + returns. Show only those whose schedule/group is allowed.
+  const filteredOrders = useMemo(() => {
+    if (!currentUser) return [];
+    if (currentUser.agentnumber === "4") return orders;
+    if (!allowedGroupIds || allowedGroupIds.length === 0) return [];
+    return orders.filter(o => {
+      // Find to which group this order belongs, via its schedule_id or schedule_id_if_changed
+      const allScheduleIds = [];
+      if (typeof o.schedule_id === 'number') allScheduleIds.push(o.schedule_id);
+      if (typeof o.schedule_id_if_changed === 'number') allScheduleIds.push(o.schedule_id_if_changed);
+      if (Array.isArray(o.schedule_id_if_changed)) o.schedule_id_if_changed.forEach(sid => { if (typeof sid === 'number') allScheduleIds.push(sid); });
+      // For each schedule_id in this order, find its group via distributionSchedules
+      const inAllowed = allScheduleIds.some(sid => {
+        const sch = distributionSchedules.find(s => s.schedule_id === sid);
+        return sch && allowedGroupIds.includes(sch.groups_id);
+      });
+      return inAllowed;
+    });
+  }, [orders, allowedGroupIds, currentUser, distributionSchedules]);
+
+  const filteredReturns = useMemo(() => {
+    if (!currentUser) return [];
+    if (currentUser.agentnumber === "4") return returns;
+    if (!allowedGroupIds || allowedGroupIds.length === 0) return [];
+    return returns.filter(o => {
+      // Find to which group this return belongs, via its schedule_id or schedule_id_if_changed
+      const allScheduleIds = [];
+      if (typeof o.schedule_id === 'number') allScheduleIds.push(o.schedule_id);
+      if (typeof o.schedule_id_if_changed === 'number') allScheduleIds.push(o.schedule_id_if_changed);
+      if (Array.isArray(o.schedule_id_if_changed)) o.schedule_id_if_changed.forEach(sid => { if (typeof sid === 'number') allScheduleIds.push(sid); });
+      // For each schedule_id in this return, find its group via distributionSchedules
+      const inAllowed = allScheduleIds.some(sid => {
+        const sch = distributionSchedules.find(s => s.schedule_id === sid);
+        return sch && allowedGroupIds.includes(sch.groups_id);
+      });
+      return inAllowed;
+    });
+  }, [returns, allowedGroupIds, currentUser, distributionSchedules]);
 
   // Update destinations count immediately when orders/returns change
   useEffect(() => {
@@ -319,13 +395,14 @@ const Calendar = () => {
 
         {/* Horizontal Kanban */}
         <HorizontalKanban
-          distributionSchedules={distributionSchedules}
+          distributionSchedules={filteredSchedules}
           distributionGroups={distributionGroups}
           drivers={drivers}
-          orders={orders}
-          returns={returns}
+          orders={filteredOrders}
+          returns={filteredReturns}
           onUpdateDestinations={updateDestinationsCount}
-          onDropToKanban={handleDropToKanban}
+          onDropToKanban={currentUser?.agentnumber === "4" ? handleDropToKanban : undefined}
+          currentUser={currentUser}
         />
 
         {/* Calendar Navigation */}
@@ -358,12 +435,13 @@ const Calendar = () => {
         {/* Calendar Grid */}
         <CalendarGrid
           currentWeekStart={currentWeekStart}
-          distributionSchedules={distributionSchedules}
+          distributionSchedules={filteredSchedules}
           distributionGroups={distributionGroups}
           drivers={drivers}
-          orders={orders}
-          returns={returns}
-          onDropToDate={handleDropToDate}
+          orders={filteredOrders}
+          returns={filteredReturns}
+          onDropToDate={currentUser?.agentnumber === "4" ? handleDropToDate : undefined}
+          currentUser={currentUser}
         />
       </div>
     </DndProvider>
