@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -7,6 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from "@/components/ui/textarea"
 import { Loader2 } from 'lucide-react';
+
+interface ReturnReasonEntry {
+  reason: string;
+  timestamp: string;
+}
 
 interface Order {
   ordernumber: number;
@@ -19,8 +25,8 @@ interface Order {
   agentnumber?: string;
   orderdate?: string;
   invoicenumber?: number;
-  return_reason?: any;
-  schedule_id_if_changed?: any;
+  return_reason?: ReturnReasonEntry[] | any;
+  schedule_id_if_changed?: number[] | any;
 }
 
 interface Return {
@@ -33,8 +39,8 @@ interface Return {
   customernumber?: string;
   agentnumber?: string;
   returndate?: string;
-  return_reason?: any;
-  schedule_id_if_changed?: any;
+  return_reason?: ReturnReasonEntry[] | any;
+  schedule_id_if_changed?: number[] | any;
 }
 
 const Archive = () => {
@@ -86,43 +92,47 @@ const Archive = () => {
         return;
       }
 
-      // Prepare the historical data
-      let updatedReturnReason;
-      let updatedScheduleIdIfChanged;
+      // Create new return reason entry
+      const newReasonEntry: ReturnReasonEntry = {
+        reason,
+        timestamp: new Date().toISOString()
+      };
 
-      // Handle return_reason history
+      // Build return reason history - always ensure it's an array
+      let returnReasonHistory: ReturnReasonEntry[] = [];
+      
       if (currentItem.return_reason) {
-        // If return_reason exists, add new reason to the array/object
         if (Array.isArray(currentItem.return_reason)) {
-          updatedReturnReason = [...currentItem.return_reason, { reason, timestamp: new Date().toISOString() }];
-        } else if (typeof currentItem.return_reason === 'object') {
-          updatedReturnReason = [currentItem.return_reason, { reason, timestamp: new Date().toISOString() }];
-        } else {
-          updatedReturnReason = [{ reason: currentItem.return_reason, timestamp: null }, { reason, timestamp: new Date().toISOString() }];
+          returnReasonHistory = [...currentItem.return_reason];
+        } else if (typeof currentItem.return_reason === 'object' && currentItem.return_reason.reason) {
+          returnReasonHistory = [currentItem.return_reason];
+        } else if (typeof currentItem.return_reason === 'string') {
+          returnReasonHistory = [{ reason: currentItem.return_reason, timestamp: null }];
         }
-      } else {
-        updatedReturnReason = [{ reason, timestamp: new Date().toISOString() }];
       }
+      
+      returnReasonHistory.push(newReasonEntry);
 
-      // Handle schedule_id_if_changed history
+      // Build schedule ID history - always ensure it's an array
+      let scheduleIdHistory: number[] = [];
+      
       if (currentItem.schedule_id_if_changed) {
-        // If schedule_id_if_changed exists, add current schedule_id to the array/object
         if (Array.isArray(currentItem.schedule_id_if_changed)) {
-          updatedScheduleIdIfChanged = [...currentItem.schedule_id_if_changed, currentItem.schedule_id];
-        } else if (typeof currentItem.schedule_id_if_changed === 'object') {
-          updatedScheduleIdIfChanged = [currentItem.schedule_id_if_changed, currentItem.schedule_id];
-        } else {
-          updatedScheduleIdIfChanged = [currentItem.schedule_id_if_changed, currentItem.schedule_id];
+          scheduleIdHistory = [...currentItem.schedule_id_if_changed];
+        } else if (typeof currentItem.schedule_id_if_changed === 'number') {
+          scheduleIdHistory = [currentItem.schedule_id_if_changed];
         }
-      } else {
-        updatedScheduleIdIfChanged = [currentItem.schedule_id];
+      }
+      
+      if (currentItem.schedule_id) {
+        scheduleIdHistory.push(currentItem.schedule_id);
       }
 
       // Update the item: set schedule_id to NULL and preserve history
       const updateData = {
         schedule_id: null, // This returns the item to unassigned list
-        return_reason: updatedReturnReason,
-        schedule_id_if_changed: updatedScheduleIdIfChanged
+        return_reason: returnReasonHistory,
+        schedule_id_if_changed: scheduleIdHistory
       };
 
       const { error } = await supabase
