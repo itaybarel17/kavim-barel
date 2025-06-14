@@ -163,7 +163,7 @@ const Archive = () => {
       console.log('Current item data:', currentItem);
 
       // Create new return reason entry with the correct structure
-      const newReasonEntry: ReturnReasonEntry = {
+      const newReasonEntry = {
         type: reason,
         responsible: 'משרד',
         timestamp: new Date().toISOString()
@@ -181,11 +181,11 @@ const Archive = () => {
         updatedScheduleHistory.push(currentItem.schedule_id);
       }
 
-      // Update the item: set schedule_id to NULL and preserve history
+      // Convert arrays to JSON before sending to database
       const updateData = {
         schedule_id: null,
-        return_reason: updatedReasonHistory,
-        schedule_id_if_changed: updatedScheduleHistory
+        return_reason: JSON.parse(JSON.stringify(updatedReasonHistory)),
+        schedule_id_if_changed: JSON.parse(JSON.stringify(updatedScheduleHistory))
       };
 
       console.log('Update data:', updateData);
