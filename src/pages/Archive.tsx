@@ -9,8 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from "@/components/ui/textarea"
 import { Loader2 } from 'lucide-react';
 
+// Update the interface to match the actual database structure
 interface ReturnReasonEntry {
-  reason: string;
+  type: string;
+  responsible: string;
   timestamp: string;
 }
 
@@ -49,28 +51,49 @@ const parseReturnReasonHistory = (data: unknown): ReturnReasonEntry[] => {
   
   if (Array.isArray(data)) {
     return data.map(item => {
-      if (typeof item === 'object' && item !== null && 'reason' in item) {
-        return { 
-          reason: String((item as any).reason || ''), 
-          timestamp: String((item as any).timestamp || '') 
-        };
+      if (typeof item === 'object' && item !== null) {
+        // Handle both old format (reason) and new format (type)
+        if ('type' in item) {
+          return { 
+            type: String((item as any).type || ''), 
+            responsible: String((item as any).responsible || ''),
+            timestamp: String((item as any).timestamp || '') 
+          };
+        } else if ('reason' in item) {
+          // Convert old format to new format
+          return { 
+            type: String((item as any).reason || ''), 
+            responsible: 'לא צוין',
+            timestamp: String((item as any).timestamp || '') 
+          };
+        }
       }
       if (typeof item === 'string') {
-        return { reason: item, timestamp: '' };
+        return { type: item, responsible: 'לא צוין', timestamp: '' };
       }
-      return { reason: String(item), timestamp: '' };
+      return { type: String(item), responsible: 'לא צוין', timestamp: '' };
     });
   }
   
-  if (typeof data === 'object' && data !== null && 'reason' in data) {
-    return [{ 
-      reason: String((data as any).reason || ''), 
-      timestamp: String((data as any).timestamp || '') 
-    }];
+  if (typeof data === 'object' && data !== null) {
+    if ('type' in data) {
+      return [{ 
+        type: String((data as any).type || ''), 
+        responsible: String((data as any).responsible || ''),
+        timestamp: String((data as any).timestamp || '') 
+      }];
+    } else if ('reason' in data) {
+      // Convert old format to new format
+      return [{ 
+        type: String((data as any).reason || ''), 
+        responsible: 'לא צוין',
+        timestamp: String((data as any).timestamp || '') 
+      }];
+    }
   }
   
   if (typeof data === 'string') {
-    return [{ reason: data, timestamp: '' }];
+    return [{ type: data, responsible: 'לא צוין', timestamp: '' }];
   }
   
   return [];
@@ -129,6 +152,8 @@ const Archive = () => {
 
   const handleReturnToDistribution = async (type: 'order' | 'return', itemId: number, reason: string) => {
     try {
+      console.log(`Starting return to distribution for ${type} ${itemId} with reason: ${reason}`);
+      
       const table = type === 'order' ? 'mainorder' : 'mainreturns';
       const idField = type === 'order' ? 'ordernumber' : 'returnnumber';
       
@@ -144,9 +169,12 @@ const Archive = () => {
         return;
       }
 
-      // Create new return reason entry
+      console.log('Current item data:', currentItem);
+
+      // Create new return reason entry with the correct structure
       const newReasonEntry: ReturnReasonEntry = {
-        reason,
+        type: reason,
+        responsible: 'משרד', // Default to office responsibility
         timestamp: new Date().toISOString()
       };
 
@@ -154,29 +182,36 @@ const Archive = () => {
       const existingReasonHistory = parseReturnReasonHistory(currentItem.return_reason);
       const updatedReasonHistory = [...existingReasonHistory, newReasonEntry];
 
-      // Build schedule ID history
+      // Build schedule ID history - avoid duplicates
       const existingScheduleHistory = parseScheduleIdHistory(currentItem.schedule_id_if_changed);
-      const updatedScheduleHistory = currentItem.schedule_id 
-        ? [...existingScheduleHistory, currentItem.schedule_id]
-        : existingScheduleHistory;
+      let updatedScheduleHistory = [...existingScheduleHistory];
+      
+      if (currentItem.schedule_id && !existingScheduleHistory.includes(currentItem.schedule_id)) {
+        updatedScheduleHistory.push(currentItem.schedule_id);
+      }
 
       // Update the item: set schedule_id to NULL and preserve history
+      // Use type assertion to tell TypeScript we know what we're doing
       const updateData = {
         schedule_id: null, // This returns the item to unassigned list
-        return_reason: updatedReasonHistory,
-        schedule_id_if_changed: updatedScheduleHistory
+        return_reason: updatedReasonHistory as any,
+        schedule_id_if_changed: updatedScheduleHistory as any
       };
 
-      const { error } = await supabase
+      console.log('Update data:', updateData);
+
+      const { error, data: updatedData } = await supabase
         .from(table)
         .update(updateData)
-        .eq(idField, itemId);
+        .eq(idField, itemId)
+        .select();
 
       if (error) {
         console.error('Error returning item to distribution:', error);
         return;
       }
 
+      console.log('Update successful:', updatedData);
       console.log(`${type} ${itemId} returned to distribution with reason: ${reason}`);
       
       // Refetch the data

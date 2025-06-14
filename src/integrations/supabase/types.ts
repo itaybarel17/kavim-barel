@@ -675,6 +675,7 @@ export type Database = {
           palletsreturn_id: number
           smallpallet: number | null
           totaleuro: number | null
+          totalpallets: number | null
           totalsmall: number | null
         }
         Insert: {
@@ -684,6 +685,7 @@ export type Database = {
           palletsreturn_id?: number
           smallpallet?: number | null
           totaleuro?: number | null
+          totalpallets?: number | null
           totalsmall?: number | null
         }
         Update: {
@@ -693,6 +695,7 @@ export type Database = {
           palletsreturn_id?: number
           smallpallet?: number | null
           totaleuro?: number | null
+          totalpallets?: number | null
           totalsmall?: number | null
         }
         Relationships: [
