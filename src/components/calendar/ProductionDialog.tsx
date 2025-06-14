@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { Package, RotateCcw, User, Calendar, FileText } from 'lucide-react';
+import { Package, RotateCcw, User, Calendar, Printer } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface DistributionSchedule {
@@ -102,6 +102,7 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
 
   const handleViewSummary = (scheduleId: number) => {
     navigate(`/production-summary/${scheduleId}`);
+    onClose();
   };
 
   const getScheduleStats = (scheduleId: number) => {
@@ -138,7 +139,7 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
               const isProduced = schedule.dis_number && schedule.done_schedule;
 
               return (
-                <Card key={schedule.schedule_id} className={`${isProduced ? 'bg-green-50 border-green-200' : 'bg-white'}`}>
+                <Card key={schedule.schedule_id} className={`${isProduced ? 'bg-green-50 border-green-200 border-2' : 'bg-white'}`}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
@@ -146,7 +147,7 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
                           {group?.separation || `קו ${schedule.schedule_id}`}
                         </div>
                         {isProduced && (
-                          <div className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm font-medium">
+                          <div className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm font-medium border border-green-300">
                             הופק #{schedule.dis_number}
                           </div>
                         )}
@@ -177,17 +178,19 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
                         סה"כ: ₪{stats.totalValue.toLocaleString('he-IL')}
                       </div>
                       
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 items-center">
                         {isProduced ? (
-                          <Button
-                            onClick={() => handleViewSummary(schedule.schedule_id)}
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center gap-1"
-                          >
-                            <FileText className="h-4 w-4" />
-                            סיכום
-                          </Button>
+                          <>
+                            <span className="text-gray-500 text-sm font-medium">הופק</span>
+                            <Button
+                              onClick={() => handleViewSummary(schedule.schedule_id)}
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center gap-1"
+                            >
+                              <Printer className="h-4 w-4" />
+                            </Button>
+                          </>
                         ) : (
                           <Button
                             onClick={() => setShowConfirmation(schedule.schedule_id)}

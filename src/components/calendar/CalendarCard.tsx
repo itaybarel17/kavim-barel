@@ -99,10 +99,18 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   const totalOrders = scheduleOrders.length;
   const totalReturns = scheduleReturns.length;
 
-  // Conditional styling for calendar mode and produced status
+  // Enhanced styling for produced cards
   const cardClasses = isCalendarMode 
-    ? `w-full max-w-[160px] overflow-hidden ${isProduced ? 'cursor-not-allowed border-green-300 bg-green-50' : 'cursor-move border-blue-200 bg-blue-50'}`
-    : `min-w-[250px] max-w-[280px] ${isProduced ? 'cursor-not-allowed border-green-300 bg-green-50' : 'cursor-move border-blue-200 bg-blue-50'}`;
+    ? `w-full max-w-[160px] overflow-hidden ${
+        isProduced 
+          ? 'cursor-not-allowed border-2 border-green-500 bg-green-50 shadow-md' 
+          : 'cursor-move border-blue-200 bg-blue-50'
+      }`
+    : `min-w-[250px] max-w-[280px] ${
+        isProduced 
+          ? 'cursor-not-allowed border-2 border-green-500 bg-green-50 shadow-md' 
+          : 'cursor-move border-blue-200 bg-blue-50'
+      }`;
 
   const contentPadding = isCalendarMode ? "p-1.5" : "p-3";
   const titleSize = isCalendarMode ? "text-[10px]" : "text-sm";
@@ -113,8 +121,13 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   return (
     <Card
       ref={!isProduced ? drag : null}
-      className={`${cardClasses} ${isDragging ? 'opacity-50' : ''}`}
+      className={`${cardClasses} ${isDragging ? 'opacity-50' : ''} ${isProduced ? 'relative' : ''}`}
     >
+      {isProduced && (
+        <div className="absolute top-1 right-1 bg-green-600 text-white text-[8px] px-1 py-0.5 rounded z-10">
+          נעול
+        </div>
+      )}
       <CardContent className={contentPadding}>
         <div className={spacing}>
           <div className="flex items-center justify-between">
@@ -122,7 +135,7 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
               {group?.separation || 'אזור לא מוגדר'}
             </h3>
             {isProduced && (
-              <Badge variant="secondary" className="text-[8px] px-1 py-0 bg-green-100 text-green-800">
+              <Badge variant="secondary" className="text-[8px] px-1 py-0 bg-green-100 text-green-800 border border-green-300">
                 הופק #{schedule?.dis_number}
               </Badge>
             )}
