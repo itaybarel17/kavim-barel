@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -5,26 +6,29 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowRight, Package, RotateCcw, User, Calendar, Printer } from 'lucide-react';
+import { ArrowRight, Package, RotateCcw, User, Calendar, Printer, AlertCircle } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
+import { 
+  getOrdersByScheduleId, 
+  getReturnsByScheduleId,
+  isItemModified,
+  getOriginalScheduleId,
+  getNewScheduleId,
+  type OrderWithSchedule,
+  type ReturnWithSchedule
+} from '@/utils/scheduleUtils';
 
-interface Order {
-  ordernumber: number;
-  customername: string;
+interface Order extends OrderWithSchedule {
   address: string;
   city: string;
-  totalorder: number;
   icecream?: string;
   customernumber?: string;
   agentnumber?: string;
 }
 
-interface Return {
-  returnnumber: number;
-  customername: string;
+interface Return extends ReturnWithSchedule {
   address: string;
   city: string;
-  totalreturn: number;
   icecream?: string;
   customernumber?: string;
   agentnumber?: string;
@@ -122,14 +126,13 @@ const ProductionSummary = () => {
     enabled: !!schedule?.driver_id
   });
 
-  // Fetch orders for this schedule
-  const { data: orders = [] } = useQuery({
-    queryKey: ['production-orders', scheduleId],
+  // Fetch ALL orders from the database
+  const { data: allOrders = [] } = useQuery({
+    queryKey: ['all-orders'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('mainorder')
-        .select('ordernumber, customername, address, city, totalorder, icecream, customernumber, agentnumber')
-        .eq('schedule_id', parseInt(scheduleId!))
+        .select('ordernumber, customername, address, city, totalorder, icecream, customernumber, agentnumber, schedule_id, schedule_id_if_changed')
         .not('done_mainorder', 'is', null);
       
       if (error) throw error;
@@ -138,14 +141,13 @@ const ProductionSummary = () => {
     enabled: !!scheduleId
   });
 
-  // Fetch returns for this schedule
-  const { data: returns = [] } = useQuery({
-    queryKey: ['production-returns', scheduleId],
+  // Fetch ALL returns from the database
+  const { data: allReturns = [] } = useQuery({
+    queryKey: ['all-returns'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('mainreturns')
-        .select('returnnumber, customername, address, city, totalreturn, icecream, customernumber, agentnumber')
-        .eq('schedule_id', parseInt(scheduleId!))
+        .select('returnnumber, customername, address, city, totalreturn, icecream, customernumber, agentnumber, schedule_id, schedule_id_if_changed')
         .not('done_return', 'is', null);
       
       if (error) throw error;
@@ -153,6 +155,10 @@ const ProductionSummary = () => {
     },
     enabled: !!scheduleId
   });
+
+  // Filter orders and returns for this schedule using scheduleUtils
+  const orders = scheduleId ? getOrdersByScheduleId(allOrders, parseInt(scheduleId)) : [];
+  const returns = scheduleId ? getReturnsByScheduleId(allReturns, parseInt(scheduleId)) : [];
 
   // Fetch customer details - Fixed type handling
   const { data: customerDetails = [] } = useQuery({
@@ -325,8 +331,13 @@ const ProductionSummary = () => {
                         {customer.orders.length > 0 && (
                           <div className="space-y-0.5">
                             {customer.orders.map(order => (
-                              <div key={order.ordernumber} className="text-xs">
-                                הזמנה #{order.ordernumber}
+                              <div key={order.ordernumber} className="text-xs flex items-center gap-1">
+                                <span>הזמנה #{order.ordernumber}</span>
+                                {isItemModified(order) && (
+                                  <span className="bg-orange-100 text-orange-700 px-1 text-[8px] rounded-sm border border-orange-300">
+                                    {getOriginalScheduleId(order) === parseInt(scheduleId!) ? 'הועבר מקו זה' : 'הועבר לקו זה'}
+                                  </span>
+                                )}
                                 {order.icecream && <div className="text-blue-600 text-xs">{order.icecream}</div>}
                               </div>
                             ))}
@@ -337,8 +348,13 @@ const ProductionSummary = () => {
                         {customer.returns.length > 0 && (
                           <div className="space-y-0.5">
                             {customer.returns.map(returnItem => (
-                              <div key={returnItem.returnnumber} className="text-xs">
-                                החזרה #{returnItem.returnnumber}
+                              <div key={returnItem.returnnumber} className="text-xs flex items-center gap-1">
+                                <span>החזרה #{returnItem.returnnumber}</span>
+                                {isItemModified(returnItem) && (
+                                  <span className="bg-orange-100 text-orange-700 px-1 text-[8px] rounded-sm border border-orange-300">
+                                    {getOriginalScheduleId(returnItem) === parseInt(scheduleId!) ? 'הועבר מקו זה' : 'הועבר לקו זה'}
+                                  </span>
+                                )}
                                 {returnItem.icecream && <div className="text-blue-600 text-xs">{returnItem.icecream}</div>}
                               </div>
                             ))}

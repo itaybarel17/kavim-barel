@@ -6,6 +6,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { Package, RotateCcw, User, Calendar, Printer, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { 
+  getOrdersByScheduleId, 
+  getReturnsByScheduleId, 
+  type OrderWithSchedule, 
+  type ReturnWithSchedule 
+} from '@/utils/scheduleUtils';
 
 interface DistributionSchedule {
   schedule_id: number;
@@ -28,22 +34,6 @@ interface Driver {
   nahag: string;
 }
 
-interface Order {
-  ordernumber: number;
-  customername: string;
-  totalorder: number;
-  schedule_id?: number;
-  schedule_id_if_changed?: any;
-}
-
-interface Return {
-  returnnumber: number;
-  customername: string;
-  totalreturn: number;
-  schedule_id?: number;
-  schedule_id_if_changed?: any;
-}
-
 interface ProductionDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -51,8 +41,8 @@ interface ProductionDialogProps {
   distributionSchedules: DistributionSchedule[];
   distributionGroups: DistributionGroup[];
   drivers: Driver[];
-  orders: Order[];
-  returns: Return[];
+  orders: OrderWithSchedule[];
+  returns: ReturnWithSchedule[];
   onProduced?: () => void;
 }
 
@@ -124,26 +114,42 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
         throw updateError;
       }
       
-      // Mark orders as done
-      const { error: ordersError } = await supabase
-        .from('mainorder')
-        .update({ done_mainorder: new Date().toISOString() })
-        .eq('schedule_id', scheduleId);
+      // Get the orders for this schedule using our scheduleUtils
+      const scheduleOrders = getOrdersByScheduleId(orders, scheduleId);
+      
+      if (scheduleOrders.length > 0) {
+        // Extract order numbers
+        const orderNumbers = scheduleOrders.map(order => order.ordernumber);
         
-      if (ordersError) {
-        console.error('Error updating orders:', ordersError);
-        // Continue even if this fails - it's not critical
+        // Mark orders as done
+        const { error: ordersError } = await supabase
+          .from('mainorder')
+          .update({ done_mainorder: new Date().toISOString() })
+          .in('ordernumber', orderNumbers);
+          
+        if (ordersError) {
+          console.error('Error updating orders:', ordersError);
+          // Continue even if this fails - it's not critical
+        }
       }
       
-      // Mark returns as done
-      const { error: returnsError } = await supabase
-        .from('mainreturns')
-        .update({ done_return: new Date().toISOString() })
-        .eq('schedule_id', scheduleId);
+      // Get returns for this schedule using our scheduleUtils
+      const scheduleReturns = getReturnsByScheduleId(returns, scheduleId);
+      
+      if (scheduleReturns.length > 0) {
+        // Extract return numbers
+        const returnNumbers = scheduleReturns.map(returnItem => returnItem.returnnumber);
         
-      if (returnsError) {
-        console.error('Error updating returns:', returnsError);
-        // Continue even if this fails - it's not critical
+        // Mark returns as done
+        const { error: returnsError } = await supabase
+          .from('mainreturns')
+          .update({ done_return: new Date().toISOString() })
+          .in('returnnumber', returnNumbers);
+          
+        if (returnsError) {
+          console.error('Error updating returns:', returnsError);
+          // Continue even if this fails - it's not critical
+        }
       }
 
       console.log('Production completed with dis_number:', nextDisNumber);
@@ -165,21 +171,6 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
   const handleViewSummary = (scheduleId: number) => {
     navigate(`/production-summary/${scheduleId}`);
     onClose();
-  };
-
-  const getScheduleStats = async (scheduleId: number) => {
-    // Import utility functions
-    const { getOrdersByEffectiveScheduleId, getReturnsByEffectiveScheduleId } = await import('@/utils/scheduleUtils');
-    
-    const scheduleOrders = getOrdersByEffectiveScheduleId(orders, scheduleId);
-    const scheduleReturns = getReturnsByEffectiveScheduleId(returns, scheduleId);
-    
-    return {
-      ordersCount: scheduleOrders.length,
-      returnsCount: scheduleReturns.length,
-      totalValue: scheduleOrders.reduce((sum, order) => sum + (order.totalorder || 0), 0) -
-                  scheduleReturns.reduce((sum, returnItem) => sum + (returnItem.totalreturn || 0), 0)
-    };
   };
 
   return (
@@ -211,20 +202,9 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
               const group = distributionGroups.find(g => g.groups_id === schedule.groups_id);
               const driver = drivers.find(d => d.id === schedule.driver_id);
               
-              // Use effective schedule ID logic to get all relevant items
-              const scheduleOrders = orders.filter(order => {
-                const effectiveScheduleId = order.schedule_id_if_changed?.schedule_id || 
-                                          (typeof order.schedule_id_if_changed === 'number' ? order.schedule_id_if_changed : null) || 
-                                          order.schedule_id;
-                return effectiveScheduleId === schedule.schedule_id;
-              });
-              
-              const scheduleReturns = returns.filter(returnItem => {
-                const effectiveScheduleId = returnItem.schedule_id_if_changed?.schedule_id || 
-                                          (typeof returnItem.schedule_id_if_changed === 'number' ? returnItem.schedule_id_if_changed : null) || 
-                                          returnItem.schedule_id;
-                return effectiveScheduleId === schedule.schedule_id;
-              });
+              // Get orders and returns for this schedule using our scheduleUtils
+              const scheduleOrders = getOrdersByScheduleId(orders, schedule.schedule_id);
+              const scheduleReturns = getReturnsByScheduleId(returns, schedule.schedule_id);
               
               const stats = {
                 ordersCount: scheduleOrders.length,

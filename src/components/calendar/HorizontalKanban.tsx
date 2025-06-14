@@ -17,6 +17,8 @@ interface DistributionSchedule {
   distribution_date?: string;
   destinations?: number;
   driver_id?: number;
+  dis_number?: number;
+  done_schedule?: string;
 }
 
 interface Driver {
@@ -88,6 +90,7 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
                 driverId={schedule.driver_id}
                 showAllCustomers={true}
                 onUpdateDestinations={onUpdateDestinations}
+                schedule={schedule}
               />
             ))}
           </div>
