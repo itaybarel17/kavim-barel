@@ -25,8 +25,8 @@ interface Order {
   agentnumber?: string;
   orderdate?: string;
   invoicenumber?: number;
-  return_reason?: ReturnReasonEntry[] | any;
-  schedule_id_if_changed?: number[] | any;
+  return_reason?: any;
+  schedule_id_if_changed?: any;
 }
 
 interface Return {
@@ -39,9 +39,55 @@ interface Return {
   customernumber?: string;
   agentnumber?: string;
   returndate?: string;
-  return_reason?: ReturnReasonEntry[] | any;
-  schedule_id_if_changed?: number[] | any;
+  return_reason?: any;
+  schedule_id_if_changed?: any;
 }
+
+// Helper functions to safely convert Json to typed arrays
+const parseReturnReasonHistory = (data: any): ReturnReasonEntry[] => {
+  if (!data) return [];
+  
+  if (Array.isArray(data)) {
+    return data.map(item => {
+      if (typeof item === 'object' && item.reason) {
+        return { reason: item.reason, timestamp: item.timestamp || null };
+      }
+      if (typeof item === 'string') {
+        return { reason: item, timestamp: null };
+      }
+      return { reason: String(item), timestamp: null };
+    });
+  }
+  
+  if (typeof data === 'object' && data.reason) {
+    return [{ reason: data.reason, timestamp: data.timestamp || null }];
+  }
+  
+  if (typeof data === 'string') {
+    return [{ reason: data, timestamp: null }];
+  }
+  
+  return [];
+};
+
+const parseScheduleIdHistory = (data: any): number[] => {
+  if (!data) return [];
+  
+  if (Array.isArray(data)) {
+    return data.map(item => Number(item)).filter(num => !isNaN(num));
+  }
+  
+  if (typeof data === 'number') {
+    return [data];
+  }
+  
+  if (typeof data === 'string') {
+    const num = Number(data);
+    return isNaN(num) ? [] : [num];
+  }
+  
+  return [];
+};
 
 const Archive = () => {
   const [returnReason, setReturnReason] = useState('');
@@ -98,41 +144,21 @@ const Archive = () => {
         timestamp: new Date().toISOString()
       };
 
-      // Build return reason history - always ensure it's an array
-      let returnReasonHistory: ReturnReasonEntry[] = [];
-      
-      if (currentItem.return_reason) {
-        if (Array.isArray(currentItem.return_reason)) {
-          returnReasonHistory = [...currentItem.return_reason];
-        } else if (typeof currentItem.return_reason === 'object' && currentItem.return_reason.reason) {
-          returnReasonHistory = [currentItem.return_reason];
-        } else if (typeof currentItem.return_reason === 'string') {
-          returnReasonHistory = [{ reason: currentItem.return_reason, timestamp: null }];
-        }
-      }
-      
-      returnReasonHistory.push(newReasonEntry);
+      // Build return reason history using helper function
+      const existingReasonHistory = parseReturnReasonHistory(currentItem.return_reason);
+      const updatedReasonHistory = [...existingReasonHistory, newReasonEntry];
 
-      // Build schedule ID history - always ensure it's an array
-      let scheduleIdHistory: number[] = [];
-      
-      if (currentItem.schedule_id_if_changed) {
-        if (Array.isArray(currentItem.schedule_id_if_changed)) {
-          scheduleIdHistory = [...currentItem.schedule_id_if_changed];
-        } else if (typeof currentItem.schedule_id_if_changed === 'number') {
-          scheduleIdHistory = [currentItem.schedule_id_if_changed];
-        }
-      }
-      
-      if (currentItem.schedule_id) {
-        scheduleIdHistory.push(currentItem.schedule_id);
-      }
+      // Build schedule ID history using helper function
+      const existingScheduleHistory = parseScheduleIdHistory(currentItem.schedule_id_if_changed);
+      const updatedScheduleHistory = currentItem.schedule_id 
+        ? [...existingScheduleHistory, currentItem.schedule_id]
+        : existingScheduleHistory;
 
       // Update the item: set schedule_id to NULL and preserve history
       const updateData = {
         schedule_id: null, // This returns the item to unassigned list
-        return_reason: returnReasonHistory,
-        schedule_id_if_changed: scheduleIdHistory
+        return_reason: updatedReasonHistory,
+        schedule_id_if_changed: updatedScheduleHistory
       };
 
       const { error } = await supabase
