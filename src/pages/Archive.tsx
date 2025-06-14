@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,9 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Package, RotateCcw, Search, X } from 'lucide-react';
+import { CalendarIcon, Package, RotateCcw, Search, X, ArrowRight, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
+import { DeleteConfirmDialog } from '@/components/distribution/DeleteConfirmDialog';
+import { ReturnReasonDialog } from '@/components/archive/ReturnReasonDialog';
 
 interface ArchivedOrder {
   ordernumber: number;
@@ -44,8 +47,19 @@ interface ArchivedReturn {
 }
 
 const Archive = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date>();
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    item: { type: 'order' | 'return'; data: ArchivedOrder | ArchivedReturn } | null;
+  }>({ open: false, item: null });
+  const [returnDialog, setReturnDialog] = useState<{
+    open: boolean;
+    item: { type: 'order' | 'return'; data: ArchivedOrder | ArchivedReturn } | null;
+  }>({ open: false, item: null });
 
   // Fetch archived orders with driver names
   const { data: archivedOrders = [], isLoading: ordersLoading } = useQuery({
@@ -119,6 +133,90 @@ const Archive = () => {
     }
   });
 
+  // Add mutation for returning items to interface
+  const returnToInterfaceMutation = useMutation({
+    mutationFn: async ({ 
+      type, 
+      itemNumber, 
+      reason 
+    }: { 
+      type: 'order' | 'return'; 
+      itemNumber: number; 
+      reason: { type: string; responsible: string } 
+    }) => {
+      if (type === 'order') {
+        const { error } = await supabase
+          .from('mainorder')
+          .update({ 
+            done_mainorder: null,
+            return_reason: reason
+          })
+          .eq('ordernumber', itemNumber);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('mainreturns')
+          .update({ 
+            done_return: null,
+            return_reason: reason
+          })
+          .eq('returnnumber', itemNumber);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['archived-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['archived-returns'] });
+      toast({
+        title: "הפריט הוחזר לממשק בהצלחה",
+        description: "הפריט זמין כעת בממשק הראשי",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "שגיאה בהחזרת הפריט",
+        description: "אנא נסה שוב",
+        variant: "destructive",
+      });
+      console.error('Error returning item:', error);
+    },
+  });
+
+  // Add mutation for deleting items
+  const deleteItemMutation = useMutation({
+    mutationFn: async ({ type, itemNumber }: { type: 'order' | 'return'; itemNumber: number }) => {
+      if (type === 'order') {
+        const { error } = await supabase
+          .from('mainorder')
+          .delete()
+          .eq('ordernumber', itemNumber);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('mainreturns')
+          .delete()
+          .eq('returnnumber', itemNumber);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['archived-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['archived-returns'] });
+      toast({
+        title: "הפריט נמחק בהצלחה",
+        description: "הפריט הועבר לארכיון סופי",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "שגיאה במחיקת הפריט",
+        description: "אנא נסה שוב",
+        variant: "destructive",
+      });
+      console.error('Error deleting item:', error);
+    },
+  });
+
   // Group orders by invoice number
   const groupedOrders = archivedOrders.reduce((acc, order) => {
     if (order.invoicenumber) {
@@ -159,6 +257,43 @@ const Archive = () => {
 
   const filteredReturns = filterItems(archivedReturns) as ArchivedReturn[];
 
+  const handleReturnToInterface = (item: { type: 'order' | 'return'; data: ArchivedOrder | ArchivedReturn }) => {
+    setReturnDialog({ open: true, item });
+  };
+
+  const handleDelete = (item: { type: 'order' | 'return'; data: ArchivedOrder | ArchivedReturn }) => {
+    setDeleteDialog({ open: true, item });
+  };
+
+  const confirmReturn = (reason: { type: string; responsible: string }) => {
+    if (returnDialog.item) {
+      const itemNumber = returnDialog.item.type === 'order' 
+        ? (returnDialog.item.data as ArchivedOrder).ordernumber
+        : (returnDialog.item.data as ArchivedReturn).returnnumber;
+      
+      returnToInterfaceMutation.mutate({
+        type: returnDialog.item.type,
+        itemNumber,
+        reason
+      });
+    }
+    setReturnDialog({ open: false, item: null });
+  };
+
+  const confirmDelete = () => {
+    if (deleteDialog.item) {
+      const itemNumber = deleteDialog.item.type === 'order' 
+        ? (deleteDialog.item.data as ArchivedOrder).ordernumber
+        : (deleteDialog.item.data as ArchivedReturn).returnnumber;
+      
+      deleteItemMutation.mutate({
+        type: deleteDialog.item.type,
+        itemNumber
+      });
+    }
+    setDeleteDialog({ open: false, item: null });
+  };
+
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedDate(undefined);
@@ -171,7 +306,17 @@ const Archive = () => {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-4">ארכיון הזמנות והחזרות</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold">ארכיון הזמנות והחזרות</h1>
+          <Button 
+            onClick={() => navigate('/')} 
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <ArrowRight className="h-4 w-4" />
+            חזרה לממשק
+          </Button>
+        </div>
         
         {/* Filters */}
         <div className="flex gap-4 mb-4 items-end">
@@ -235,10 +380,10 @@ const Archive = () => {
               const isComplexInvoice = hasInvoice && orders.length > 1;
               
               return (
-                <Card key={invoiceKey} className="border">
+                <Card key={invoiceKey} className="border bg-blue-50 border-blue-200">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg flex items-center gap-2">
+                      <CardTitle className="text-lg flex items-center gap-2 text-blue-900">
                         {hasInvoice && (
                           <>
                             חשבונית #{invoiceKey}
@@ -252,7 +397,7 @@ const Archive = () => {
                         {!hasInvoice && `הזמנה #${orders[0].ordernumber}`}
                       </CardTitle>
                       {orders[0].invoicedate && (
-                        <Badge variant="outline">
+                        <Badge variant="outline" className="border-blue-300 text-blue-700">
                           תאריך חשבונית: {new Date(orders[0].invoicedate).toLocaleDateString('he-IL')}
                         </Badge>
                       )}
@@ -261,22 +406,22 @@ const Archive = () => {
                   <CardContent>
                     <div className="space-y-3">
                       {orders.map((order) => (
-                        <div key={order.ordernumber} className="border rounded-lg p-3 bg-gray-50">
+                        <div key={order.ordernumber} className="border rounded-lg p-3 bg-white border-blue-200">
                           <div className="flex justify-between items-start mb-2">
                             <div>
-                              <div className="font-medium">הזמנה #{order.ordernumber}</div>
-                              <div className="text-sm text-gray-600">{order.customername}</div>
-                              <div className="text-sm text-gray-500">{order.address}, {order.city}</div>
+                              <div className="font-medium text-blue-900">הזמנה #{order.ordernumber}</div>
+                              <div className="text-sm text-blue-700">{order.customername}</div>
+                              <div className="text-sm text-blue-600">{order.address}, {order.city}</div>
                             </div>
                             <div className="text-left">
-                              <div className="font-bold text-lg">₪{order.totalorder.toLocaleString('he-IL')}</div>
+                              <div className="font-bold text-lg text-blue-800">₪{order.totalorder.toLocaleString('he-IL')}</div>
                               {order.agentnumber && (
-                                <div className="text-sm text-gray-600">סוכן: {order.agentnumber}</div>
+                                <div className="text-sm text-blue-600">סוכן: {order.agentnumber}</div>
                               )}
                             </div>
                           </div>
                           
-                          <div className="flex flex-wrap gap-6 text-sm text-gray-600 mt-2">
+                          <div className="flex flex-wrap gap-6 text-sm text-blue-600 mt-2 mb-3">
                             <div>
                               <span className="font-medium">הופק:</span> {new Date(order.done_mainorder).toLocaleDateString('he-IL')}
                             </div>
@@ -301,6 +446,27 @@ const Archive = () => {
                               </div>
                             )}
                           </div>
+
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleReturnToInterface({ type: 'order', data: order })}
+                              className="text-blue-700 border-blue-300 hover:bg-blue-100"
+                            >
+                              <ArrowRight className="h-4 w-4 mr-1" />
+                              החזר לממשק
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDelete({ type: 'order', data: order })}
+                              className="text-red-600 border-red-300 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              מחק
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -320,23 +486,23 @@ const Archive = () => {
           
           <div className="grid gap-4">
             {filteredReturns.map((returnItem) => (
-              <Card key={returnItem.returnnumber} className="border">
+              <Card key={returnItem.returnnumber} className="border bg-red-50 border-red-200">
                 <CardContent className="pt-4">
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <div className="font-medium">החזרה #{returnItem.returnnumber}</div>
-                      <div className="text-sm text-gray-600">{returnItem.customername}</div>
-                      <div className="text-sm text-gray-500">{returnItem.address}, {returnItem.city}</div>
+                      <div className="font-medium text-red-900">החזרה #{returnItem.returnnumber}</div>
+                      <div className="text-sm text-red-700">{returnItem.customername}</div>
+                      <div className="text-sm text-red-600">{returnItem.address}, {returnItem.city}</div>
                     </div>
                     <div className="text-left">
-                      <div className="font-bold text-lg text-red-600">₪{returnItem.totalreturn.toLocaleString('he-IL')}</div>
+                      <div className="font-bold text-lg text-red-800">₪{returnItem.totalreturn.toLocaleString('he-IL')}</div>
                       {returnItem.agentnumber && (
-                        <div className="text-sm text-gray-600">סוכן: {returnItem.agentnumber}</div>
+                        <div className="text-sm text-red-600">סוכן: {returnItem.agentnumber}</div>
                       )}
                     </div>
                   </div>
                   
-                  <div className="flex flex-wrap gap-6 text-sm text-gray-600 mt-2">
+                  <div className="flex flex-wrap gap-6 text-sm text-red-600 mt-2 mb-3">
                     <div>
                       <span className="font-medium">הופק:</span> {new Date(returnItem.done_return).toLocaleDateString('he-IL')}
                     </div>
@@ -361,12 +527,51 @@ const Archive = () => {
                       </div>
                     )}
                   </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleReturnToInterface({ type: 'return', data: returnItem })}
+                      className="text-red-700 border-red-300 hover:bg-red-100"
+                    >
+                      <ArrowRight className="h-4 w-4 mr-1" />
+                      החזר לממשק
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDelete({ type: 'return', data: returnItem })}
+                      className="text-red-600 border-red-300 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      מחק
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
           </div>
         </div>
       </div>
+
+      {/* Dialogs */}
+      <DeleteConfirmDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}
+        item={deleteDialog.item}
+        onConfirm={confirmDelete}
+      />
+
+      <ReturnReasonDialog
+        open={returnDialog.open}
+        onOpenChange={(open) => setReturnDialog({ ...returnDialog, open })}
+        onConfirm={confirmReturn}
+        itemType={returnDialog.item?.type || 'order'}
+        itemNumber={returnDialog.item?.type === 'order' 
+          ? (returnDialog.item.data as ArchivedOrder).ordernumber 
+          : (returnDialog.item.data as ArchivedReturn).returnnumber}
+      />
     </div>
   );
 };
