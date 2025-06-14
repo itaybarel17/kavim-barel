@@ -43,28 +43,11 @@ export const CombinedItemsList: React.FC<CombinedItemsListProps> = ({
           }`}>
             {item.index ? `${item.index}. ` : ''}{data.customername}
           </span>
-          <div className="text-left space-y-0.5">
-            <div className={`font-bold text-xs ${
-              isOrder ? 'text-blue-700' : 'text-red-700'
-            }`}>
-              ₪{isOrder ? order.totalorder.toLocaleString('he-IL') : returnItem.totalreturn.toLocaleString('he-IL')}
-            </div>
-            {data.agentnumber && (
-              <div className="text-xs text-gray-600">
-                סוכן: {data.agentnumber}
-              </div>
-            )}
-            {data.customernumber && (
-              <div className="text-xs text-gray-600">
-                {data.customernumber}
-              </div>
-            )}
-            {(isOrder ? order.orderdate : returnItem.returndate) && (
-              <div className="text-xs text-gray-600">
-                {new Date(isOrder ? order.orderdate! : returnItem.returndate!).toLocaleDateString('he-IL')}
-              </div>
-            )}
-          </div>
+          <span className={`font-bold text-xs ${
+            isOrder ? 'text-blue-700' : 'text-red-700'
+          }`}>
+            ₪{isOrder ? order.totalorder.toLocaleString('he-IL') : returnItem.totalreturn.toLocaleString('he-IL')}
+          </span>
         </div>
         <div className={`text-xs ${isOrder ? 'text-blue-800' : 'text-red-800'}`}>
           <div>{data.address}, {data.city}</div>
