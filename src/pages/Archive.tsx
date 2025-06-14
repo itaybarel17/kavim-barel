@@ -8,41 +8,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from "@/components/ui/textarea"
 import { Loader2 } from 'lucide-react';
+import type { Database } from '@/integrations/supabase/types';
 
-// Update the interface to match the actual database structure
+// Use Supabase types directly
+type Order = Database['public']['Tables']['mainorder']['Row'];
+type Return = Database['public']['Tables']['mainreturns']['Row'];
+
+// Define return reason entry type
 interface ReturnReasonEntry {
   type: string;
   responsible: string;
   timestamp: string;
-}
-
-interface Order {
-  ordernumber: number;
-  customername: string;
-  address: string;
-  city: string;
-  totalorder: number;
-  schedule_id?: number;
-  customernumber?: string;
-  agentnumber?: string;
-  orderdate?: string;
-  invoicenumber?: number;
-  return_reason?: any;
-  schedule_id_if_changed?: any;
-}
-
-interface Return {
-  returnnumber: number;
-  customername: string;
-  address: string;
-  city: string;
-  totalreturn: number;
-  schedule_id?: number;
-  customernumber?: string;
-  agentnumber?: string;
-  returndate?: string;
-  return_reason?: any;
-  schedule_id_if_changed?: any;
 }
 
 // Helper functions to safely convert data to typed arrays
@@ -52,19 +28,20 @@ const parseReturnReasonHistory = (data: unknown): ReturnReasonEntry[] => {
   if (Array.isArray(data)) {
     return data.map(item => {
       if (typeof item === 'object' && item !== null) {
+        const obj = item as Record<string, unknown>;
         // Handle both old format (reason) and new format (type)
-        if ('type' in item) {
+        if ('type' in obj) {
           return { 
-            type: String((item as any).type || ''), 
-            responsible: String((item as any).responsible || ''),
-            timestamp: String((item as any).timestamp || '') 
+            type: String(obj.type || ''), 
+            responsible: String(obj.responsible || ''),
+            timestamp: String(obj.timestamp || '') 
           };
-        } else if ('reason' in item) {
+        } else if ('reason' in obj) {
           // Convert old format to new format
           return { 
-            type: String((item as any).reason || ''), 
+            type: String(obj.reason || ''), 
             responsible: 'לא צוין',
-            timestamp: String((item as any).timestamp || '') 
+            timestamp: String(obj.timestamp || '') 
           };
         }
       }
@@ -76,18 +53,19 @@ const parseReturnReasonHistory = (data: unknown): ReturnReasonEntry[] => {
   }
   
   if (typeof data === 'object' && data !== null) {
-    if ('type' in data) {
+    const obj = data as Record<string, unknown>;
+    if ('type' in obj) {
       return [{ 
-        type: String((data as any).type || ''), 
-        responsible: String((data as any).responsible || ''),
-        timestamp: String((data as any).timestamp || '') 
+        type: String(obj.type || ''), 
+        responsible: String(obj.responsible || ''),
+        timestamp: String(obj.timestamp || '') 
       }];
-    } else if ('reason' in data) {
+    } else if ('reason' in obj) {
       // Convert old format to new format
       return [{ 
-        type: String((data as any).reason || ''), 
+        type: String(obj.reason || ''), 
         responsible: 'לא צוין',
-        timestamp: String((data as any).timestamp || '') 
+        timestamp: String(obj.timestamp || '') 
       }];
     }
   }
@@ -191,11 +169,10 @@ const Archive = () => {
       }
 
       // Update the item: set schedule_id to NULL and preserve history
-      // Use type assertion to tell TypeScript we know what we're doing
       const updateData = {
-        schedule_id: null, // This returns the item to unassigned list
-        return_reason: updatedReasonHistory as any,
-        schedule_id_if_changed: updatedScheduleHistory as any
+        schedule_id: null,
+        return_reason: updatedReasonHistory,
+        schedule_id_if_changed: updatedScheduleHistory
       };
 
       console.log('Update data:', updateData);
