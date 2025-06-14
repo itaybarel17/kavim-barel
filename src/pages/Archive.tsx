@@ -180,13 +180,33 @@ const Archive = () => {
 
       if (selectedItem.type === 'order') {
         const order = selectedItem.data as ArchivedOrder;
+        
+        // Get current return_reason and schedule_id_if_changed to accumulate history
+        const { data: currentOrder } = await supabase
+          .from('mainorder')
+          .select('return_reason, schedule_id_if_changed')
+          .eq('ordernumber', order.ordernumber)
+          .single();
+
+        // Build accumulated return reasons
+        const existingReasons = currentOrder?.return_reason ? 
+          (Array.isArray(currentOrder.return_reason) ? currentOrder.return_reason : [currentOrder.return_reason])
+          : [];
+        const updatedReasons = [...existingReasons, returnReason];
+
+        // Build accumulated schedule IDs
+        const existingScheduleIds = currentOrder?.schedule_id_if_changed ?
+          (Array.isArray(currentOrder.schedule_id_if_changed) ? currentOrder.schedule_id_if_changed : [currentOrder.schedule_id_if_changed])
+          : [];
+        const updatedScheduleIds = order.schedule_id ? [...existingScheduleIds, order.schedule_id] : existingScheduleIds;
+
         const { error } = await supabase
           .from('mainorder')
           .update({ 
             done_mainorder: null,
             schedule_id: null,
-            return_reason: returnReason,
-            schedule_id_if_changed: order.schedule_id ? [order.schedule_id] : null
+            return_reason: JSON.parse(JSON.stringify(updatedReasons)),
+            schedule_id_if_changed: updatedScheduleIds.length > 0 ? JSON.parse(JSON.stringify(updatedScheduleIds)) : null
           })
           .eq('ordernumber', order.ordernumber);
         
@@ -199,13 +219,33 @@ const Archive = () => {
         refetchArchivedOrders();
       } else {
         const returnItem = selectedItem.data as ArchivedReturn;
+        
+        // Get current return_reason and schedule_id_if_changed to accumulate history
+        const { data: currentReturn } = await supabase
+          .from('mainreturns')
+          .select('return_reason, schedule_id_if_changed')
+          .eq('returnnumber', returnItem.returnnumber)
+          .single();
+
+        // Build accumulated return reasons
+        const existingReasons = currentReturn?.return_reason ? 
+          (Array.isArray(currentReturn.return_reason) ? currentReturn.return_reason : [currentReturn.return_reason])
+          : [];
+        const updatedReasons = [...existingReasons, returnReason];
+
+        // Build accumulated schedule IDs
+        const existingScheduleIds = currentReturn?.schedule_id_if_changed ?
+          (Array.isArray(currentReturn.schedule_id_if_changed) ? currentReturn.schedule_id_if_changed : [currentReturn.schedule_id_if_changed])
+          : [];
+        const updatedScheduleIds = returnItem.schedule_id ? [...existingScheduleIds, returnItem.schedule_id] : existingScheduleIds;
+
         const { error } = await supabase
           .from('mainreturns')
           .update({ 
             done_return: null,
             schedule_id: null,
-            return_reason: returnReason,
-            schedule_id_if_changed: returnItem.schedule_id ? [returnItem.schedule_id] : null
+            return_reason: JSON.parse(JSON.stringify(updatedReasons)),
+            schedule_id_if_changed: updatedScheduleIds.length > 0 ? JSON.parse(JSON.stringify(updatedScheduleIds)) : null
           })
           .eq('returnnumber', returnItem.returnnumber);
         
