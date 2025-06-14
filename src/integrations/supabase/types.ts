@@ -9,6 +9,24 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      agents: {
+        Row: {
+          agentname: string
+          agentnumber: string
+          id: string
+        }
+        Insert: {
+          agentname: string
+          agentnumber: string
+          id?: string
+        }
+        Update: {
+          agentname?: string
+          agentnumber?: string
+          id?: string
+        }
+        Relationships: []
+      }
       customerlist: {
         Row: {
           address: string | null
@@ -74,18 +92,21 @@ export type Database = {
       }
       distribution_groups: {
         Row: {
+          agents: Json | null
           day: string | null
           frequency: string | null
           groups_id: number
           separation: string | null
         }
         Insert: {
+          agents?: Json | null
           day?: string | null
           frequency?: string | null
           groups_id?: number
           separation?: string | null
         }
         Update: {
+          agents?: Json | null
           day?: string | null
           frequency?: string | null
           groups_id?: number
