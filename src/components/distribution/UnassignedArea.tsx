@@ -77,38 +77,6 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
     setItemToDelete(null);
   };
 
-  // Helper function to check if an item has special icons
-  const hasSpecialIcon = (item: Order | Return, type: 'order' | 'return') => {
-    const isMultiOrderActive = multiOrderActiveCustomerList.some(
-      (cust) => cust.name === item.customername && cust.city === item.city
-    );
-    const isDualActiveOrderReturn = dualActiveOrderReturnCustomers.some(
-      (cust) => cust.name === item.customername && cust.city === item.city
-    );
-    
-    return isMultiOrderActive || isDualActiveOrderReturn;
-  };
-
-  // Sort orders - prioritize those with special icons
-  const sortedOrders = [...unassignedOrders].sort((a, b) => {
-    const aHasIcon = hasSpecialIcon(a, 'order');
-    const bHasIcon = hasSpecialIcon(b, 'order');
-    
-    if (aHasIcon && !bHasIcon) return -1;
-    if (!aHasIcon && bHasIcon) return 1;
-    return 0;
-  });
-
-  // Sort returns - prioritize those with special icons
-  const sortedReturns = [...unassignedReturns].sort((a, b) => {
-    const aHasIcon = hasSpecialIcon(a, 'return');
-    const bHasIcon = hasSpecialIcon(b, 'return');
-    
-    if (aHasIcon && !bHasIcon) return -1;
-    if (!aHasIcon && bHasIcon) return 1;
-    return 0;
-  });
-
   return (
     <div className="mb-8">
       <h2 className="text-xl font-semibold mb-4">הזמנות והחזרות ללא שיוך</h2>
@@ -118,7 +86,7 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
           isOver ? 'border-primary bg-primary/5' : 'border-border'
         }`}
       >
-        {sortedOrders.map((order) => (
+        {unassignedOrders.map((order) => (
           <div key={`order-${order.ordernumber}`} className="relative group">
             <OrderCard
               type="order"
@@ -138,7 +106,7 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
             )}
           </div>
         ))}
-        {sortedReturns.map((returnItem) => (
+        {unassignedReturns.map((returnItem) => (
           <div key={`return-${returnItem.returnnumber}`} className="relative group">
             <OrderCard
               type="return"
