@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -142,19 +141,6 @@ export default function Auth() {
                 {selectedAgentData ? `התחבר כ${selectedAgentData.name}` : "התחבר"}
               </Button>
             </form>
-
-            {selectedAgent && (
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="text-center">
-                  <div className="text-sm text-blue-600 font-medium">
-                    {selectedAgentData?.name} - {selectedAgentData?.title}
-                  </div>
-                  <div className="text-xs text-blue-500 mt-1">
-                    ההתחברות תתאפס אוטומטית ב-12:00 בלילה
-                  </div>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>
