@@ -5,20 +5,7 @@ import { Button } from '@/components/ui/button';
 import { CalendarCard } from './CalendarCard';
 import { ProductionDialog } from './ProductionDialog';
 import { Play } from 'lucide-react';
-
-interface Order {
-  ordernumber: number;
-  customername: string;
-  totalorder: number;
-  schedule_id?: number;
-}
-
-interface Return {
-  returnnumber: number;
-  customername: string;
-  totalreturn: number;
-  schedule_id?: number;
-}
+import { OrderWithSchedule, ReturnWithSchedule } from '@/utils/scheduleUtils';
 
 interface DistributionGroup {
   groups_id: number;
@@ -46,8 +33,8 @@ interface CalendarGridProps {
   distributionSchedules: DistributionSchedule[];
   distributionGroups: DistributionGroup[];
   drivers: Driver[];
-  orders: Order[];
-  returns: Return[];
+  orders: OrderWithSchedule[];
+  returns: ReturnWithSchedule[];
   onDropToDate: (scheduleId: number, date: Date) => void;
 }
 
@@ -56,8 +43,8 @@ const CalendarDay: React.FC<{
   schedulesForDate: DistributionSchedule[];
   distributionGroups: DistributionGroup[];
   drivers: Driver[];
-  orders: Order[];
-  returns: Return[];
+  orders: OrderWithSchedule[];
+  returns: ReturnWithSchedule[];
   onDropToDate: (scheduleId: number, date: Date) => void;
   onProductionDialogOpen: (date: Date) => void;
 }> = ({ 
