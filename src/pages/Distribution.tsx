@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -455,17 +454,6 @@ const Distribution = () => {
             </Button>
           </div>
         </div>
-        
-        {/* Horizontal Kanban for unscheduled distribution lines */}
-        <HorizontalKanban
-          distributionSchedules={distributionSchedules}
-          distributionGroups={distributionGroups}
-          drivers={drivers}
-          orders={orders}
-          returns={returns}
-          multiOrderActiveCustomerList={multiOrderActiveCustomerList}
-          dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
-        />
         
         {/* Unassigned items area with drop functionality and delete buttons */}
         <UnassignedArea
