@@ -91,7 +91,7 @@ const CalendarDay: React.FC<{
     <Card
       ref={drop}
       className={`p-3 min-h-[250px] border-2 border-dashed ${
-        isOver ? 'border-blue-400 bg-blue-50' : 'border-gray-200'
+        isOver ? 'border-blue-400 bg-blue-50'  : 'border-gray-200'
       }`}
     >
       <div className="flex items-center justify-between mb-3">

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
@@ -88,11 +89,20 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   const driver = drivers.find(d => d.id === driverId);
 
   // Get orders and returns for this schedule using the new logic
-  const scheduleOrders = getOrdersByScheduleId(orders, scheduleId);
-  const scheduleReturns = getReturnsByScheduleId(returns, scheduleId);
+  let scheduleOrders = getOrdersByScheduleId(orders, scheduleId);
+  let scheduleReturns = getReturnsByScheduleId(returns, scheduleId);
 
-  // Calculate unique customers using the utility function
-  const uniqueCustomers = getUniqueCustomersForSchedule(orders, returns, scheduleId);
+  // Special filtering for Agent 99 - only show his own orders/returns within cards
+  if (currentUser?.agentnumber === "99") {
+    scheduleOrders = scheduleOrders.filter(order => order.agentnumber === '99');
+    scheduleReturns = scheduleReturns.filter(returnItem => returnItem.agentnumber === '99');
+  }
+
+  // Calculate unique customers based on filtered data
+  const uniqueCustomers = new Set([
+    ...scheduleOrders.map(order => order.customername),
+    ...scheduleReturns.map(returnItem => returnItem.customername)
+  ]);
   
   // Create a map of customers with their cities for proper strikethrough logic
   const customerCityMap = new Map<string, string>();

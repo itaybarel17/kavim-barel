@@ -177,6 +177,34 @@ const Calendar = () => {
   const allowedGroupIds = useMemo(() => {
     if (!currentUser) return [];
     if (currentUser.agentnumber === "4") return null; // 4 ("משרד") sees all
+    
+    // Special logic for Agent 99 - only see groups that have his orders/returns
+    if (currentUser.agentnumber === "99") {
+      const agent99GroupIds = new Set<number>();
+      distributionSchedules.forEach(schedule => {
+        const hasAgent99Orders = orders.some(order => 
+          (order.schedule_id === schedule.schedule_id || 
+           (order.schedule_id_if_changed && 
+            ((typeof order.schedule_id_if_changed === 'object' && order.schedule_id_if_changed.schedule_id === schedule.schedule_id) ||
+             order.schedule_id_if_changed === schedule.schedule_id))) &&
+          order.agentnumber === '99'
+        );
+        
+        const hasAgent99Returns = returns.some(returnItem => 
+          (returnItem.schedule_id === schedule.schedule_id || 
+           (returnItem.schedule_id_if_changed && 
+            ((typeof returnItem.schedule_id_if_changed === 'object' && returnItem.schedule_id_if_changed.schedule_id === schedule.schedule_id) ||
+             returnItem.schedule_id_if_changed === schedule.schedule_id))) &&
+          returnItem.agentnumber === '99'
+        );
+
+        if (hasAgent99Orders || hasAgent99Returns) {
+          agent99GroupIds.add(schedule.groups_id);
+        }
+      });
+      return Array.from(agent99GroupIds);
+    }
+    
     // Allow only groups where agent is in distribution_groups.agents (array of agentnumbers in jsonb)
     return distributionGroups.filter(group => {
       if (!group.agents) return false;
@@ -195,7 +223,7 @@ const Calendar = () => {
       }
       return false;
     }).map(group => group.groups_id);
-  }, [currentUser, distributionGroups]);
+  }, [currentUser, distributionGroups, distributionSchedules, orders, returns]);
 
   // Filtered schedules
   const filteredSchedules = useMemo(() => {
@@ -210,7 +238,8 @@ const Calendar = () => {
     if (!currentUser) return [];
     if (currentUser.agentnumber === "4") return orders;
     if (!allowedGroupIds || allowedGroupIds.length === 0) return [];
-    return orders.filter(o => {
+    
+    let filteredResults = orders.filter(o => {
       // Find to which group this order belongs, via its schedule_id or schedule_id_if_changed
       const allScheduleIds = [];
       if (typeof o.schedule_id === 'number') allScheduleIds.push(o.schedule_id);
@@ -225,12 +254,21 @@ const Calendar = () => {
       });
       return inAllowed;
     });
+    
+    // Special filtering for Agent 99 - only show his own orders
+    if (currentUser.agentnumber === "99") {
+      filteredResults = filteredResults.filter(o => o.agentnumber === '99');
+    }
+    
+    return filteredResults;
   }, [orders, allowedGroupIds, currentUser, distributionSchedules]);
+  
   const filteredReturns = useMemo(() => {
     if (!currentUser) return [];
     if (currentUser.agentnumber === "4") return returns;
     if (!allowedGroupIds || allowedGroupIds.length === 0) return [];
-    return returns.filter(o => {
+    
+    let filteredResults = returns.filter(o => {
       // Find to which group this return belongs, via its schedule_id or schedule_id_if_changed
       const allScheduleIds = [];
       if (typeof o.schedule_id === 'number') allScheduleIds.push(o.schedule_id);
@@ -245,6 +283,13 @@ const Calendar = () => {
       });
       return inAllowed;
     });
+    
+    // Special filtering for Agent 99 - only show his own returns
+    if (currentUser.agentnumber === "99") {
+      filteredResults = filteredResults.filter(o => o.agentnumber === '99');
+    }
+    
+    return filteredResults;
   }, [returns, allowedGroupIds, currentUser, distributionSchedules]);
 
   // Update destinations count immediately when orders/returns change
