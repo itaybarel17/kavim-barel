@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
@@ -104,6 +105,14 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   
   const uniqueCustomersList = Array.from(uniqueCustomers);
 
+  // Create a map to track which customers belong to agent 99
+  const agent99Customers = new Set<string>();
+  [...scheduleOrders, ...scheduleReturns].forEach(item => {
+    if (item.agentnumber === '99') {
+      agent99Customers.add(item.customername);
+    }
+  });
+
   // Calculate totals in money
   const totalOrdersAmount = scheduleOrders.reduce((sum, order) => sum + (order.totalorder || 0), 0);
   const totalReturnsAmount = scheduleReturns.reduce((sum, returnItem) => sum + (returnItem.totalreturn || 0), 0);
@@ -176,9 +185,12 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
                 returns, 
                 scheduleId
               );
+              const isAgent99Customer = agent99Customers.has(customer);
               
               return (
-                <div key={index} className={`text-gray-600 truncate ${isCompletelyTransferred ? 'line-through' : ''}`}>
+                <div key={index} className={`truncate ${isCompletelyTransferred ? 'line-through' : ''} ${
+                  isAgent99Customer ? 'text-pink-600 font-medium' : 'text-gray-600'
+                }`}>
                   • {customer}
                 </div>
               );
