@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -264,25 +263,24 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <div className="text-lg font-bold text-green-600">
-                        סה"כ: ₪{stats.totalValue.toLocaleString('he-IL')}
+                      <div className="flex gap-2 items-center">
+                        {/* Always show view summary button */}
+                        <Button
+                          onClick={() => handleViewSummary(schedule.schedule_id)}
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-1"
+                        >
+                          <Printer className="h-4 w-4" />
+                          הדפס דוח
+                        </Button>
                       </div>
                       
                       <div className="flex gap-2 items-center">
                         {isProduced ? (
-                          <>
-                            <span className="text-gray-500 text-sm font-medium px-3 py-1 bg-gray-100 rounded">
-                              הופק
-                            </span>
-                            <Button
-                              onClick={() => handleViewSummary(schedule.schedule_id)}
-                              variant="outline"
-                              size="sm"
-                              className="flex items-center gap-1"
-                            >
-                              <Printer className="h-4 w-4" />
-                            </Button>
-                          </>
+                          <span className="text-gray-500 text-sm font-medium px-3 py-1 bg-gray-100 rounded">
+                            הופק
+                          </span>
                         ) : (
                           <>
                             {!hasDriver && (

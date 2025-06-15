@@ -99,7 +99,8 @@ const CalendarDay: React.FC<{
           <div className="font-medium text-sm">{dayNames[date.getDay()]}</div>
           <div className="text-xs text-gray-500">{dateStr}</div>
         </div>
-        {schedulesForDate.length > 0 && currentUser?.agentnumber === "4" && (
+        {/* Show production button to all users when there are schedules */}
+        {schedulesForDate.length > 0 && (
           <Button
             size="sm"
             variant="outline"
