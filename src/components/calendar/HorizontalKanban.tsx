@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useDrop } from 'react-dnd';
 import { CalendarCard } from './CalendarCard';
@@ -66,34 +65,54 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
     if (isAdmin) return null; // All
     if (!currentUser) return [];
     
-    // Special logic for Agent 99 - only see groups that have his orders/returns
+    // Special logic for Agent 99 - only see specific schedule_ids that have his orders/returns
     if (isAgent99) {
-      const agent99GroupIds = new Set<number>();
+      const agent99ScheduleIds = new Set<number>();
       distributionSchedules.forEach(schedule => {
-        const hasAgent99Orders = orders.some(order => 
-          (order.schedule_id === schedule.schedule_id || 
-           (order.schedule_id_if_changed && 
-            ((typeof order.schedule_id_if_changed === 'object' && order.schedule_id_if_changed.schedule_id === schedule.schedule_id) ||
-             order.schedule_id_if_changed === schedule.schedule_id))) &&
-          order.agentnumber === '99'
-        );
+        const hasAgent99Orders = orders.some(order => {
+          const relevantScheduleIds = [];
+          if (typeof order.schedule_id === 'number') relevantScheduleIds.push(order.schedule_id);
+          if (order.schedule_id_if_changed) {
+            if (typeof order.schedule_id_if_changed === 'number') {
+              relevantScheduleIds.push(order.schedule_id_if_changed);
+            } else if (Array.isArray(order.schedule_id_if_changed)) {
+              order.schedule_id_if_changed.forEach(sid => {
+                if (typeof sid === 'number') relevantScheduleIds.push(sid);
+              });
+            } else if (typeof order.schedule_id_if_changed === 'object' && order.schedule_id_if_changed.schedule_id) {
+              relevantScheduleIds.push(order.schedule_id_if_changed.schedule_id);
+            }
+          }
+          
+          return relevantScheduleIds.includes(schedule.schedule_id) && order.agentnumber === '99';
+        });
         
-        const hasAgent99Returns = returns.some(returnItem => 
-          (returnItem.schedule_id === schedule.schedule_id || 
-           (returnItem.schedule_id_if_changed && 
-            ((typeof returnItem.schedule_id_if_changed === 'object' && returnItem.schedule_id_if_changed.schedule_id === schedule.schedule_id) ||
-             returnItem.schedule_id_if_changed === schedule.schedule_id))) &&
-          returnItem.agentnumber === '99'
-        );
+        const hasAgent99Returns = returns.some(returnItem => {
+          const relevantScheduleIds = [];
+          if (typeof returnItem.schedule_id === 'number') relevantScheduleIds.push(returnItem.schedule_id);
+          if (returnItem.schedule_id_if_changed) {
+            if (typeof returnItem.schedule_id_if_changed === 'number') {
+              relevantScheduleIds.push(returnItem.schedule_id_if_changed);
+            } else if (Array.isArray(returnItem.schedule_id_if_changed)) {
+              returnItem.schedule_id_if_changed.forEach(sid => {
+                if (typeof sid === 'number') relevantScheduleIds.push(sid);
+              });
+            } else if (typeof returnItem.schedule_id_if_changed === 'object' && returnItem.schedule_id_if_changed.schedule_id) {
+              relevantScheduleIds.push(returnItem.schedule_id_if_changed.schedule_id);
+            }
+          }
+          
+          return relevantScheduleIds.includes(schedule.schedule_id) && returnItem.agentnumber === '99';
+        });
 
         if (hasAgent99Orders || hasAgent99Returns) {
-          agent99GroupIds.add(schedule.groups_id);
+          agent99ScheduleIds.add(schedule.schedule_id);
         }
       });
-      return Array.from(agent99GroupIds);
+      return Array.from(agent99ScheduleIds);
     }
     
-    // Get groups where agent is allowed OR groups that contain agent 99 orders
+    // Get groups where agent is allowed
     const agentAllowedGroups = distributionGroups
       .filter((group) => {
         if (!group.agents) return false;
@@ -112,31 +131,7 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
       })
       .map((group) => group.groups_id);
 
-    // Also include groups that have agent 99 orders - everyone should see these
-    const agent99GroupIds = new Set<number>();
-    distributionSchedules.forEach(schedule => {
-      const hasAgent99Orders = orders.some(order => 
-        (order.schedule_id === schedule.schedule_id || 
-         (order.schedule_id_if_changed && 
-          ((typeof order.schedule_id_if_changed === 'object' && order.schedule_id_if_changed.schedule_id === schedule.schedule_id) ||
-           order.schedule_id_if_changed === schedule.schedule_id))) &&
-        order.agentnumber === '99'
-      );
-      
-      const hasAgent99Returns = returns.some(returnItem => 
-        (returnItem.schedule_id === schedule.schedule_id || 
-         (returnItem.schedule_id_if_changed && 
-          ((typeof returnItem.schedule_id_if_changed === 'object' && returnItem.schedule_id_if_changed.schedule_id === schedule.schedule_id) ||
-           returnItem.schedule_id_if_changed === schedule.schedule_id))) &&
-        returnItem.agentnumber === '99'
-      );
-
-      if (hasAgent99Orders || hasAgent99Returns) {
-        agent99GroupIds.add(schedule.groups_id);
-      }
-    });
-
-    return [...agentAllowedGroups, ...Array.from(agent99GroupIds)];
+    return agentAllowedGroups;
   }, [currentUser, isAdmin, isAgent99, distributionGroups, distributionSchedules, orders, returns]);
 
   const filteredSchedulesWithItems = distributionSchedules.filter(schedule => {
@@ -144,7 +139,7 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
       if (!allowedGroupIds || !allowedGroupIds.includes(schedule.groups_id))
         return false;
     }
-    if (isAgent99 && (!allowedGroupIds || !allowedGroupIds.includes(schedule.groups_id))) {
+    if (isAgent99 && (!allowedGroupIds || !allowedGroupIds.includes(schedule.schedule_id))) {
       return false;
     }
     const uniqueCustomers = getUniqueCustomersForSchedule(orders, returns, schedule.schedule_id);

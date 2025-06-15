@@ -173,14 +173,14 @@ const Calendar = () => {
     }
   });
 
-  // AUTHORIZE: Get allowed group ids for this user (except admin "4" sees all)
+  // AUTHORIZE: Get allowed group ids or schedule ids for this user (except admin "4" sees all)
   const allowedGroupIds = useMemo(() => {
     if (!currentUser) return [];
     if (currentUser.agentnumber === "4") return null; // 4 ("משרד") sees all
     
-    // Special logic for Agent 99 - only see groups that have his orders/returns
+    // Special logic for Agent 99 - only see specific schedule_ids that have his orders/returns
     if (currentUser.agentnumber === "99") {
-      const agent99GroupIds = new Set<number>();
+      const agent99ScheduleIds = new Set<number>();
       distributionSchedules.forEach(schedule => {
         const hasAgent99Orders = orders.some(order => {
           const relevantScheduleIds = [];
@@ -219,10 +219,10 @@ const Calendar = () => {
         });
 
         if (hasAgent99Orders || hasAgent99Returns) {
-          agent99GroupIds.add(schedule.groups_id);
+          agent99ScheduleIds.add(schedule.schedule_id);
         }
       });
-      return Array.from(agent99GroupIds);
+      return Array.from(agent99ScheduleIds);
     }
     
     // Allow only groups where agent is in distribution_groups.agents (array of agentnumbers in jsonb)
@@ -250,6 +250,12 @@ const Calendar = () => {
     if (!currentUser) return [];
     if (currentUser.agentnumber === "4") return distributionSchedules;
     if (!allowedGroupIds || allowedGroupIds.length === 0) return [];
+    
+    // For Agent 99, allowedGroupIds actually contains schedule_ids
+    if (currentUser.agentnumber === "99") {
+      return distributionSchedules.filter(sch => allowedGroupIds.includes(sch.schedule_id));
+    }
+    
     return distributionSchedules.filter(sch => allowedGroupIds.includes(sch.groups_id));
   }, [distributionSchedules, allowedGroupIds, currentUser]);
 
