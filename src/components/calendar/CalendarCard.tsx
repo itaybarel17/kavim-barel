@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
@@ -135,7 +134,7 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
             : 'cursor-default border-blue-200 bg-blue-50'
       }`;
 
-  const contentPadding = isCalendarMode ? "p-1.5" : "p-3";
+  const contentPadding = isCalendarMode ? "p-1" : "p-3";
   const titleSize = isCalendarMode ? "text-[10px]" : "text-sm";
   const textSize = isCalendarMode ? "text-[9px]" : "text-xs";
   const spacing = isCalendarMode ? "mb-1" : "mb-2";
