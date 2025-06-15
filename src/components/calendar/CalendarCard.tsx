@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
@@ -129,7 +127,7 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   
   // Enhanced styling - all cards have normal visibility, only cursor changes based on permissions
   const cardClasses = isCalendarMode 
-    ? `w-full max-w-[160px] overflow-hidden ${
+    ? `w-full max-w-[220px] overflow-hidden ${
         isProduced 
           ? 'cursor-not-allowed border-4 border-green-500 bg-green-50 shadow-lg' 
           : canDrag 
@@ -144,11 +142,11 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
             : 'cursor-default border-blue-200 bg-blue-50'
       }`;
 
-  const contentPadding = isCalendarMode ? "p-1" : "p-3";
-  const titleSize = isCalendarMode ? "text-[10px]" : "text-sm";
-  const textSize = isCalendarMode ? "text-[9px]" : "text-xs";
-  const spacing = isCalendarMode ? "mb-1" : "mb-2";
-  const maxHeight = isCalendarMode ? "max-h-20" : "max-h-20";
+  const contentPadding = isCalendarMode ? "p-2" : "p-3";
+  const titleSize = isCalendarMode ? "text-xs" : "text-sm";
+  const textSize = isCalendarMode ? "text-[10px]" : "text-xs";
+  const spacing = isCalendarMode ? "mb-1.5" : "mb-2";
+  const maxHeight = isCalendarMode ? "max-h-28" : "max-h-20";
 
   return (
     <Card
@@ -232,4 +230,3 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
     </Card>
   );
 };
-
