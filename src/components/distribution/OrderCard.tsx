@@ -170,8 +170,11 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         </div>
         {/* Show archive invoice date in green if exists */}
         {invoicedate && (
-          <div className="mt-2 text-xs text-green-600 font-medium">
-            {new Date(invoicedate).toLocaleDateString('he-IL')}
+          <div className="mt-2 text-xs text-green-600 font-medium flex items-center gap-2">
+            <span>{new Date(invoicedate).toLocaleDateString('he-IL')}</span>
+            {isCandyPlus && (
+              <span className="text-xs font-medium text-pink-600">קנדי+</span>
+            )}
           </div>
         )}
         {/* show invoice number/total invoice as before */}
