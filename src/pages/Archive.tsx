@@ -419,47 +419,53 @@ const Archive = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {filteredDeletedOrders.map((order) => (
-                    <div
-                      key={order.ordernumber}
-                      className="p-3 border border-gray-300 rounded-lg bg-gray-50 flex justify-between items-start"
-                    >
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="font-medium text-gray-800">
-                            #{order.ordernumber}
-                            {order.orderdate && (
-                              <span className="text-sm text-gray-600 mr-2">
-                                - {new Date(order.orderdate).toLocaleDateString('he-IL')}
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-sm text-gray-600 font-bold">
-                            ₪{order.totalorder?.toLocaleString('he-IL')}
-                          </div>
-                        </div>
-                        <div className="text-sm text-gray-700">
-                          <div>{order.customername}</div>
-                          <div>{order.address}, {order.city}</div>
-                          {order.agentnumber && (
-                            <div className="text-xs text-gray-500">סוכן: {order.agentnumber}</div>
-                          )}
-                          <div className="text-xs text-gray-500 mt-1">
-                            נמחק: {new Date(order.ordercancel).toLocaleDateString('he-IL')} {new Date(order.ordercancel).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleRestoreOrder(order)}
-                        className="ml-2 flex items-center gap-1"
-                        title="שחזר הזמנה"
+                  {filteredDeletedOrders.map((order) => {
+                    const isCandyPlus = order.agentnumber === '99';
+                    return (
+                      <div
+                        key={order.ordernumber}
+                        className="p-3 border border-gray-300 rounded-lg bg-gray-50 flex justify-between items-start"
                       >
-                        <Undo2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="font-medium text-gray-800 flex items-center gap-2">
+                              #{order.ordernumber}
+                              {order.orderdate && (
+                                <span className="text-sm text-gray-600">
+                                  - {new Date(order.orderdate).toLocaleDateString('he-IL')}
+                                </span>
+                              )}
+                              {isCandyPlus && (
+                                <span className="text-sm font-medium text-pink-600">קנדי+</span>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-600 font-bold">
+                              ₪{order.totalorder?.toLocaleString('he-IL')}
+                            </div>
+                          </div>
+                          <div className="text-sm text-gray-700">
+                            <div>{order.customername}</div>
+                            <div>{order.address}, {order.city}</div>
+                            {order.agentnumber && (
+                              <div className="text-xs text-gray-500">סוכן: {order.agentnumber}</div>
+                            )}
+                            <div className="text-xs text-gray-500 mt-1">
+                              נמחק: {new Date(order.ordercancel).toLocaleDateString('he-IL')} {new Date(order.ordercancel).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRestoreOrder(order)}
+                          className="ml-2 flex items-center gap-1"
+                          title="שחזר הזמנה"
+                        >
+                          <Undo2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    );
+                  })}
                   {filteredDeletedOrders.length === 0 && (
                     <div className="text-center text-gray-500 py-4">
                       אין הזמנות מחוקות
@@ -479,47 +485,53 @@ const Archive = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {filteredDeletedReturns.map((returnItem) => (
-                    <div
-                      key={returnItem.returnnumber}
-                      className="p-3 border border-gray-300 rounded-lg bg-gray-50 flex justify-between items-start"
-                    >
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="font-medium text-gray-800">
-                            החזרה #{returnItem.returnnumber}
-                            {returnItem.returndate && (
-                              <span className="text-sm text-gray-600 mr-2">
-                                - {new Date(returnItem.returndate).toLocaleDateString('he-IL')}
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-sm text-gray-600 font-bold">
-                            ₪{returnItem.totalreturn?.toLocaleString('he-IL')}
-                          </div>
-                        </div>
-                        <div className="text-sm text-gray-700">
-                          <div>{returnItem.customername}</div>
-                          <div>{returnItem.address}, {returnItem.city}</div>
-                          {returnItem.agentnumber && (
-                            <div className="text-xs text-gray-500">סוכן: {returnItem.agentnumber}</div>
-                          )}
-                          <div className="text-xs text-gray-500 mt-1">
-                            נמחק: {new Date(returnItem.returncancel).toLocaleDateString('he-IL')} {new Date(returnItem.returncancel).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleRestoreReturn(returnItem)}
-                        className="ml-2 flex items-center gap-1"
-                        title="שחזר החזרה"
+                  {filteredDeletedReturns.map((returnItem) => {
+                    const isCandyPlus = returnItem.agentnumber === '99';
+                    return (
+                      <div
+                        key={returnItem.returnnumber}
+                        className="p-3 border border-gray-300 rounded-lg bg-gray-50 flex justify-between items-start"
                       >
-                        <Undo2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="font-medium text-gray-800 flex items-center gap-2">
+                              החזרה #{returnItem.returnnumber}
+                              {returnItem.returndate && (
+                                <span className="text-sm text-gray-600">
+                                  - {new Date(returnItem.returndate).toLocaleDateString('he-IL')}
+                                </span>
+                              )}
+                              {isCandyPlus && (
+                                <span className="text-sm font-medium text-pink-600">קנדי+</span>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-600 font-bold">
+                              ₪{returnItem.totalreturn?.toLocaleString('he-IL')}
+                            </div>
+                          </div>
+                          <div className="text-sm text-gray-700">
+                            <div>{returnItem.customername}</div>
+                            <div>{returnItem.address}, {returnItem.city}</div>
+                            {returnItem.agentnumber && (
+                              <div className="text-xs text-gray-500">סוכן: {returnItem.agentnumber}</div>
+                            )}
+                            <div className="text-xs text-gray-500 mt-1">
+                              נמחק: {new Date(returnItem.returncancel).toLocaleDateString('he-IL')} {new Date(returnItem.returncancel).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRestoreReturn(returnItem)}
+                          className="ml-2 flex items-center gap-1"
+                          title="שחזר החזרה"
+                        >
+                          <Undo2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    );
+                  })}
                   {filteredDeletedReturns.length === 0 && (
                     <div className="text-center text-gray-500 py-4">
                       אין החזרות מחוקות
@@ -548,117 +560,192 @@ const Archive = () => {
                         חשבונית מורכבת מכמה הזמנות - מספר חשבונית: {invoiceNumber}
                       </Badge>
                       <div className="space-y-2">
-                        {orders.map((order) => (
-                          <div
-                            key={order.ordernumber}
-                            className="p-3 border border-green-200 rounded-lg bg-green-50 flex justify-between items-start"
-                          >
-                            <div className="flex-1">
-                              <div className="flex justify-between items-start mb-2">
-                                <div className="font-medium text-green-800">
-                                  הזמנה #{order.ordernumber}
-                                  {order.orderdate && (
-                                    <span className="text-sm text-green-600 mr-2">
-                                      - {new Date(order.orderdate).toLocaleDateString('he-IL')}
-                                    </span>
+                        {orders.map((order) => {
+                          const isCandyPlus = order.agentnumber === '99';
+                          return (
+                            <div
+                              key={order.ordernumber}
+                              className="p-3 border border-green-200 rounded-lg bg-green-50 flex justify-between items-start"
+                            >
+                              <div className="flex-1">
+                                <div className="flex justify-between items-start mb-2">
+                                  <div className="font-medium text-green-800 flex items-center gap-2">
+                                    הזמנה #{order.ordernumber}
+                                    {order.orderdate && (
+                                      <span className="text-sm text-green-600">
+                                        - {new Date(order.orderdate).toLocaleDateString('he-IL')}
+                                      </span>
+                                    )}
+                                    {isCandyPlus && (
+                                      <span className="text-sm font-medium text-pink-600">קנדי+</span>
+                                    )}
+                                  </div>
+                                  <div className="text-sm text-green-600 font-bold">
+                                    ₪{order.totalorder?.toLocaleString('he-IL')}
+                                  </div>
+                                </div>
+                                <div className="text-sm text-gray-700">
+                                  <div>{order.customername}</div>
+                                  <div>{order.address}, {order.city}</div>
+                                  {order.agentnumber && (
+                                    <div className="text-xs text-gray-500">סוכן: {order.agentnumber}</div>
+                                  )}
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    הופק: {new Date(order.done_mainorder).toLocaleDateString('he-IL')} {new Date(order.done_mainorder).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+                                  </div>
+                                  {scheduleMap[order.schedule_id] && (
+                                    <div className="text-xs text-blue-600 mt-1">
+                                      {scheduleMap[order.schedule_id].distribution_date && (
+                                        <span>תאריך אספקה: {new Date(scheduleMap[order.schedule_id].distribution_date!).toLocaleDateString('he-IL')} </span>
+                                      )}
+                                      {scheduleMap[order.schedule_id].dis_number && (
+                                        <span>מספר הפצה: {scheduleMap[order.schedule_id].dis_number} </span>
+                                      )}
+                                      <span>לוח זמנים: {order.schedule_id}</span>
+                                    </div>
+                                  )}
+                                  {order.invoicedate && (
+                                    <div className="text-xs text-green-600 font-medium mt-1">
+                                      <span>תאריך חשבונית: {new Date(order.invoicedate).toLocaleDateString('he-IL')}</span>
+                                      {order.totalinvoice && (
+                                        <span className="mr-3">סכום חשבונית: ₪{order.totalinvoice.toLocaleString('he-IL')}</span>
+                                      )}
+                                    </div>
                                   )}
                                 </div>
-                                <div className="text-sm text-green-600 font-bold">
-                                  ₪{order.totalorder?.toLocaleString('he-IL')}
-                                </div>
                               </div>
-                              <div className="text-sm text-gray-700">
-                                <div>{order.customername}</div>
-                                <div>{order.address}, {order.city}</div>
-                                {order.agentnumber && (
-                                  <div className="text-xs text-gray-500">סוכן: {order.agentnumber}</div>
-                                )}
-                                <div className="text-xs text-gray-500 mt-1">
-                                  הופק: {new Date(order.done_mainorder).toLocaleDateString('he-IL')} {new Date(order.done_mainorder).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                                </div>
-                                {scheduleMap[order.schedule_id] && (
-                                  <div className="text-xs text-blue-600 mt-1">
-                                    {scheduleMap[order.schedule_id].distribution_date && (
-                                      <span>תאריך אספקה: {new Date(scheduleMap[order.schedule_id].distribution_date!).toLocaleDateString('he-IL')} </span>
-                                    )}
-                                    {scheduleMap[order.schedule_id].dis_number && (
-                                      <span>מספר הפצה: {scheduleMap[order.schedule_id].dis_number} </span>
-                                    )}
-                                    <span>לוח זמנים: {order.schedule_id}</span>
-                                  </div>
-                                )}
-                                {order.invoicedate && (
-                                  <div className="text-xs text-green-600 font-medium mt-1">
-                                    <span>תאריך חשבונית: {new Date(order.invoicedate).toLocaleDateString('he-IL')}</span>
-                                    {order.totalinvoice && (
-                                      <span className="mr-3">סכום חשבונית: ₪{order.totalinvoice.toLocaleString('he-IL')}</span>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openReturnDialog('order', order)}
+                                className="ml-2 flex items-center gap-1"
+                                title="החזר להפצה"
+                              >
+                                🔙
+                              </Button>
                             </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => openReturnDialog('order', order)}
-                              className="ml-2 flex items-center gap-1"
-                              title="החזר להפצה"
-                            >
-                              🔙
-                            </Button>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   ) : (
                     // Single order with invoice
+                    (() => {
+                      const order = orders[0];
+                      const isCandyPlus = order.agentnumber === '99';
+                      return (
+                        <div
+                          key={order.ordernumber}
+                          className="p-3 border border-green-200 rounded-lg bg-green-50 flex justify-between items-start"
+                        >
+                          <div className="flex-1">
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="font-medium text-green-800 flex items-center gap-2">
+                                הזמנה #{order.ordernumber}
+                                {order.orderdate && (
+                                  <span className="text-sm text-green-600">
+                                    - {new Date(order.orderdate).toLocaleDateString('he-IL')}
+                                  </span>
+                                )}
+                                {isCandyPlus && (
+                                  <span className="text-sm font-medium text-pink-600">קנדי+</span>
+                                )}
+                              </div>
+                              <div className="text-sm text-green-600 font-bold">
+                                ₪{order.totalorder?.toLocaleString('he-IL')}
+                              </div>
+                            </div>
+                            <div className="text-sm text-gray-700">
+                              <div>{order.customername}</div>
+                              <div>{order.address}, {order.city}</div>
+                              {order.agentnumber && (
+                                <div className="text-xs text-gray-500">סוכן: {order.agentnumber}</div>
+                              )}
+                              <div className="text-xs text-gray-500 mt-1">
+                                הופק: {new Date(order.done_mainorder).toLocaleDateString('he-IL')} {new Date(order.done_mainorder).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+                              </div>
+                              {scheduleMap[order.schedule_id] && (
+                                <div className="text-xs text-blue-600 mt-1">
+                                  {scheduleMap[order.schedule_id].distribution_date && (
+                                    <span>תאריך אספקה: {new Date(scheduleMap[order.schedule_id].distribution_date!).toLocaleDateString('he-IL')} </span>
+                                  )}
+                                  {scheduleMap[order.schedule_id].dis_number && (
+                                    <span>מספר הפצה: {scheduleMap[order.schedule_id].dis_number} </span>
+                                  )}
+                                  <span>לוח זמנים: {order.schedule_id}</span>
+                                </div>
+                              )}
+                              {order.invoicenumber && (
+                                <div className="text-xs text-green-600 font-medium mt-1">
+                                  <span>חשבונית: {order.invoicenumber}</span>
+                                  {order.totalinvoice && (
+                                    <span className="mr-3">סכום: ₪{order.totalinvoice.toLocaleString('he-IL')}</span>
+                                  )}
+                                  {order.invoicedate && (
+                                    <span className="mr-3">תאריך: {new Date(order.invoicedate).toLocaleDateString('he-IL')}</span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openReturnDialog('order', order)}
+                            className="ml-2 flex items-center gap-1"
+                            title="החזר להפצה"
+                          >
+                            🔙
+                          </Button>
+                        </div>
+                      );
+                    })()
+                  )
+                ))}
+
+                {/* Ungrouped orders (no invoice) */}
+                {ungroupedOrders.map((order) => {
+                  const isCandyPlus = order.agentnumber === '99';
+                  return (
                     <div
-                      key={orders[0].ordernumber}
+                      key={order.ordernumber}
                       className="p-3 border border-green-200 rounded-lg bg-green-50 flex justify-between items-start"
                     >
                       <div className="flex-1">
                         <div className="flex justify-between items-start mb-2">
-                          <div className="font-medium text-green-800">
-                            הזמנה #{orders[0].ordernumber}
-                            {orders[0].orderdate && (
-                              <span className="text-sm text-green-600 mr-2">
-                                - {new Date(orders[0].orderdate).toLocaleDateString('he-IL')}
+                          <div className="font-medium text-green-800 flex items-center gap-2">
+                            הזמנה #{order.ordernumber}
+                            {order.orderdate && (
+                              <span className="text-sm text-green-600">
+                                - {new Date(order.orderdate).toLocaleDateString('he-IL')}
                               </span>
+                            )}
+                            {isCandyPlus && (
+                              <span className="text-sm font-medium text-pink-600">קנדי+</span>
                             )}
                           </div>
                           <div className="text-sm text-green-600 font-bold">
-                            ₪{orders[0].totalorder?.toLocaleString('he-IL')}
+                            ₪{order.totalorder?.toLocaleString('he-IL')}
                           </div>
                         </div>
                         <div className="text-sm text-gray-700">
-                          <div>{orders[0].customername}</div>
-                          <div>{orders[0].address}, {orders[0].city}</div>
-                          {orders[0].agentnumber && (
-                            <div className="text-xs text-gray-500">סוכן: {orders[0].agentnumber}</div>
+                          <div>{order.customername}</div>
+                          <div>{order.address}, {order.city}</div>
+                          {order.agentnumber && (
+                            <div className="text-xs text-gray-500">סוכן: {order.agentnumber}</div>
                           )}
                           <div className="text-xs text-gray-500 mt-1">
-                            הופק: {new Date(orders[0].done_mainorder).toLocaleDateString('he-IL')} {new Date(orders[0].done_mainorder).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+                            הופק: {new Date(order.done_mainorder).toLocaleDateString('he-IL')} {new Date(order.done_mainorder).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
                           </div>
-                          {scheduleMap[orders[0].schedule_id] && (
+                          {scheduleMap[order.schedule_id] && (
                             <div className="text-xs text-blue-600 mt-1">
-                              {scheduleMap[orders[0].schedule_id].distribution_date && (
-                                <span>תאריך אספקה: {new Date(scheduleMap[orders[0].schedule_id].distribution_date!).toLocaleDateString('he-IL')} </span>
+                              {scheduleMap[order.schedule_id].distribution_date && (
+                                <span>תאריך אספקה: {new Date(scheduleMap[order.schedule_id].distribution_date!).toLocaleDateString('he-IL')} </span>
                               )}
-                              {scheduleMap[orders[0].schedule_id].dis_number && (
-                                <span>מספר הפצה: {scheduleMap[orders[0].schedule_id].dis_number} </span>
+                              {scheduleMap[order.schedule_id].dis_number && (
+                                <span>מספר הפצה: {scheduleMap[order.schedule_id].dis_number} </span>
                               )}
-                              <span>לוח זמנים: {orders[0].schedule_id}</span>
-                            </div>
-                          )}
-                          {orders[0].invoicenumber && (
-                            <div className="text-xs text-green-600 font-medium mt-1">
-                              <span>חשבונית: {orders[0].invoicenumber}</span>
-                              {orders[0].totalinvoice && (
-                                <span className="mr-3">סכום: ₪{orders[0].totalinvoice.toLocaleString('he-IL')}</span>
-                              )}
-                              {orders[0].invoicedate && (
-                                <span className="mr-3">תאריך: {new Date(orders[0].invoicedate).toLocaleDateString('he-IL')}</span>
-                              )}
+                              <span>לוח זמנים: {order.schedule_id}</span>
                             </div>
                           )}
                         </div>
@@ -666,69 +753,15 @@ const Archive = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => openReturnDialog('order', orders[0])}
+                        onClick={() => openReturnDialog('order', order)}
                         className="ml-2 flex items-center gap-1"
                         title="החזר להפצה"
                       >
                         🔙
                       </Button>
                     </div>
-                  )
-                ))}
-
-                {/* Ungrouped orders (no invoice) */}
-                {ungroupedOrders.map((order) => (
-                  <div
-                    key={order.ordernumber}
-                    className="p-3 border border-green-200 rounded-lg bg-green-50 flex justify-between items-start"
-                  >
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="font-medium text-green-800">
-                          הזמנה #{order.ordernumber}
-                          {order.orderdate && (
-                            <span className="text-sm text-green-600 mr-2">
-                              - {new Date(order.orderdate).toLocaleDateString('he-IL')}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-sm text-green-600 font-bold">
-                          ₪{order.totalorder?.toLocaleString('he-IL')}
-                        </div>
-                      </div>
-                      <div className="text-sm text-gray-700">
-                        <div>{order.customername}</div>
-                        <div>{order.address}, {order.city}</div>
-                        {order.agentnumber && (
-                          <div className="text-xs text-gray-500">סוכן: {order.agentnumber}</div>
-                        )}
-                        <div className="text-xs text-gray-500 mt-1">
-                          הופק: {new Date(order.done_mainorder).toLocaleDateString('he-IL')} {new Date(order.done_mainorder).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                        {scheduleMap[order.schedule_id] && (
-                          <div className="text-xs text-blue-600 mt-1">
-                            {scheduleMap[order.schedule_id].distribution_date && (
-                              <span>תאריך אספקה: {new Date(scheduleMap[order.schedule_id].distribution_date!).toLocaleDateString('he-IL')} </span>
-                            )}
-                            {scheduleMap[order.schedule_id].dis_number && (
-                              <span>מספר הפצה: {scheduleMap[order.schedule_id].dis_number} </span>
-                            )}
-                            <span>לוח זמנים: {order.schedule_id}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openReturnDialog('order', order)}
-                      className="ml-2 flex items-center gap-1"
-                      title="החזר להפצה"
-                    >
-                      🔙
-                    </Button>
-                  </div>
-                ))}
+                  );
+                })}
 
                 {filteredOrders.length === 0 && (
                   <div className="text-center text-gray-500 py-4">
@@ -749,58 +782,64 @@ const Archive = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {filteredReturns.map((returnItem) => (
-                  <div
-                    key={returnItem.returnnumber}
-                    className="p-3 border border-red-200 rounded-lg bg-red-50 flex justify-between items-start"
-                  >
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="font-medium text-red-800">
-                          החזרה #{returnItem.returnnumber}
-                          {returnItem.returndate && (
-                            <span className="text-sm text-red-600 mr-2">
-                              - {new Date(returnItem.returndate).toLocaleDateString('he-IL')}
-                            </span>
+                {filteredReturns.map((returnItem) => {
+                  const isCandyPlus = returnItem.agentnumber === '99';
+                  return (
+                    <div
+                      key={returnItem.returnnumber}
+                      className="p-3 border border-red-200 rounded-lg bg-red-50 flex justify-between items-start"
+                    >
+                      <div className="flex-1">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="font-medium text-red-800 flex items-center gap-2">
+                            החזרה #{returnItem.returnnumber}
+                            {returnItem.returndate && (
+                              <span className="text-sm text-red-600">
+                                - {new Date(returnItem.returndate).toLocaleDateString('he-IL')}
+                              </span>
+                            )}
+                            {isCandyPlus && (
+                              <span className="text-sm font-medium text-pink-600">קנדי+</span>
+                            )}
+                          </div>
+                          <div className="text-sm text-red-600 font-bold">
+                            ₪{returnItem.totalreturn?.toLocaleString('he-IL')}
+                          </div>
+                        </div>
+                        <div className="text-sm text-gray-700">
+                          <div>{returnItem.customername}</div>
+                          <div>{returnItem.address}, {returnItem.city}</div>
+                          {returnItem.agentnumber && (
+                            <div className="text-xs text-gray-500">סוכן: {returnItem.agentnumber}</div>
+                          )}
+                          <div className="text-xs text-gray-500 mt-1">
+                            הופק: {new Date(returnItem.done_return).toLocaleDateString('he-IL')} {new Date(returnItem.done_return).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                          {scheduleMap[returnItem.schedule_id] && (
+                            <div className="text-xs text-blue-600 mt-1">
+                              {scheduleMap[returnItem.schedule_id].distribution_date && (
+                                <span>תאריך אספקה: {new Date(scheduleMap[returnItem.schedule_id].distribution_date!).toLocaleDateString('he-IL')} </span>
+                              )}
+                              {scheduleMap[returnItem.schedule_id].dis_number && (
+                                <span>מספר הפצה: {scheduleMap[returnItem.schedule_id].dis_number} </span>
+                              )}
+                              <span>לוח זמנים: {returnItem.schedule_id}</span>
+                            </div>
                           )}
                         </div>
-                        <div className="text-sm text-red-600 font-bold">
-                          ₪{returnItem.totalreturn?.toLocaleString('he-IL')}
-                        </div>
                       </div>
-                      <div className="text-sm text-gray-700">
-                        <div>{returnItem.customername}</div>
-                        <div>{returnItem.address}, {returnItem.city}</div>
-                        {returnItem.agentnumber && (
-                          <div className="text-xs text-gray-500">סוכן: {returnItem.agentnumber}</div>
-                        )}
-                        <div className="text-xs text-gray-500 mt-1">
-                          הופק: {new Date(returnItem.done_return).toLocaleDateString('he-IL')} {new Date(returnItem.done_return).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                        {scheduleMap[returnItem.schedule_id] && (
-                          <div className="text-xs text-blue-600 mt-1">
-                            {scheduleMap[returnItem.schedule_id].distribution_date && (
-                              <span>תאריך אספקה: {new Date(scheduleMap[returnItem.schedule_id].distribution_date!).toLocaleDateString('he-IL')} </span>
-                            )}
-                            {scheduleMap[returnItem.schedule_id].dis_number && (
-                              <span>מספר הפצה: {scheduleMap[returnItem.schedule_id].dis_number} </span>
-                            )}
-                            <span>לוח זמנים: {returnItem.schedule_id}</span>
-                          </div>
-                        )}
-                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openReturnDialog('return', returnItem)}
+                        className="ml-2 flex items-center gap-1"
+                        title="החזר להפצה"
+                      >
+                        🔙
+                      </Button>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openReturnDialog('return', returnItem)}
-                      className="ml-2 flex items-center gap-1"
-                      title="החזר להפצה"
-                    >
-                      🔙
-                    </Button>
-                  </div>
-                ))}
+                  );
+                })}
                 {filteredReturns.length === 0 && (
                   <div className="text-center text-gray-500 py-4">
                     אין החזרות מופקות
