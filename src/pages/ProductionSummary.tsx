@@ -384,6 +384,11 @@ const ProductionSummary = () => {
             font-size: 12px !important;
           }
           
+          /* Hide navigation and header elements during print */
+          nav, .navbar, header, .header {
+            display: none !important;
+          }
+          
           .print\\:hidden {
             display: none !important;
           }
