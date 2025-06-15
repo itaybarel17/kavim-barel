@@ -30,6 +30,11 @@ export const CombinedItemsList: React.FC<CombinedItemsListProps> = ({
     const order = data as Order;
     const returnItem = data as Return;
     
+    // Safe handling of null/undefined values
+    const totalAmount = isOrder 
+      ? (order.totalorder ?? 0) 
+      : (returnItem.totalreturn ?? 0);
+    
     return (
       <div
         key={`${item.type}-${isOrder ? order.ordernumber : returnItem.returnnumber}`}
@@ -46,7 +51,7 @@ export const CombinedItemsList: React.FC<CombinedItemsListProps> = ({
           <span className={`font-bold text-xs ${
             isOrder ? 'text-blue-700' : 'text-red-700'
           }`}>
-            ₪{isOrder ? order.totalorder.toLocaleString('he-IL') : returnItem.totalreturn.toLocaleString('he-IL')}
+            ₪{totalAmount.toLocaleString('he-IL')}
           </span>
         </div>
         <div className={`text-xs ${isOrder ? 'text-blue-800' : 'text-red-800'}`}>
