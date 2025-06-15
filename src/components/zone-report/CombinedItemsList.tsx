@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { CombinedItem, Order, Return } from './utils';
 
 interface CombinedItemsListProps {
@@ -35,6 +36,9 @@ export const CombinedItemsList: React.FC<CombinedItemsListProps> = ({
       ? (order.totalorder ?? 0) 
       : (returnItem.totalreturn ?? 0);
     
+    // Check if this is a Candy+ order (agent 99)
+    const isCandyPlus = data.agentnumber === '99';
+    
     return (
       <div
         key={`${item.type}-${isOrder ? order.ordernumber : returnItem.returnnumber}`}
@@ -60,6 +64,11 @@ export const CombinedItemsList: React.FC<CombinedItemsListProps> = ({
             <span>
               {isOrder ? 'הזמנה' : 'החזרה'}: {isOrder ? order.ordernumber : returnItem.returnnumber}
             </span>
+            {isOrder && isCandyPlus && (
+              <Badge className="bg-pink-200 text-pink-800 border-pink-300 text-[10px] px-1 py-0 h-4 font-bold">
+                קנדי+
+              </Badge>
+            )}
             {data.agentnumber && <span>{data.agentnumber}</span>}
             {data.customernumber && <span>{data.customernumber}</span>}
             {(isOrder ? order.orderdate : returnItem.returndate) && (
