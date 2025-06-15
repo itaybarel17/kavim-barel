@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
@@ -114,6 +115,9 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   const hasModifiedItems = schedule?.distribution_date ? 
     [...scheduleOrders, ...scheduleReturns].some(item => isItemModified(item)) : false;
   
+  // Check if user is admin (agent "4")
+  const isAdmin = currentUser?.agentnumber === "4";
+  
   // Enhanced styling - all cards have normal visibility, only cursor changes based on permissions
   const cardClasses = isCalendarMode 
     ? `w-full max-w-[160px] overflow-hidden ${
@@ -188,29 +192,29 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
             <span>סה"כ נקודות:</span>
             <span className="font-medium">{uniqueCustomersList.length}</span>
           </div>
-          <div className="flex justify-between text-green-600">
-            <span>הזמנות:</span>
-            <span className="font-medium">₪{totalOrdersAmount.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between text-red-600">
-            <span>החזרות:</span>
-            <span className="font-medium">₪{totalReturnsAmount.toLocaleString()}</span>
-          </div>
+          
+          {/* Only show financial amounts for admin (agent "4") */}
+          {isAdmin && (
+            <>
+              <div className="flex justify-between text-green-600">
+                <span>הזמנות:</span>
+                <span className="font-medium">₪{totalOrdersAmount.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-red-600">
+                <span>החזרות:</span>
+                <span className="font-medium">₪{totalReturnsAmount.toLocaleString()}</span>
+              </div>
+            </>
+          )}
           
           {/* Show driver information for both modes */}
           <div className={`${textSize} text-gray-700 font-medium`}>
             נהג: {driver?.nahag || 'לא מוגדר'}
           </div>
           
-          {isCalendarMode ? (
-            <div className={`${textSize} text-gray-500`}>
-              {totalOrders} הזמנות, {totalReturns} החזרות
-            </div>
-          ) : (
-            <div className={`${textSize} text-gray-500`}>
-              {totalOrders} הזמנות, {totalReturns} החזרות
-            </div>
-          )}
+          <div className={`${textSize} text-gray-500`}>
+            {totalOrders} הזמנות, {totalReturns} החזרות
+          </div>
         </div>
       </CardContent>
     </Card>
