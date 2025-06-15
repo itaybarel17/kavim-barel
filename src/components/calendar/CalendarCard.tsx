@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
@@ -188,8 +189,8 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
               const isAgent99Customer = agent99Customers.has(customer);
               
               return (
-                <div key={index} className={`truncate ${isCompletelyTransferred ? 'line-through' : ''} ${
-                  isAgent99Customer ? 'text-pink-600 font-medium' : 'text-gray-600'
+                <div key={index} className={`truncate font-medium ${isCompletelyTransferred ? 'line-through' : ''} ${
+                  isAgent99Customer ? 'text-pink-600' : 'text-gray-600'
                 }`}>
                   • {customer}
                 </div>
@@ -231,3 +232,4 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
     </Card>
   );
 };
+
