@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 const agents = [
   { id: "1", name: "יניב", title: "סוכן מכירות" },
   { id: "4", name: "משרד", title: "מנהל מערכת" },
+  { id: "99", name: "קנדי", title: "סוכן מיוחד" },
   // Add more agents as needed
 ];
 

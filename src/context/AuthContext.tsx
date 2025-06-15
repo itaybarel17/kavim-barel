@@ -68,10 +68,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = (agentnumber: string) => {
-    // Hard-coded agents: 1=יניב (רגיל), 4=משרד (מנהל)
+    // Hard-coded agents: 1=יניב (רגיל), 4=משרד (מנהל), 99=קנדי (מיוחד)
     let agentname = '';
     if (agentnumber === '1') agentname = 'יניב';
     else if (agentnumber === '4') agentname = 'משרד';
+    else if (agentnumber === '99') agentname = 'קנדי';
     else agentname = 'סוכן אחר';
     
     const current = { agentnumber, agentname };
