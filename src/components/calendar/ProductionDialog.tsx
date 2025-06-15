@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -54,7 +55,8 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
   drivers,
   orders,
   returns,
-  onProduced
+  onProduced,
+  currentUser
 }) => {
   const [isProducing, setIsProducing] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState<number | null>(null);
@@ -62,6 +64,9 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
   const navigate = useNavigate();
 
   if (!selectedDate) return null;
+
+  // Check if user is admin (agent "4")
+  const isAdmin = currentUser?.agentnumber === "4";
 
   // Build date string consistently using date components (same as CalendarGrid)
   const year = selectedDate.getFullYear();
@@ -283,25 +288,37 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
                           </span>
                         ) : (
                           <>
-                            {!hasDriver && (
-                              <div className="text-red-600 text-sm font-medium">
-                                יש להגדיר נהג לפני הפקה
-                              </div>
+                            {/* Only show production controls to admin */}
+                            {isAdmin && (
+                              <>
+                                {!hasDriver && (
+                                  <div className="text-red-600 text-sm font-medium">
+                                    יש להגדיר נהג לפני הפקה
+                                  </div>
+                                )}
+                                <Button
+                                  onClick={() => setShowConfirmation(schedule.schedule_id)}
+                                  disabled={isProducing || !hasDriver}
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400"
+                                >
+                                  הפק
+                                </Button>
+                              </>
                             )}
-                            <Button
-                              onClick={() => setShowConfirmation(schedule.schedule_id)}
-                              disabled={isProducing || !hasDriver}
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400"
-                            >
-                              הפק
-                            </Button>
+                            {/* Show message for regular agents that they can't produce */}
+                            {!isAdmin && (
+                              <span className="text-gray-500 text-sm font-medium">
+                                רק מנהל יכול להפיק
+                              </span>
+                            )}
                           </>
                         )}
                       </div>
                     </div>
 
-                    {showConfirmation === schedule.schedule_id && (
+                    {/* Only show confirmation dialog to admin */}
+                    {isAdmin && showConfirmation === schedule.schedule_id && (
                       <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
                         <div className="text-center mb-3">
                           <div className="font-medium text-yellow-800">האם להפיק קו חלוקה זה?</div>

@@ -273,6 +273,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
         orders={orders}
         returns={returns}
         onProduced={handleProduced}
+        currentUser={currentUser}
       />
     </div>
   );
