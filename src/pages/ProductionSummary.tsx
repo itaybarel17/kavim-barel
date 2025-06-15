@@ -257,33 +257,8 @@ const ProductionSummary = () => {
   return (
     <div className="min-h-screen p-2 bg-background">
       <div className="max-w-full mx-auto">
-        {/* Header - hidden on print */}
-        <div className="flex items-center justify-between mb-4 print:hidden">
-          <div className="flex gap-2">
-            <Button onClick={handlePrint} variant="outline" className="flex items-center gap-2">
-              <Printer className="h-4 w-4" />
-              הדפס
-            </Button>
-            <Button onClick={() => navigate('/calendar')} variant="outline" className="flex items-center gap-2">
-              <ArrowRight className="h-4 w-4" />
-              חזרה ללוח השנה
-            </Button>
-          </div>
-        </div>
 
-        {/* Distribution Line Summary */}
-        <Card className="mb-4">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center justify-between gap-4 text-base">
-              <span>סיכום קו חלוקה {group?.separation || 'אזור לא מוגדר'} - מזהה לוח זמנים: {scheduleId} לתאריך {schedule.distribution_date ? new Date(schedule.distribution_date).toLocaleDateString('he-IL') : 'לא מוגדר'}</span>
-              <span>מס' הפצה: #{schedule.dis_number}</span>
-              <span>נהג: {driver?.nahag || 'לא מוגדר'}</span>
-              <span>נקודות: {totalPoints}</span>
-            </CardTitle>
-          </CardHeader>
-        </Card>
-
-        {/* Customer Details Table */}
+        {/* Customer Details Table - moved to top */}
         <Card>
           <CardContent className="p-2">
             <div className="overflow-x-auto">
@@ -371,6 +346,19 @@ const ProductionSummary = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Distribution Line Summary keeps its place under the table (moved up as requested) */}
+        <Card className="mb-4 mt-4">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center justify-between gap-4 text-base">
+              <span>סיכום קו חלוקה {group?.separation || 'אזור לא מוגדר'} - מזהה לוח זמנים: {scheduleId} לתאריך {schedule?.distribution_date ? new Date(schedule.distribution_date).toLocaleDateString('he-IL') : 'לא מוגדר'}</span>
+              <span>מס' הפצה: #{schedule?.dis_number}</span>
+              <span>נהג: {driver?.nahag || 'לא מוגדר'}</span>
+              <span>נקודות: {totalPoints}</span>
+            </CardTitle>
+          </CardHeader>
+        </Card>
+
       </div>
 
       <style>{`
