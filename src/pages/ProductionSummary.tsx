@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -5,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Package, RotateCcw, User, Calendar, Printer, AlertCircle } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { 
@@ -303,6 +305,9 @@ const ProductionSummary = () => {
                 </TableHeader>
                 <TableBody>
                   {sortedCustomers.map((customer, index) => {
+                    // Check if this customer has orders or returns from agent 99
+                    const hasAgent99Items = [...customer.orders, ...customer.returns].some(item => item.agentnumber === "99");
+                    
                     // Check if this customer has ALL items transferred from other schedules
                     const allCustomerItems = [...customer.orders, ...customer.returns];
                     const isCompletelyTransferred = allCustomerItems.length > 0 && 
@@ -311,7 +316,14 @@ const ProductionSummary = () => {
                     return (
                       <TableRow key={index} className="text-xs border-b h-8">
                         <TableCell className={`font-medium p-1 text-left text-xs ${isCompletelyTransferred ? 'line-through' : ''}`}>
-                          {customer.customername}
+                          <div className="flex items-center gap-1">
+                            <span>{customer.customername}</span>
+                            {hasAgent99Items && (
+                              <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 bg-blue-50 text-blue-700 border-blue-300">
+                                קנדי+
+                              </Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className={`p-1 text-left text-xs ${isCompletelyTransferred ? 'line-through' : ''}`}>
                           {customer.address}
