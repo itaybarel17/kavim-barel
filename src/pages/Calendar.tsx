@@ -182,21 +182,41 @@ const Calendar = () => {
     if (currentUser.agentnumber === "99") {
       const agent99GroupIds = new Set<number>();
       distributionSchedules.forEach(schedule => {
-        const hasAgent99Orders = orders.some(order => 
-          (order.schedule_id === schedule.schedule_id || 
-           (order.schedule_id_if_changed && 
-            ((typeof order.schedule_id_if_changed === 'object' && order.schedule_id_if_changed.schedule_id === schedule.schedule_id) ||
-             order.schedule_id_if_changed === schedule.schedule_id))) &&
-          order.agentnumber === '99'
-        );
+        const hasAgent99Orders = orders.some(order => {
+          const relevantScheduleIds = [];
+          if (typeof order.schedule_id === 'number') relevantScheduleIds.push(order.schedule_id);
+          if (order.schedule_id_if_changed) {
+            if (typeof order.schedule_id_if_changed === 'number') {
+              relevantScheduleIds.push(order.schedule_id_if_changed);
+            } else if (Array.isArray(order.schedule_id_if_changed)) {
+              order.schedule_id_if_changed.forEach(sid => {
+                if (typeof sid === 'number') relevantScheduleIds.push(sid);
+              });
+            } else if (typeof order.schedule_id_if_changed === 'object' && order.schedule_id_if_changed.schedule_id) {
+              relevantScheduleIds.push(order.schedule_id_if_changed.schedule_id);
+            }
+          }
+          
+          return relevantScheduleIds.includes(schedule.schedule_id) && order.agentnumber === '99';
+        });
         
-        const hasAgent99Returns = returns.some(returnItem => 
-          (returnItem.schedule_id === schedule.schedule_id || 
-           (returnItem.schedule_id_if_changed && 
-            ((typeof returnItem.schedule_id_if_changed === 'object' && returnItem.schedule_id_if_changed.schedule_id === schedule.schedule_id) ||
-             returnItem.schedule_id_if_changed === schedule.schedule_id))) &&
-          returnItem.agentnumber === '99'
-        );
+        const hasAgent99Returns = returns.some(returnItem => {
+          const relevantScheduleIds = [];
+          if (typeof returnItem.schedule_id === 'number') relevantScheduleIds.push(returnItem.schedule_id);
+          if (returnItem.schedule_id_if_changed) {
+            if (typeof returnItem.schedule_id_if_changed === 'number') {
+              relevantScheduleIds.push(returnItem.schedule_id_if_changed);
+            } else if (Array.isArray(returnItem.schedule_id_if_changed)) {
+              returnItem.schedule_id_if_changed.forEach(sid => {
+                if (typeof sid === 'number') relevantScheduleIds.push(sid);
+              });
+            } else if (typeof returnItem.schedule_id_if_changed === 'object' && returnItem.schedule_id_if_changed.schedule_id) {
+              relevantScheduleIds.push(returnItem.schedule_id_if_changed.schedule_id);
+            }
+          }
+          
+          return relevantScheduleIds.includes(schedule.schedule_id) && returnItem.agentnumber === '99';
+        });
 
         if (hasAgent99Orders || hasAgent99Returns) {
           agent99GroupIds.add(schedule.groups_id);
