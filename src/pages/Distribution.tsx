@@ -466,8 +466,8 @@ const Distribution = () => {
           dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
         />
 
-        {/* 3x4 Grid of drop zones */}
-        <div className="grid grid-cols-4 gap-4">
+        {/* Mobile: single column, Tablet: 2 columns, Desktop: 4 columns */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {dropZones.map((zoneNumber) => (
             <DropZone
               key={zoneNumber}

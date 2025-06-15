@@ -227,8 +227,8 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
     <div>
       <h2 className="text-xl font-semibold mb-4">לוח שנה - שבועיים</h2>
       
-      {/* Week 1 - Use CSS Grid with RTL direction for Hebrew layout */}
-      <div className="grid grid-cols-6 gap-4 mb-6" dir="rtl">
+      {/* Week 1 - Mobile: single column, Desktop: 6 columns */}
+      <div className="grid grid-cols-1 sm:grid-cols-6 gap-4 mb-6" dir="rtl">
         {firstWeekDays.map((date, index) => (
           <CalendarDay
             key={`week1-${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`}
@@ -245,8 +245,8 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
         ))}
       </div>
 
-      {/* Week 2 - Use CSS Grid with RTL direction for Hebrew layout */}
-      <div className="grid grid-cols-6 gap-4" dir="rtl">
+      {/* Week 2 - Mobile: single column, Desktop: 6 columns */}
+      <div className="grid grid-cols-1 sm:grid-cols-6 gap-4" dir="rtl">
         {secondWeekDays.map((date, index) => (
           <CalendarDay
             key={`week2-${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`}
