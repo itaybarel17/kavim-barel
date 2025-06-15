@@ -60,20 +60,24 @@ export const CombinedItemsList: React.FC<CombinedItemsListProps> = ({
         </div>
         <div className={`text-xs ${isOrder ? 'text-blue-800' : 'text-red-800'}`}>
           <div>{data.address}, {data.city}</div>
-          <div className="flex items-center gap-2">
-            <span>
-              {isOrder ? 'הזמנה' : 'החזרה'}: {isOrder ? order.ordernumber : returnItem.returnnumber}
-            </span>
-            {isOrder && isCandyPlus && (
-              <Badge className="bg-pink-200 text-pink-800 border-pink-300 text-[10px] px-1 py-0 h-4 font-bold">
-                קנדי+
-              </Badge>
-            )}
-            {data.agentnumber && <span>{data.agentnumber}</span>}
-            {data.customernumber && <span>{data.customernumber}</span>}
-            {(isOrder ? order.orderdate : returnItem.returndate) && (
-              <span>{new Date(isOrder ? order.orderdate! : returnItem.returndate!).toLocaleDateString('he-IL')}</span>
-            )}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span>
+                {isOrder ? 'הזמנה' : 'החזרה'}: {isOrder ? order.ordernumber : returnItem.returnnumber}
+              </span>
+              {data.agentnumber && <span>{data.agentnumber}</span>}
+              {data.customernumber && <span>{data.customernumber}</span>}
+            </div>
+            <div className="flex items-center gap-2">
+              {(isOrder ? order.orderdate : returnItem.returndate) && (
+                <span>{new Date(isOrder ? order.orderdate! : returnItem.returndate!).toLocaleDateString('he-IL')}</span>
+              )}
+              {isOrder && isCandyPlus && (
+                <Badge className="bg-pink-200 text-pink-800 border-pink-300 text-xs px-2 py-1 font-bold">
+                  קנדי+
+                </Badge>
+              )}
+            </div>
           </div>
         </div>
       </div>
