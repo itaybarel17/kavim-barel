@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -256,6 +255,19 @@ const ProductionSummary = () => {
   // Calculate total unique customers (נקודות)
   const totalPoints = sortedCustomers.length;
 
+  // Helper function to get agent number for a customer
+  const getCustomerAgent = (customer: CustomerEntry) => {
+    // Get all agent numbers from orders and returns for this customer
+    const agentNumbers = new Set([
+      ...customer.orders.map(o => o.agentnumber).filter(Boolean),
+      ...customer.returns.map(r => r.agentnumber).filter(Boolean)
+    ]);
+    
+    if (agentNumbers.size === 0) return '';
+    if (agentNumbers.size === 1) return Array.from(agentNumbers)[0];
+    return 'מעורב'; // Mixed agents
+  };
+
   return (
     <div className="min-h-screen p-2 bg-background">
       <div className="max-w-full mx-auto">
@@ -293,6 +305,7 @@ const ProductionSummary = () => {
                 <TableHeader>
                   <TableRow className="text-xs">
                     <TableHead className="text-left p-1 text-xs">שם לקוח</TableHead>
+                    <TableHead className="text-left p-1 text-xs w-12">סוכן</TableHead>
                     <TableHead className="text-left p-1 text-xs">כתובת</TableHead>
                     <TableHead className="text-left p-1 text-xs">עיר</TableHead>
                     <TableHead className="text-left p-1 text-xs">טלפון נייד</TableHead>
@@ -324,6 +337,9 @@ const ProductionSummary = () => {
                               </Badge>
                             )}
                           </div>
+                        </TableCell>
+                        <TableCell className="p-1 text-left text-xs w-12">
+                          {getCustomerAgent(customer)}
                         </TableCell>
                         <TableCell className={`p-1 text-left text-xs ${isCompletelyTransferred ? 'line-through' : ''}`}>
                           {customer.address}
@@ -418,6 +434,10 @@ const ProductionSummary = () => {
           
           .text-xs {
             font-size: 10px !important;
+          }
+          
+          .w-12 {
+            width: 3rem !important;
           }
         }
       `}</style>
