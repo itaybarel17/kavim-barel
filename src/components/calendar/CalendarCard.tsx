@@ -127,7 +127,7 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   
   // Enhanced styling - all cards have normal visibility, only cursor changes based on permissions
   const cardClasses = isCalendarMode 
-    ? `w-full max-w-none overflow-hidden ${
+    ? `w-full max-w-[260px] overflow-hidden ${
         isProduced 
           ? 'cursor-not-allowed border-4 border-green-500 bg-green-50 shadow-lg' 
           : canDrag 
