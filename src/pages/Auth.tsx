@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -17,35 +18,19 @@ export default function Auth() {
   const [selectedAgent, setSelectedAgent] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const navigate = useNavigate();
 
-  // Check for midnight reset
+  // Redirect if already logged in
   useEffect(() => {
-    const checkMidnightReset = () => {
-      const lastLogin = localStorage.getItem('lastLoginTime');
-      if (lastLogin) {
-        const lastLoginDate = new Date(lastLogin);
-        const now = new Date();
-        
-        // Check if it's past midnight since last login
-        if (now.getDate() !== lastLoginDate.getDate() || 
-            now.getMonth() !== lastLoginDate.getMonth() || 
-            now.getFullYear() !== lastLoginDate.getFullYear()) {
-          // If it's a new day, clear the auth and force re-login
-          localStorage.removeItem('authUser');
-          localStorage.removeItem('lastLoginTime');
-        }
+    if (user) {
+      if (user.agentnumber === "4") {
+        navigate("/distribution", { replace: true });
+      } else {
+        navigate("/calendar", { replace: true });
       }
-    };
-
-    checkMidnightReset();
-    
-    // Set up interval to check for midnight reset every minute
-    const interval = setInterval(checkMidnightReset, 60000);
-    
-    return () => clearInterval(interval);
-  }, []);
+    }
+  }, [user, navigate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,15 +46,7 @@ export default function Auth() {
     login(selectedAgent);
     setError("");
     
-    // Store login time for midnight reset
-    localStorage.setItem('lastLoginTime', new Date().toISOString());
-    
-    // Navigate based on agent type
-    if (selectedAgent === "4") {
-      navigate("/distribution"); // Admin goes to distribution
-    } else {
-      navigate("/calendar"); // Other agents go to calendar
-    }
+    // Navigation will be handled by the useEffect above
   };
 
   const selectedAgentData = agents.find(agent => agent.id === selectedAgent);
