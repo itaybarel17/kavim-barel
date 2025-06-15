@@ -167,7 +167,7 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
               )}
             </div>
           </div>
-          <div className={`${textSize} text-muted-foreground`}>
+          <div className={`text-xs font-bold text-muted-foreground`}>
             <div className="truncate">מזהה: {scheduleId}</div>
           </div>
         </div>
@@ -197,32 +197,32 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
           </div>
         </div>
 
-        <div className={`border-t pt-1 space-y-0.5 ${textSize}`}>
-          <div className="flex justify-between">
+        <div className={`border-t pt-1 space-y-0.5 text-xs`}>
+          <div className="flex justify-between font-bold">
             <span>סה"כ נקודות:</span>
-            <span className="font-medium">{uniqueCustomersList.length}</span>
+            <span className="font-bold">{uniqueCustomersList.length}</span>
           </div>
           
           {/* Only show financial amounts for admin (agent "4") */}
           {isAdmin && (
             <>
-              <div className="flex justify-between text-green-600">
+              <div className="flex justify-between text-green-600 font-bold">
                 <span>הזמנות:</span>
-                <span className="font-medium">₪{totalOrdersAmount.toLocaleString()}</span>
+                <span className="font-bold">₪{totalOrdersAmount.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-red-600">
+              <div className="flex justify-between text-red-600 font-bold">
                 <span>החזרות:</span>
-                <span className="font-medium">₪{totalReturnsAmount.toLocaleString()}</span>
+                <span className="font-bold">₪{totalReturnsAmount.toLocaleString()}</span>
               </div>
             </>
           )}
           
           {/* Show driver information for both modes */}
-          <div className={`${textSize} text-gray-700 font-medium`}>
+          <div className={`text-xs text-gray-700 font-bold`}>
             נהג: {driver?.nahag || 'לא מוגדר'}
           </div>
           
-          <div className={`${textSize} text-gray-500`}>
+          <div className={`text-xs text-gray-500 font-bold`}>
             {totalOrders} הזמנות, {totalReturns} החזרות
           </div>
         </div>
