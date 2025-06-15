@@ -9,7 +9,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { OrderCard } from './OrderCard';
 import { pdf } from '@react-pdf/renderer';
 import { ZonePDFDocument } from './ZonePDFDocument';
-
 interface Order {
   ordernumber: number;
   customername: string;
@@ -22,7 +21,6 @@ interface Order {
   orderdate?: string;
   invoicenumber?: number;
 }
-
 interface Return {
   returnnumber: number;
   customername: string;
@@ -34,41 +32,45 @@ interface Return {
   agentnumber?: string;
   returndate?: string;
 }
-
 interface DistributionGroup {
   groups_id: number;
   separation: string;
 }
-
 interface DistributionSchedule {
   schedule_id: number;
   groups_id: number;
   create_at_schedule: string;
   driver_id?: number;
 }
-
 interface Driver {
   id: number;
   nahag: string;
 }
-
 interface DropZoneProps {
   zoneNumber: number;
   distributionGroups: DistributionGroup[];
   distributionSchedules: DistributionSchedule[];
   drivers: Driver[];
-  onDrop: (zoneNumber: number, item: { type: 'order' | 'return'; data: Order | Return }) => void;
+  onDrop: (zoneNumber: number, item: {
+    type: 'order' | 'return';
+    data: Order | Return;
+  }) => void;
   orders: Order[];
   returns: Return[];
   onScheduleDeleted: () => void;
   onScheduleCreated: () => void;
-  onRemoveFromZone: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
-  getZoneState: (zoneNumber: number) => { selectedGroupId: number | null; scheduleId: number | null };
+  onRemoveFromZone: (item: {
+    type: 'order' | 'return';
+    data: Order | Return;
+  }) => void;
+  getZoneState: (zoneNumber: number) => {
+    selectedGroupId: number | null;
+    scheduleId: number | null;
+  };
   // NEW: pass down multi-active-customer/dual-orderreturn customers.
   multiOrderActiveCustomerList?: any[];
   dualActiveOrderReturnCustomers?: any[];
 }
-
 export const DropZone: React.FC<DropZoneProps> = ({
   zoneNumber,
   distributionGroups,
@@ -83,7 +85,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
   getZoneState,
   // NEW: pass down multi-active-customer/dual-orderreturn customers.
   multiOrderActiveCustomerList = [],
-  dualActiveOrderReturnCustomers = [],
+  dualActiveOrderReturnCustomers = []
 }) => {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [scheduleId, setScheduleId] = useState<number | null>(null);
@@ -92,13 +94,17 @@ export const DropZone: React.FC<DropZoneProps> = ({
 
   // Get current zone state from parent
   const currentZoneState = getZoneState(zoneNumber);
-
-  const [{ isOver }, drop] = useDrop(() => ({
+  const [{
+    isOver
+  }, drop] = useDrop(() => ({
     accept: 'card',
-    drop: (item: { type: 'order' | 'return'; data: Order | Return }) => {
+    drop: (item: {
+      type: 'order' | 'return';
+      data: Order | Return;
+    }) => {
       console.log('Drop triggered in zone', zoneNumber, 'with item:', item);
       console.log('Current zone state:', currentZoneState);
-      
+
       // Only allow drop if there's a valid schedule
       if (currentZoneState.scheduleId) {
         onDrop(zoneNumber, item);
@@ -106,29 +112,22 @@ export const DropZone: React.FC<DropZoneProps> = ({
         console.log('Cannot drop - no schedule available for zone', zoneNumber);
       }
     },
-    collect: (monitor) => ({
-      isOver: monitor.isOver(),
-    }),
+    collect: monitor => ({
+      isOver: monitor.isOver()
+    })
   }), [zoneNumber, currentZoneState.scheduleId]);
 
   // Get assigned items for this zone based on schedule_id - ONLY for ACTIVE schedules
-  const assignedOrders = orders.filter(order => 
-    scheduleId && order.schedule_id === scheduleId &&
-    distributionSchedules.some(schedule => schedule.schedule_id === scheduleId)
-  );
-  const assignedReturns = returns.filter(returnItem => 
-    scheduleId && returnItem.schedule_id === scheduleId &&
-    distributionSchedules.some(schedule => schedule.schedule_id === scheduleId)
-  );
+  const assignedOrders = orders.filter(order => scheduleId && order.schedule_id === scheduleId && distributionSchedules.some(schedule => schedule.schedule_id === scheduleId));
+  const assignedReturns = returns.filter(returnItem => scheduleId && returnItem.schedule_id === scheduleId && distributionSchedules.some(schedule => schedule.schedule_id === scheduleId));
 
   // Update local state based on zone state from parent
   useEffect(() => {
     console.log('DropZone effect - updating state for zone:', zoneNumber);
     console.log('Zone state from parent:', currentZoneState);
-
     setSelectedGroupId(currentZoneState.selectedGroupId);
     setScheduleId(currentZoneState.scheduleId);
-    
+
     // Update driver selection if we have a schedule
     if (currentZoneState.scheduleId) {
       const schedule = distributionSchedules.find(s => s.schedule_id === currentZoneState.scheduleId);
@@ -141,7 +140,6 @@ export const DropZone: React.FC<DropZoneProps> = ({
   // Updated print function to navigate to report page
   const handlePrint = () => {
     if (!scheduleId) return;
-
     const selectedGroup = distributionGroups.find(group => group.groups_id === selectedGroupId);
     const selectedDriver = drivers.find(driver => driver.id === selectedDriverId);
 
@@ -152,261 +150,180 @@ export const DropZone: React.FC<DropZoneProps> = ({
       groupName: selectedGroup?.separation || '',
       driverName: selectedDriver?.nahag || '',
       orders: assignedOrders,
-      returns: assignedReturns,
+      returns: assignedReturns
     };
 
     // Use navigate to go to the report page
-    navigate(`/zone-report/${zoneNumber}`, { state: reportData });
+    navigate(`/zone-report/${zoneNumber}`, {
+      state: reportData
+    });
   };
-
   const handleGroupSelection = async (value: string) => {
     const groupId = value ? parseInt(value) : null;
     console.log('Group selected for zone', zoneNumber, ':', groupId);
-    
     if (!groupId) {
       setSelectedGroupId(null);
       setScheduleId(null);
       setSelectedDriverId(null);
       return;
     }
-
     try {
       console.log('Creating new schedule for group:', groupId);
-      const { data: newScheduleId, error } = await supabase
-        .rpc('get_or_create_schedule_for_group', { group_id: groupId });
-
+      const {
+        data: newScheduleId,
+        error
+      } = await supabase.rpc('get_or_create_schedule_for_group', {
+        group_id: groupId
+      });
       if (error) {
         console.error('Error creating schedule:', error);
         return;
       }
-
       console.log('Created new schedule ID:', newScheduleId);
       setSelectedGroupId(groupId);
       setScheduleId(newScheduleId);
       setSelectedDriverId(null);
-      
       onScheduleCreated();
     } catch (error) {
       console.error('Error in group selection:', error);
     }
   };
-
   const handleDriverSelection = async (value: string) => {
     const driverId = value ? parseInt(value) : null;
     console.log('Driver selected for zone', zoneNumber, ':', driverId);
-    
     if (!scheduleId) {
       console.warn('No schedule ID available for driver assignment');
       return;
     }
-
     try {
-      const { error } = await supabase
-        .from('distribution_schedule')
-        .update({ driver_id: driverId })
-        .eq('schedule_id', scheduleId);
-
+      const {
+        error
+      } = await supabase.from('distribution_schedule').update({
+        driver_id: driverId
+      }).eq('schedule_id', scheduleId);
       if (error) {
         console.error('Error updating driver:', error);
         return;
       }
-
       console.log('Driver updated successfully');
       setSelectedDriverId(driverId);
     } catch (error) {
       console.error('Error in driver selection:', error);
     }
   };
-
   const handleDeleteSchedule = async () => {
     if (!scheduleId) return;
-
     try {
       console.log('Clearing assignments for schedule:', scheduleId);
-      
-      // Clear orders
-      const { error: ordersError } = await supabase
-        .from('mainorder')
-        .update({ schedule_id: null })
-        .eq('schedule_id', scheduleId);
 
+      // Clear orders
+      const {
+        error: ordersError
+      } = await supabase.from('mainorder').update({
+        schedule_id: null
+      }).eq('schedule_id', scheduleId);
       if (ordersError) {
         console.error('Error clearing order assignments:', ordersError);
         return;
       }
 
       // Clear returns
-      const { error: returnsError } = await supabase
-        .from('mainreturns')
-        .update({ schedule_id: null })
-        .eq('schedule_id', scheduleId);
-
+      const {
+        error: returnsError
+      } = await supabase.from('mainreturns').update({
+        schedule_id: null
+      }).eq('schedule_id', scheduleId);
       if (returnsError) {
         console.error('Error clearing return assignments:', returnsError);
         return;
       }
 
       // Then delete the schedule
-      const { error: deleteError } = await supabase
-        .from('distribution_schedule')
-        .delete()
-        .eq('schedule_id', scheduleId);
-
+      const {
+        error: deleteError
+      } = await supabase.from('distribution_schedule').delete().eq('schedule_id', scheduleId);
       if (deleteError) {
         console.error('Error deleting schedule:', deleteError);
         return;
       }
-
       console.log('Schedule deleted successfully');
-      
+
       // Reset local state to completely empty
       setSelectedGroupId(null);
       setScheduleId(null);
       setSelectedDriverId(null);
-      
       onScheduleDeleted();
     } catch (error) {
       console.error('Error deleting schedule:', error);
     }
   };
-
-  const handleItemDragStart = (item: { type: 'order' | 'return'; data: Order | Return }) => {
+  const handleItemDragStart = (item: {
+    type: 'order' | 'return';
+    data: Order | Return;
+  }) => {
     console.log('Item drag started from zone:', item);
   };
 
   // Get the selected group name for display
   const selectedGroup = distributionGroups.find(group => group.groups_id === selectedGroupId);
   const selectedDriver = drivers.find(driver => driver.id === selectedDriverId);
-
-  return (
-    <Card
-      ref={drop}
-      className={`min-h-[300px] transition-colors relative ${
-        isOver && currentZoneState.scheduleId ? 'border-primary bg-primary/5' : 'border-border'
-      } ${!currentZoneState.scheduleId && isOver ? 'border-red-300 bg-red-50' : ''}`}
-    >
+  return <Card ref={drop} className={`min-h-[300px] transition-colors relative ${isOver && currentZoneState.scheduleId ? 'border-primary bg-primary/5' : 'border-border'} ${!currentZoneState.scheduleId && isOver ? 'border-red-300 bg-red-50' : ''}`}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">אזור {zoneNumber}</CardTitle>
           <div className="flex gap-2">
-            {scheduleId && (assignedOrders.length > 0 || assignedReturns.length > 0) && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handlePrint}
-                className="h-6 w-6 text-muted-foreground hover:text-blue-600"
-                title="הדפס דוח"
-              >
+            {scheduleId && (assignedOrders.length > 0 || assignedReturns.length > 0) && <Button variant="ghost" size="icon" onClick={handlePrint} className="h-6 w-6 text-muted-foreground hover:text-blue-600" title="הדפס דוח">
                 <Printer className="h-4 w-4" />
-              </Button>
-            )}
-            {scheduleId && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleDeleteSchedule}
-                className="h-6 w-6 text-muted-foreground hover:text-destructive"
-              >
+              </Button>}
+            {scheduleId && <Button variant="ghost" size="icon" onClick={handleDeleteSchedule} className="h-6 w-6 text-muted-foreground hover:text-destructive">
                 <X className="h-4 w-4" />
-              </Button>
-            )}
+              </Button>}
           </div>
         </div>
         <div className="space-y-2">
-          <Select
-            value={selectedGroupId?.toString() || ''}
-            onValueChange={handleGroupSelection}
-          >
+          <Select value={selectedGroupId?.toString() || ''} onValueChange={handleGroupSelection}>
             <SelectTrigger className="w-full h-10 bg-background border border-input">
               <SelectValue placeholder="בחר אזור הפצה" />
             </SelectTrigger>
             <SelectContent className="bg-popover border border-border shadow-md z-50 max-h-[200px] overflow-y-auto">
-              {distributionGroups.map((group) => (
-                <SelectItem 
-                  key={group.groups_id} 
-                  value={group.groups_id.toString()}
-                  className="cursor-pointer hover:bg-accent focus:bg-accent"
-                >
+              {distributionGroups.map(group => <SelectItem key={group.groups_id} value={group.groups_id.toString()} className="cursor-pointer hover:bg-accent focus:bg-accent">
                   {group.separation}
-                </SelectItem>
-              ))}
+                </SelectItem>)}
             </SelectContent>
           </Select>
 
-          {selectedGroupId && (
-            <Select
-              value={selectedDriverId?.toString() || ''}
-              onValueChange={handleDriverSelection}
-            >
+          {selectedGroupId && <Select value={selectedDriverId?.toString() || ''} onValueChange={handleDriverSelection}>
               <SelectTrigger className="w-full h-10 bg-background border border-input">
                 <SelectValue placeholder="בחר נהג" />
               </SelectTrigger>
               <SelectContent className="bg-popover border border-border shadow-md z-50 max-h-[200px] overflow-y-auto">
-                {drivers.map((driver) => (
-                  <SelectItem 
-                    key={driver.id} 
-                    value={driver.id.toString()}
-                    className="cursor-pointer hover:bg-accent focus:bg-accent"
-                  >
+                {drivers.map(driver => <SelectItem key={driver.id} value={driver.id.toString()} className="cursor-pointer hover:bg-accent focus:bg-accent">
                     {driver.nahag}
-                  </SelectItem>
-                ))}
+                  </SelectItem>)}
               </SelectContent>
-            </Select>
-          )}
+            </Select>}
 
-          {scheduleId ? (
-            <div className="text-sm text-muted-foreground">
+          {scheduleId ? <div className="text-sm text-muted-foreground">
               מזהה לוח זמנים: {scheduleId}
-              {selectedGroup && (
-                <div className="font-medium text-primary">
+              {selectedGroup && <div className="font-medium text-primary">
                   אזור נבחר: {selectedGroup.separation}
-                </div>
-              )}
-              {selectedDriver && (
-                <div className="font-medium text-secondary-foreground">
+                </div>}
+              {selectedDriver && <div className="font-medium text-secondary-foreground">
                   נהג נבחר: {selectedDriver.nahag}
-                </div>
-              )}
-            </div>
-          ) : selectedGroupId ? (
-            <div className="text-sm text-muted-foreground">
+                </div>}
+            </div> : selectedGroupId ? <div className="text-sm text-muted-foreground">
               יוצר מזהה לוח זמנים...
-            </div>
-          ) : (
-            <div className="text-sm text-muted-foreground">
+            </div> : <div className="text-sm text-muted-foreground">
               בחר אזור ליצירת מזהה
-            </div>
-          )}
+            </div>}
         </div>
       </CardHeader>
-      <CardContent className="space-y-2">
-        {assignedOrders.map((order) => (
-          <OrderCard
-            key={`order-${order.ordernumber}`}
-            type="order"
-            data={order}
-            onDragStart={handleItemDragStart}
-            multiOrderActiveCustomerList={multiOrderActiveCustomerList}
-            dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
-          />
-        ))}
-        {assignedReturns.map((returnItem) => (
-          <OrderCard
-            key={`return-${returnItem.returnnumber}`}
-            type="return"
-            data={returnItem}
-            onDragStart={handleItemDragStart}
-            multiOrderActiveCustomerList={multiOrderActiveCustomerList}
-            dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
-          />
-        ))}
-        {assignedOrders.length === 0 && assignedReturns.length === 0 && (
-          <div className="text-center text-muted-foreground text-sm py-8">
+      <CardContent className="space-y-2 px-[2px]">
+        {assignedOrders.map(order => <OrderCard key={`order-${order.ordernumber}`} type="order" data={order} onDragStart={handleItemDragStart} multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} />)}
+        {assignedReturns.map(returnItem => <OrderCard key={`return-${returnItem.returnnumber}`} type="return" data={returnItem} onDragStart={handleItemDragStart} multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} />)}
+        {assignedOrders.length === 0 && assignedReturns.length === 0 && <div className="text-center text-muted-foreground text-sm py-8">
             {selectedGroupId ? 'גרור הזמנות או החזרות לכאן' : 'בחר אזור ליצירת מזהה'}
-          </div>
-        )}
+          </div>}
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };
