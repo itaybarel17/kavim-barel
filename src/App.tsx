@@ -5,6 +5,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import Index from "./pages/Index";
 import Distribution from "./pages/Distribution";
 import Calendar from "./pages/Calendar";
@@ -57,47 +59,49 @@ function App() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <NavBar />
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <Index />
-                </ProtectedRoute>
-              } />
-              <Route path="/distribution" element={
-                <ProtectedRoute adminOnly>
-                  <Distribution />
-                </ProtectedRoute>
-              } />
-              <Route path="/calendar" element={
-                <ProtectedRoute>
-                  <Calendar />
-                </ProtectedRoute>
-              } />
-              <Route path="/archive" element={
-                <ProtectedRoute adminOnly>
-                  <Archive />
-                </ProtectedRoute>
-              } />
-              <Route path="/zone-report/:zoneNumber" element={
-                <ProtectedRoute>
-                  <ZoneReport />
-                </ProtectedRoute>
-              } />
-              <Route path="/production-summary/:scheduleId" element={
-                <ProtectedRoute>
-                  <ProductionSummary />
-                </ProtectedRoute>
-              } />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+        <DndProvider backend={HTML5Backend}>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <NavBar />
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/" element={
+                  <ProtectedRoute>
+                    <Index />
+                  </ProtectedRoute>
+                } />
+                <Route path="/distribution" element={
+                  <ProtectedRoute adminOnly>
+                    <Distribution />
+                  </ProtectedRoute>
+                } />
+                <Route path="/calendar" element={
+                  <ProtectedRoute>
+                    <Calendar />
+                  </ProtectedRoute>
+                } />
+                <Route path="/archive" element={
+                  <ProtectedRoute adminOnly>
+                    <Archive />
+                  </ProtectedRoute>
+                } />
+                <Route path="/zone-report/:zoneNumber" element={
+                  <ProtectedRoute>
+                    <ZoneReport />
+                  </ProtectedRoute>
+                } />
+                <Route path="/production-summary/:scheduleId" element={
+                  <ProtectedRoute>
+                    <ProductionSummary />
+                  </ProtectedRoute>
+                } />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </DndProvider>
       </QueryClientProvider>
     </AuthProvider>
   );

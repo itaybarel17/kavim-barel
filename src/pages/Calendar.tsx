@@ -386,46 +386,44 @@ const Calendar = () => {
         </div>
       </div>;
   }
-  return <DndProvider backend={HTML5Backend}>
-      <div className="min-h-screen p-6 bg-background">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">לוח שנה הפצה</h1>
-        </div>
-
-        {/* Horizontal Kanban */}
-        <HorizontalKanban distributionSchedules={filteredSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={filteredOrders} returns={filteredReturns} onUpdateDestinations={updateDestinationsCount} onDropToKanban={currentUser?.agentnumber === "4" ? handleDropToKanban : undefined} currentUser={currentUser} />
-
-        {/* Calendar Navigation */}
-        <div className="flex items-center justify-center gap-4 mb-6">
-          <Button onClick={() => navigateWeeks('prev')} variant="outline" size="sm">
-            <ChevronRight className="h-4 w-4" />
-            שבועיים אחורה
-          </Button>
-          
-          <span className="text-lg font-medium">
-            {currentWeekStart.toLocaleDateString('he-IL')} - {new Date(currentWeekStart.getTime() + 13 * 24 * 60 * 60 * 1000).toLocaleDateString('he-IL')}
-          </span>
-          
-          <Button onClick={() => navigateWeeks('next')} variant="outline" size="sm">
-            <ChevronLeft className="h-4 w-4" />
-            שבועיים קדימה
-          </Button>
-        </div>
-
-        {/* Calendar Grid */}
-        <CalendarGrid 
-          currentWeekStart={currentWeekStart} 
-          distributionSchedules={filteredSchedules} 
-          distributionGroups={distributionGroups} 
-          drivers={drivers} 
-          orders={filteredOrders} 
-          returns={filteredReturns} 
-          onDropToDate={currentUser?.agentnumber === "4" ? handleDropToDate : undefined} 
-          currentUser={currentUser}
-          onRefreshData={handleRefreshData}
-        />
+  return <div className="min-h-screen p-6 bg-background">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold">לוח שנה הפצה</h1>
       </div>
-    </DndProvider>;
+
+      {/* Horizontal Kanban */}
+      <HorizontalKanban distributionSchedules={filteredSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={filteredOrders} returns={filteredReturns} onUpdateDestinations={updateDestinationsCount} onDropToKanban={currentUser?.agentnumber === "4" ? handleDropToKanban : undefined} currentUser={currentUser} />
+
+      {/* Calendar Navigation */}
+      <div className="flex items-center justify-center gap-4 mb-6">
+        <Button onClick={() => navigateWeeks('prev')} variant="outline" size="sm">
+          <ChevronRight className="h-4 w-4" />
+          שבועיים אחורה
+        </Button>
+        
+        <span className="text-lg font-medium">
+          {currentWeekStart.toLocaleDateString('he-IL')} - {new Date(currentWeekStart.getTime() + 13 * 24 * 60 * 60 * 1000).toLocaleDateString('he-IL')}
+        </span>
+        
+        <Button onClick={() => navigateWeeks('next')} variant="outline" size="sm">
+          <ChevronLeft className="h-4 w-4" />
+          שבועיים קדימה
+        </Button>
+      </div>
+
+      {/* Calendar Grid */}
+      <CalendarGrid 
+        currentWeekStart={currentWeekStart} 
+        distributionSchedules={filteredSchedules} 
+        distributionGroups={distributionGroups} 
+        drivers={drivers} 
+        orders={filteredOrders} 
+        returns={filteredReturns} 
+        onDropToDate={currentUser?.agentnumber === "4" ? handleDropToDate : undefined} 
+        currentUser={currentUser}
+        onRefreshData={handleRefreshData}
+      />
+    </div>;
 };
 
 export default Calendar;
