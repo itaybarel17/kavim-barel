@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useDrop } from 'react-dnd';
 import { CalendarCard } from './CalendarCard';
@@ -64,7 +63,9 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
   const allowedGroupIds = React.useMemo(() => {
     if (isAdmin) return null; // All
     if (!currentUser) return [];
-    return distributionGroups
+    
+    // Get groups where agent is allowed OR groups that contain agent 99 orders
+    const agentAllowedGroups = distributionGroups
       .filter((group) => {
         if (!group.agents) return false;
         if (Array.isArray(group.agents)) {
@@ -81,7 +82,33 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
         return false;
       })
       .map((group) => group.groups_id);
-  }, [currentUser, isAdmin, distributionGroups]);
+
+    // Also include groups that have agent 99 orders - everyone should see these
+    const agent99GroupIds = new Set<number>();
+    distributionSchedules.forEach(schedule => {
+      const hasAgent99Orders = orders.some(order => 
+        (order.schedule_id === schedule.schedule_id || 
+         (order.schedule_id_if_changed && 
+          ((typeof order.schedule_id_if_changed === 'object' && order.schedule_id_if_changed.schedule_id === schedule.schedule_id) ||
+           order.schedule_id_if_changed === schedule.schedule_id))) &&
+        order.agentnumber === '99'
+      );
+      
+      const hasAgent99Returns = returns.some(returnItem => 
+        (returnItem.schedule_id === schedule.schedule_id || 
+         (returnItem.schedule_id_if_changed && 
+          ((typeof returnItem.schedule_id_if_changed === 'object' && returnItem.schedule_id_if_changed.schedule_id === schedule.schedule_id) ||
+           returnItem.schedule_id_if_changed === schedule.schedule_id))) &&
+        returnItem.agentnumber === '99'
+      );
+
+      if (hasAgent99Orders || hasAgent99Returns) {
+        agent99GroupIds.add(schedule.groups_id);
+      }
+    });
+
+    return [...agentAllowedGroups, ...Array.from(agent99GroupIds)];
+  }, [currentUser, isAdmin, distributionGroups, distributionSchedules, orders, returns]);
 
   const filteredSchedulesWithItems = distributionSchedules.filter(schedule => {
     if (!isAdmin) {

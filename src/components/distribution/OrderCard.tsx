@@ -2,6 +2,7 @@
 import React from 'react';
 import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 // Path for prominent customer blue/red icons
 import BlueCustomerIcon from '/blue-customer.svg';
@@ -75,6 +76,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   const hasInvoiceNumber = isOrder && (data as Order).invoicenumber != null;
   const totalInvoice = isOrder ? (data as Order).totalinvoice : undefined;
 
+  // Check if this is a Candy+ order (agent 99)
+  const isCandyPlus = data.agentnumber === '99';
+
   // Smart icon logic
   // כאן השוואת שם + עיר (case/city-insensitive)
   const isMultiOrderActive = multiOrderActiveCustomerList.some(
@@ -94,7 +98,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       ref={drag}
       className={`min-w-[250px] cursor-move ${isDragging ? 'opacity-50' : ''} ${
         isOrder ? 'border-blue-200 bg-blue-50' : 'border-red-200 bg-red-50'
-      } ${hasInvoiceNumber ? 'ring-2 ring-green-300' : ''}`}
+      } ${hasInvoiceNumber ? 'ring-2 ring-green-300' : ''} ${
+        isCandyPlus ? 'ring-2 ring-pink-300 border-pink-200' : ''
+      }`}
     >
       <CardContent className="p-4">
         <div className="flex justify-between items-start mb-2">
@@ -129,6 +135,11 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 <span className="text-xs text-muted-foreground">
                   לקוח: {data.customernumber}
                 </span>
+                {isCandyPlus && (
+                  <Badge className="bg-pink-200 text-pink-800 border-pink-300 text-xs font-bold">
+                    קנדי+
+                  </Badge>
+                )}
                 {/* prominent icons logic */}
                 {isOrder && isMultiOrderActive && (
                   <img
