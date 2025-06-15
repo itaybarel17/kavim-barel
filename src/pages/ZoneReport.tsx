@@ -1,4 +1,3 @@
-
 import React, { useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import html2canvas from 'html2canvas';
@@ -149,6 +148,12 @@ const ZoneReport = () => {
           .no-print {
             display: none !important;
           }
+          
+          /* Hide navigation and header elements during print */
+          nav, .navbar, header, .header {
+            display: none !important;
+          }
+          
           body {
             margin: 0;
             padding: 0;
