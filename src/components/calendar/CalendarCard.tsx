@@ -143,10 +143,10 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
       }`;
 
   const contentPadding = isCalendarMode ? "p-2" : "p-3";
-  const titleSize = isCalendarMode ? "text-xs" : "text-sm";
+  const titleSize = isCalendarMode ? "text-sm" : "text-base"; // Increased from text-xs to text-sm
   const textSize = isCalendarMode ? "text-[10px]" : "text-xs";
   const spacing = isCalendarMode ? "mb-1.5" : "mb-2";
-  const maxHeight = isCalendarMode ? "max-h-28" : "max-h-20";
+  const maxHeight = isCalendarMode ? "max-h-36" : "max-h-24"; // Increased to accommodate wrapped text
 
   return (
     <Card
@@ -156,7 +156,7 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
       <CardContent className={contentPadding}>
         <div className={spacing}>
           <div className="flex items-center justify-between">
-            <h3 className={`font-semibold ${titleSize} ${isProduced ? 'text-green-800' : 'text-blue-800'} truncate`}>
+            <h3 className={`font-bold ${titleSize} ${isProduced ? 'text-green-800' : 'text-blue-800'} truncate`}>
               {group?.separation || 'אזור לא מוגדר'}
             </h3>
             <div className="flex items-center gap-1">
@@ -173,7 +173,7 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
         </div>
 
         <div className={spacing}>
-          <div className={`${textSize} font-medium text-gray-700 mb-0.5`}>נקודות:</div>
+          <div className={`${textSize} font-bold text-gray-700 mb-0.5`}>נקודות:</div>
           <div className={`${maxHeight} overflow-y-auto ${textSize} space-y-0.5`}>
             {uniqueCustomersList.map((customer, index) => {
               const customerCity = customerCityMap.get(customer) || '';
@@ -187,7 +187,7 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
               const isAgent99Customer = agent99Customers.has(customer);
               
               return (
-                <div key={index} className={`truncate font-medium ${isCompletelyTransferred ? 'line-through' : ''} ${
+                <div key={index} className={`break-words font-bold ${isCompletelyTransferred ? 'line-through' : ''} ${
                   isAgent99Customer ? 'text-pink-600' : 'text-gray-600'
                 }`}>
                   • {customer}
