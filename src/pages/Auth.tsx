@@ -41,8 +41,10 @@ export default function Auth() {
       return;
     }
 
-    // For now, allow login without password validation
-    // TODO: Add password validation when ready
+    if (!password) {
+      setError("נא להזין סיסמה");
+      return;
+    }
     
     login(selectedAgent);
     setError("");
@@ -91,7 +93,7 @@ export default function Auth() {
               {selectedAgent && (
                 <div className="space-y-2">
                   <Label htmlFor="password" className="text-sm font-medium text-gray-700">
-                    סיסמה (אופציונלי לעת עתה)
+                    סיסמה
                   </Label>
                   <Input
                     id="password"
@@ -101,6 +103,7 @@ export default function Auth() {
                     onChange={(e) => setPassword(e.target.value)}
                     className="h-12 text-right"
                     dir="rtl"
+                    required
                   />
                 </div>
               )}
@@ -114,7 +117,7 @@ export default function Auth() {
               <Button 
                 type="submit" 
                 className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium text-lg transition-all duration-200 transform hover:scale-[1.02]"
-                disabled={!selectedAgent}
+                disabled={!selectedAgent || !password}
               >
                 {selectedAgentData ? `התחבר כ${selectedAgentData.name}` : "התחבר"}
               </Button>
