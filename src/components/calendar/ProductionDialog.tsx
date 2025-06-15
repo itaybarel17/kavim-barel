@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -43,7 +44,6 @@ interface ProductionDialogProps {
   orders: OrderWithSchedule[];
   returns: ReturnWithSchedule[];
   onProduced?: () => void;
-  currentUser?: { agentnumber: string; agentname: string }; // <-- ADD THIS LINE
 }
 
 export const ProductionDialog: React.FC<ProductionDialogProps> = ({
