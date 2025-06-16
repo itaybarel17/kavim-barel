@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Users, Crown, Clock, Calendar } from 'lucide-react';
+import { Users, Candy, Clock, Calendar } from 'lucide-react';
 import { useWaitingCustomers } from '@/hooks/useWaitingCustomers';
 
 export const WaitingCustomersCounter: React.FC = () => {
@@ -62,10 +62,10 @@ export const WaitingCustomersCounter: React.FC = () => {
         )}
         
         {kandiPlusCustomers > 0 && (
-          <div className="flex items-center gap-1 bg-yellow-500/30 rounded px-2 py-1">
-            <Crown className="h-4 w-4 text-yellow-200" />
-            <span className="text-sm font-bold text-yellow-100">{kandiPlusCustomers}</span>
-            <span className="text-xs text-yellow-200">קנדי+</span>
+          <div className="flex items-center gap-1 bg-blue-500/30 rounded px-2 py-1">
+            <Candy className="h-4 w-4 text-blue-200" />
+            <span className="text-sm font-bold text-blue-100">{kandiPlusCustomers}</span>
+            <span className="text-xs text-blue-200">קנדי+</span>
           </div>
         )}
         
