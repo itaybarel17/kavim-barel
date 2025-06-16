@@ -35,20 +35,28 @@ export default function Auth() {
   // Fetch agents from database
   useEffect(() => {
     const fetchAgents = async () => {
+      console.log('Starting to fetch agents...');
       try {
         const { data, error } = await supabase
           .from('agents')
           .select('id, agentname, agentnumber')
           .order('agentnumber');
 
+        console.log('Supabase response:', { data, error });
+
         if (error) {
           console.error('Error fetching agents:', error);
-          setError('שגיאה בטעינת רשימת הסוכנים');
+          setError('שגיאה בטעינת רשימת הסוכנים: ' + error.message);
         } else {
+          console.log('Successfully fetched agents:', data);
           setAgents(data || []);
+          if (!data || data.length === 0) {
+            console.warn('No agents found in database');
+            setError('לא נמצאו סוכנים במערכת');
+          }
         }
       } catch (err) {
-        console.error('Error fetching agents:', err);
+        console.error('Exception while fetching agents:', err);
         setError('שגיאה בטעינת רשימת הסוכנים');
       } finally {
         setIsLoadingAgents(false);
@@ -93,6 +101,7 @@ export default function Auth() {
         return;
       }
 
+      console.log('Attempting login for agent:', selectedAgentData);
       const success = await login(selectedAgentData.id, password);
       if (!success) {
         setError("שם משתמש או סיסמה שגויים");
@@ -114,6 +123,13 @@ export default function Auth() {
     acc[category].push(agent);
     return acc;
   }, {} as Record<string, Agent[]>);
+
+  console.log('Current state:', { 
+    isLoadingAgents, 
+    agentsCount: agents.length, 
+    agentsByCategory,
+    error 
+  });
 
   if (isLoadingAgents) {
     return (
@@ -143,28 +159,38 @@ export default function Auth() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="agent-select" className="text-sm font-medium text-gray-700">
-                  בחירת סוכן
+                  בחירת סוכן {agents.length > 0 && `(${agents.length} סוכנים)`}
                 </Label>
                 <Select value={selectedAgent} onValueChange={setSelectedAgent}>
                   <SelectTrigger className="w-full h-12 text-right">
-                    <SelectValue placeholder="בחר סוכן..." />
+                    <SelectValue placeholder={
+                      agents.length === 0 
+                        ? "אין סוכנים זמינים..." 
+                        : "בחר סוכן..."
+                    } />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(agentsByCategory).map(([category, categoryAgents]) => (
-                      <div key={category}>
-                        <div className="px-2 py-1 text-xs font-semibold text-gray-500 bg-gray-50">
-                          {category}
-                        </div>
-                        {categoryAgents.map((agent) => (
-                          <SelectItem key={agent.id} value={agent.id} className="text-right">
-                            <div className="flex flex-col items-end">
-                              <span className="font-medium">{agent.agentname}</span>
-                              <span className="text-sm text-gray-500">סוכן {agent.agentnumber}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
+                    {agents.length === 0 ? (
+                      <div className="px-2 py-4 text-center text-gray-500">
+                        לא נמצאו סוכנים
                       </div>
-                    ))}
+                    ) : (
+                      Object.entries(agentsByCategory).map(([category, categoryAgents]) => (
+                        <div key={category}>
+                          <div className="px-2 py-1 text-xs font-semibold text-gray-500 bg-gray-50">
+                            {category}
+                          </div>
+                          {categoryAgents.map((agent) => (
+                            <SelectItem key={agent.id} value={agent.id} className="text-right">
+                              <div className="flex flex-col items-end">
+                                <span className="font-medium">{agent.agentname}</span>
+                                <span className="text-sm text-gray-500">סוכן {agent.agentnumber}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </div>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -196,7 +222,7 @@ export default function Auth() {
               <Button 
                 type="submit" 
                 className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium text-lg transition-all duration-200 transform hover:scale-[1.02]"
-                disabled={!selectedAgent || !password || isLoading}
+                disabled={!selectedAgent || !password || isLoading || agents.length === 0}
               >
                 {isLoading ? (
                   <div className="flex items-center gap-2">
