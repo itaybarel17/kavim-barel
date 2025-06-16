@@ -18,14 +18,14 @@ export const NavBar: React.FC = () => {
       <div className="flex gap-4 items-center">
         <Link to="/" className="text-xl font-bold text-white hover:text-blue-100 transition-colors">מערכת ההפצה</Link>
         
-        {/* Navigation menu with frame */}
-        <div className="flex gap-2 p-2 border-2 border-white/30 rounded-lg bg-white/10 backdrop-blur-sm">
+        {/* Compact premium navigation menu */}
+        <div className="flex gap-1 p-1.5 border border-white/20 rounded-md bg-white/5 backdrop-blur-sm shadow-inner">
           <Link
             to="/calendar"
-            className={`px-4 py-2 rounded-lg border-2 transition-all duration-300 transform hover:scale-105 hover:shadow-lg ${
+            className={`px-3 py-1.5 text-sm rounded border transition-all duration-200 ${
               location.pathname === '/calendar' 
-                ? 'bg-green-500 text-white border-green-400 shadow-lg' 
-                : 'bg-green-500/80 text-white border-green-400/80 hover:bg-green-500 hover:border-green-400'
+                ? 'bg-green-500 text-white border-green-400 shadow-md' 
+                : 'bg-green-500/70 text-white border-green-400/70 hover:bg-green-500 hover:border-green-400 hover:shadow-sm'
             }`}
           >
             לוח שנה
@@ -34,20 +34,20 @@ export const NavBar: React.FC = () => {
             <>
               <Link
                 to="/distribution"
-                className={`px-4 py-2 rounded-lg border-2 transition-all duration-300 transform hover:scale-105 hover:shadow-lg ${
+                className={`px-3 py-1.5 text-sm rounded border transition-all duration-200 ${
                   location.pathname === '/distribution' 
-                    ? 'bg-blue-500 text-white border-blue-400 shadow-lg' 
-                    : 'bg-blue-500/80 text-white border-blue-400/80 hover:bg-blue-500 hover:border-blue-400'
+                    ? 'bg-blue-500 text-white border-blue-400 shadow-md' 
+                    : 'bg-blue-500/70 text-white border-blue-400/70 hover:bg-blue-500 hover:border-blue-400 hover:shadow-sm'
                 }`}
               >
                 הפצה
               </Link>
               <Link
                 to="/archive"
-                className={`px-4 py-2 rounded-lg border-2 transition-all duration-300 transform hover:scale-105 hover:shadow-lg ${
+                className={`px-3 py-1.5 text-sm rounded border transition-all duration-200 ${
                   location.pathname === '/archive' 
-                    ? 'bg-red-500 text-white border-red-400 shadow-lg' 
-                    : 'bg-red-500/80 text-white border-red-400/80 hover:bg-red-500 hover:border-red-400'
+                    ? 'bg-red-500 text-white border-red-400 shadow-md' 
+                    : 'bg-red-500/70 text-white border-red-400/70 hover:bg-red-500 hover:border-red-400 hover:shadow-sm'
                 }`}
               >
                 ארכיון
