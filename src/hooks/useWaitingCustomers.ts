@@ -18,8 +18,8 @@ export const useWaitingCustomers = () => {
       today.setHours(0, 0, 0, 0);
       const todayDateString = today.toISOString().split('T')[0];
       
-      // Get all orders that are waiting based on the new criteria
-      const { data: waitingOrders, error } = await supabase
+      // Get all orders that are assigned to schedules and waiting based on the new criteria
+      const { data: assignedOrders, error: assignedError } = await supabase
         .from('mainorder')
         .select(`
           customernumber,
@@ -32,14 +32,15 @@ export const useWaitingCustomers = () => {
             distribution_date
           )
         `)
-        .is('ordercancel', null); // ordercancel must be NULL
+        .is('ordercancel', null) // ordercancel must be NULL
+        .not('schedule_id', 'is', null); // only orders with schedule_id
 
-      if (error) {
-        console.error('Error fetching waiting orders:', error);
-        throw error;
+      if (assignedError) {
+        console.error('Error fetching assigned orders:', assignedError);
+        throw assignedError;
       }
 
-      // Get all unassigned orders (without schedule_id or with schedule_id pointing to produced schedules)
+      // Get all unassigned orders (without schedule_id)
       const { data: unassignedOrders, error: unassignedError } = await supabase
         .from('mainorder')
         .select(`
@@ -51,27 +52,15 @@ export const useWaitingCustomers = () => {
         `)
         .is('ordercancel', null) // ordercancel must be NULL
         .is('done_mainorder', null) // unassigned orders should not be produced
-        .or('schedule_id.is.null,schedule_id.not.in.(select schedule_id from distribution_schedule where done_schedule is null)');
+        .is('schedule_id', null); // only orders without schedule_id
 
       if (unassignedError) {
         console.error('Error fetching unassigned orders:', unassignedError);
         throw unassignedError;
       }
 
-      // Combine waiting orders and unassigned orders
-      const allWaitingOrders = [...(waitingOrders || []), ...(unassignedOrders || [])];
-
-      if (!allWaitingOrders.length) {
-        return { regularCustomers: 0, kandiPlusCustomers: 0, totalCustomers: 0 };
-      }
-
-      // Filter orders that are truly waiting based on the criteria
-      const trulyWaitingOrders = allWaitingOrders.filter(order => {
-        // For unassigned orders, they are waiting if done_mainorder is NULL
-        if (!order.schedule_id) {
-          return !order.done_mainorder;
-        }
-
+      // Filter assigned orders that are truly waiting based on the criteria
+      const trulyWaitingAssignedOrders = (assignedOrders || []).filter(order => {
         const schedule = order.distribution_schedule;
         
         // Criteria 1: done_mainorder is NULL
@@ -93,11 +82,21 @@ export const useWaitingCustomers = () => {
         return false;
       });
 
+      // All unassigned orders are considered waiting (they already have done_mainorder = NULL filter)
+      const trulyWaitingUnassignedOrders = unassignedOrders || [];
+
+      // Combine both types of waiting orders
+      const allWaitingOrders = [...trulyWaitingAssignedOrders, ...trulyWaitingUnassignedOrders];
+
+      if (!allWaitingOrders.length) {
+        return { regularCustomers: 0, kandiPlusCustomers: 0, totalCustomers: 0 };
+      }
+
       // Get unique customers
       const uniqueCustomers = new Set();
       const kandiPlusCustomers = new Set();
 
-      trulyWaitingOrders.forEach(order => {
+      allWaitingOrders.forEach(order => {
         uniqueCustomers.add(order.customernumber);
         
         // Check if customer is קנדי+ (agent number '99')
