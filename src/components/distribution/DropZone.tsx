@@ -162,14 +162,15 @@ export const DropZone: React.FC<DropZoneProps> = ({
     const selectedGroup = distributionGroups.find(group => group.groups_id === selectedGroupId);
     const selectedDriver = drivers.find(driver => driver.id === selectedDriverId);
 
-    // Navigate to the report page with data
+    // Navigate to the report page with data including customerSupplyMap
     const reportData = {
       zoneNumber,
       scheduleId,
       groupName: selectedGroup?.separation || '',
       driverName: selectedDriver?.nahag || '',
       orders: assignedOrders,
-      returns: assignedReturns
+      returns: assignedReturns,
+      customerSupplyMap // Add customerSupplyMap to the report data
     };
 
     // Use navigate to go to the report page

@@ -22,7 +22,7 @@ const ZoneReport = () => {
   const location = useLocation();
   const reportRef = useRef<HTMLDivElement>(null);
 
-  // Get data from location state
+  // Get data from location state - properly destructure customerSupplyMap
   const reportData = location.state as ZoneReportData & { customerSupplyMap?: Record<string, string> };
 
   if (!reportData) {
@@ -38,6 +38,7 @@ const ZoneReport = () => {
     );
   }
 
+  // Properly destructure customerSupplyMap with default empty object
   const { zoneNumber, scheduleId, groupName, driverName, orders, returns, customerSupplyMap = {} } = reportData;
 
   // Process data with sorting and numbering
