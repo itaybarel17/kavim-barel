@@ -42,9 +42,8 @@ interface UnassignedAreaProps {
   // new props for icons
   multiOrderActiveCustomerList?: { name: string; city: string }[];
   dualActiveOrderReturnCustomers?: { name: string; city: string }[];
-  // new props for supply details and agent names
+  // new props for supply details - removed agentNameMap
   customerSupplyMap?: Record<string, string>;
-  agentNameMap?: Record<string, string>;
 }
 
 export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
@@ -56,7 +55,6 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
   customerSupplyMap = {},
-  agentNameMap = {},
 }) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ type: 'order' | 'return'; data: Order | Return } | null>(null);
@@ -104,7 +102,6 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
               multiOrderActiveCustomerList={multiOrderActiveCustomerList}
               dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
               customerSupplyMap={customerSupplyMap}
-              agentNameMap={agentNameMap}
             />
             {onDeleteItem && (
               <button
@@ -126,7 +123,6 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
               multiOrderActiveCustomerList={multiOrderActiveCustomerList}
               dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
               customerSupplyMap={customerSupplyMap}
-              agentNameMap={agentNameMap}
             />
             {onDeleteItem && (
               <button

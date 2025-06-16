@@ -51,9 +51,8 @@ interface OrderCardProps {
   multiOrderActiveCustomerList?: { name: string; city: string }[];
   dualActiveOrderReturnCustomers?: { name: string; city: string }[];
   
-  // new props for supply details and agent names
+  // new props for supply details - removed agentNameMap as we'll display agentnumber directly
   customerSupplyMap?: Record<string, string>;
-  agentNameMap?: Record<string, string>;
 }
 
 export const OrderCard: React.FC<OrderCardProps> = ({
@@ -63,7 +62,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
   customerSupplyMap = {},
-  agentNameMap = {},
 }) => {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'card',
@@ -91,9 +89,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   // Check if this is a Candy+ order (agent 99)
   const isCandyPlus = data.agentnumber === '99';
 
-  // Get supply details and agent name
+  // Get supply details
   const customerSupplyDetails = data.customernumber ? customerSupplyMap[data.customernumber] : '';
-  const agentName = data.agentnumber ? agentNameMap[data.agentnumber] : '';
 
   // Smart icon logic
   const isMultiOrderActive = multiOrderActiveCustomerList.some(
@@ -168,16 +165,16 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         </div>
         
         <div className="mt-2 space-y-1 flex flex-col">
-          {/* שורה שישית: מספר לקוח + שם סוכן + אייקונים */}
+          {/* שורה שישית: מספר לקוח + מספר סוכן + אייקונים */}
           <div className="flex items-center gap-2">
             {data.customernumber && (
               <>
                 <span className="text-xs text-muted-foreground">
                   לקוח: {data.customernumber}
                 </span>
-                {agentName && (
+                {data.agentnumber && (
                   <span className="text-xs text-muted-foreground">
-                    | סוכן: {agentName}
+                    | סוכן: {data.agentnumber}
                   </span>
                 )}
                 {isCandyPlus && (

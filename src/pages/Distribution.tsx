@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,6 +11,7 @@ import { Loader2, Calendar, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { AuthContext } from '@/context/AuthContext';
 
 interface Order {
   ordernumber: number;
@@ -66,21 +67,27 @@ interface CustomerSupply {
   supplydetails?: string;
 }
 
-interface Agent {
-  agentnumber: string;
-  agentname: string;
-}
-
 const Distribution = () => {
   const [draggedItem, setDraggedItem] = useState<{ type: 'order' | 'return'; data: Order | Return } | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { currentUser } = useContext(AuthContext);
 
   // Set up realtime subscriptions
   useRealtimeSubscription();
 
+  // Helper function to filter items based on user permissions
+  const filterItemsByUser = (items: (Order | Return)[]) => {
+    // Agent 99 can only see their own orders/returns
+    if (currentUser?.agentnumber === '99') {
+      return items.filter(item => item.agentnumber === '99');
+    }
+    // All other agents can see everything
+    return items;
+  };
+
   // Fetch orders (exclude produced orders: done_mainorder IS NOT NULL and deleted orders: ordercancel IS NOT NULL)
-  const { data: orders = [], refetch: refetchOrders, isLoading: ordersLoading } = useQuery({
+  const { data: allOrders = [], refetch: refetchOrders, isLoading: ordersLoading } = useQuery({
     queryKey: ['orders'],
     queryFn: async () => {
       console.log('Fetching orders...');
@@ -100,7 +107,7 @@ const Distribution = () => {
   });
 
   // Fetch returns (exclude produced returns: done_return IS NOT NULL and deleted returns: returncancel IS NOT NULL)
-  const { data: returns = [], refetch: refetchReturns, isLoading: returnsLoading } = useQuery({
+  const { data: allReturns = [], refetch: refetchReturns, isLoading: returnsLoading } = useQuery({
     queryKey: ['returns'],
     queryFn: async () => {
       console.log('Fetching returns...');
@@ -119,6 +126,10 @@ const Distribution = () => {
     }
   });
 
+  // Apply user permissions filtering
+  const orders = filterItemsByUser(allOrders);
+  const returns = filterItemsByUser(allReturns);
+
   // Fetch customer supply details
   const { data: customerSupplyData = [], isLoading: customerSupplyLoading } = useQuery({
     queryKey: ['customer-supply'],
@@ -131,21 +142,6 @@ const Distribution = () => {
       if (error) throw error;
       console.log('Customer supply data fetched:', data);
       return data as CustomerSupply[];
-    }
-  });
-
-  // Fetch agents data
-  const { data: agentsData = [], isLoading: agentsLoading } = useQuery({
-    queryKey: ['agents'],
-    queryFn: async () => {
-      console.log('Fetching agents...');
-      const { data, error } = await supabase
-        .from('agents')
-        .select('agentnumber, agentname');
-      
-      if (error) throw error;
-      console.log('Agents data fetched:', data);
-      return data as Agent[];
     }
   });
 
@@ -196,14 +192,9 @@ const Distribution = () => {
     }
   });
 
-  // Create maps for easy lookup
+  // Create map for customer supply lookup
   const customerSupplyMap = customerSupplyData.reduce((map, customer) => {
     map[customer.customernumber] = customer.supplydetails || '';
-    return map;
-  }, {} as Record<string, string>);
-
-  const agentNameMap = agentsData.reduce((map, agent) => {
-    map[agent.agentnumber] = agent.agentname;
     return map;
   }, {} as Record<string, string>);
 
@@ -473,7 +464,7 @@ const Distribution = () => {
   console.log('Distribution groups:', distributionGroups.length);
   console.log('Active schedules:', distributionSchedules.length);
 
-  const isLoading = ordersLoading || returnsLoading || groupsLoading || schedulesLoading || driversLoading || customerSupplyLoading || agentsLoading;
+  const isLoading = ordersLoading || returnsLoading || groupsLoading || schedulesLoading || driversLoading || customerSupplyLoading;
 
   if (isLoading) {
     return (
@@ -520,7 +511,6 @@ const Distribution = () => {
           multiOrderActiveCustomerList={multiOrderActiveCustomerList}
           dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
           customerSupplyMap={customerSupplyMap}
-          agentNameMap={agentNameMap}
         />
 
         {/* Mobile: single column, Tablet: 2 columns, Desktop: 4 columns */}
@@ -543,7 +533,6 @@ const Distribution = () => {
               multiOrderActiveCustomerList={multiOrderActiveCustomerList}
               dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
               customerSupplyMap={customerSupplyMap}
-              agentNameMap={agentNameMap}
             />
           ))}
         </div>
