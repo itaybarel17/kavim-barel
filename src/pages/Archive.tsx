@@ -380,17 +380,15 @@ const Archive = () => {
   return (
     <div className="min-h-screen p-6 bg-background">
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            onClick={() => navigate('/distribution')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            חזור לממשק הפצה
-          </Button>
-          <h1 className="text-3xl font-bold">ארכיון הזמנות והחזרות</h1>
-        </div>
+        <h1 className="text-3xl font-bold">ארכיון הזמנות והחזרות</h1>
+        <Button
+          variant="outline"
+          onClick={() => navigate('/distribution')}
+          className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-none shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          חזור לממשק הפצה
+        </Button>
       </div>
 
       {/* Search input */}
