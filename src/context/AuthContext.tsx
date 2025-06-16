@@ -1,7 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { User, Session } from '@supabase/supabase-js';
 
 export interface AuthUser {
   agentnumber: string;
@@ -11,7 +10,7 @@ export interface AuthUser {
 interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (agentnumber: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
 
@@ -27,106 +26,92 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [session, setSession] = useState<Session | null>(null);
 
-  const fetchAgentData = async (userId: string) => {
-    try {
-      const { data: agent, error } = await supabase
-        .from('agents')
-        .select('agentnumber, agentname')
-        .eq('id', userId)
-        .single();
-
-      if (error || !agent) {
-        console.error('Error fetching agent data:', error);
-        return null;
+  const checkMidnightReset = () => {
+    const lastLogin = localStorage.getItem('lastLoginTime');
+    if (lastLogin) {
+      const lastLoginDate = new Date(lastLogin);
+      const now = new Date();
+      
+      // Check if it's past midnight since last login
+      if (now.getDate() !== lastLoginDate.getDate() || 
+          now.getMonth() !== lastLoginDate.getMonth() || 
+          now.getFullYear() !== lastLoginDate.getFullYear()) {
+        // If it's a new day, clear the auth and force re-login
+        localStorage.removeItem('authUser');
+        localStorage.removeItem('lastLoginTime');
+        setUser(null);
+        return true; // Reset occurred
       }
-
-      return {
-        agentnumber: agent.agentnumber,
-        agentname: agent.agentname
-      };
-    } catch (error) {
-      console.error('Error fetching agent data:', error);
-      return null;
     }
+    return false; // No reset needed
   };
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.id);
-        setSession(session);
-        
-        if (session?.user) {
-          // Defer agent data fetching to prevent deadlocks
-          setTimeout(async () => {
-            const agentData = await fetchAgentData(session.user.id);
-            if (agentData) {
-              setUser(agentData);
-            }
-          }, 0);
-        } else {
-          setUser(null);
-        }
-        
-        setIsLoading(false);
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        fetchAgentData(session.user.id).then((agentData) => {
-          if (agentData) {
-            setUser(agentData);
-          }
-          setIsLoading(false);
-        });
-      } else {
-        setIsLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    // Initial load - check for existing user
+    const storedUser = localStorage.getItem('authUser');
+    
+    // First check if we need to reset due to midnight
+    const wasReset = checkMidnightReset();
+    
+    if (!wasReset && storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+    
+    setIsLoading(false);
+    
+    // Set up interval to check for midnight reset every minute
+    const interval = setInterval(() => {
+      checkMidnightReset();
+    }, 60000);
+    
+    return () => clearInterval(interval);
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (agentnumber: string, password: string): Promise<boolean> => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password,
-      });
+      const { data: agent, error } = await supabase
+        .from('agents')
+        .select('agentnumber, agentname, password_onlyview')
+        .eq('agentnumber', agentnumber)
+        .single();
 
-      if (error) {
-        console.log('Login error:', error.message);
+      if (error || !agent) {
+        console.log('Agent not found:', agentnumber);
         return false;
       }
 
-      if (data.user) {
-        console.log('Login successful for user:', data.user.id);
+      // Compare passwords (both as strings)
+      const storedPassword = agent.password_onlyview?.toString().trim();
+      const inputPassword = password.toString().trim();
+
+      if (storedPassword === inputPassword) {
+        const currentUser = { 
+          agentnumber: agent.agentnumber, 
+          agentname: agent.agentname 
+        };
+        
+        setUser(currentUser);
+        localStorage.setItem('authUser', JSON.stringify(currentUser));
+        localStorage.setItem('lastLoginTime', new Date().toISOString());
+        
+        console.log('Login successful for:', agent.agentname);
         return true;
+      } else {
+        console.log('Password mismatch');
+        return false;
       }
 
-      return false;
     } catch (error) {
       console.error('Login error:', error);
       return false;
     }
   };
 
-  const logout = async () => {
-    try {
-      await supabase.auth.signOut();
-      setUser(null);
-      setSession(null);
-    } catch (error) {
-      console.error('Logout error:', error);
-      // Force logout even if there's an error
-      setUser(null);
-      setSession(null);
-    }
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('authUser');
+    localStorage.removeItem('lastLoginTime');
   };
 
   return (

@@ -10,17 +10,17 @@ import { Label } from "@/components/ui/label";
 
 const agents = [
   // סוכני מכירות (לפי סדר agentnumber)
-  { id: "1", name: "יניב", title: "סוכן מכירות", category: "מכירות", email: "yaniv@company.local" },
-  { id: "2", name: "לינוי", title: "סוכן מכירות", category: "מכירות", email: "linoy@company.local" },
-  { id: "3", name: "אייל", title: "סוכן מכירות", category: "מכירות", email: "eyal@company.local" },
-  { id: "5", name: "אחמד", title: "סוכן מכירות", category: "מכירות", email: "ahmad@company.local" },
-  { id: "6", name: "ג'קי", title: "סוכן מכירות", category: "מכירות", email: "jackie@company.local" },
-  { id: "7", name: "חיים", title: "סוכן מכירות", category: "מכירות", email: "haim@company.local" },
-  { id: "8", name: "רונן", title: "סוכן מכירות", category: "מכירות", email: "ronen@company.local" },
+  { id: "1", name: "יניב", title: "סוכן מכירות", category: "מכירות" },
+  { id: "2", name: "לינוי", title: "סוכן מכירות", category: "מכירות" },
+  { id: "3", name: "אייל", title: "סוכן מכירות", category: "מכירות" },
+  { id: "5", name: "אחמד", title: "סוכן מכירות", category: "מכירות" },
+  { id: "6", name: "ג'קי", title: "סוכן מכירות", category: "מכירות" },
+  { id: "7", name: "חיים", title: "סוכן מכירות", category: "מכירות" },
+  { id: "8", name: "רונן", title: "סוכן מכירות", category: "מכירות" },
   // מנהל מערכת
-  { id: "4", name: "משרד", title: "מנהל מערכת", category: "ניהול", email: "office@company.local" },
+  { id: "4", name: "משרד", title: "מנהל מערכת", category: "ניהול" },
   // סוכן מיוחד
-  { id: "99", name: "קנדי", title: "סוכן מיוחד", category: "מיוחד", email: "kennedy@company.local" },
+  { id: "99", name: "קנדי", title: "סוכן מיוחד", category: "מיוחד" },
 ];
 
 // Group agents by category for better organization
@@ -66,14 +66,7 @@ export default function Auth() {
     setError("");
 
     try {
-      const selectedAgentData = agents.find(agent => agent.id === selectedAgent);
-      if (!selectedAgentData) {
-        setError("סוכן לא נמצא");
-        setIsLoading(false);
-        return;
-      }
-
-      const success = await login(selectedAgentData.email, password);
+      const success = await login(selectedAgent, password);
       if (!success) {
         setError("שם משתמש או סיסמה שגויים");
       }
