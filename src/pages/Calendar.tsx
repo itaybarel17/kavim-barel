@@ -486,6 +486,24 @@ const Calendar = () => {
   return <div className="min-h-screen p-6 bg-background">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">לוח שנה הפצה</h1>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => navigate('/distribution')} 
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            ממשק הפצה
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+          <Button 
+            onClick={() => navigate('/archive')} 
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            ארכיון
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Horizontal Kanban */}
