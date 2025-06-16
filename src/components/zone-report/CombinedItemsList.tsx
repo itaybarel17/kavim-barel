@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -81,8 +80,8 @@ export const CombinedItemsList: React.FC<CombinedItemsListProps> = ({
                 </Badge>}
             </div>
           </div>
-          {supplyDetails && <div className="mt-1 text-gray-600 italic text-xs">
-              {supplyDetails}
+          {supplyDetails && <div className="mt-1 text-right text-gray-600 italic text-xs">
+              אספקה: {supplyDetails}
             </div>}
         </div>
       </div>;
