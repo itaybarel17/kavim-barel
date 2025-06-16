@@ -70,11 +70,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (agentnumber: string, password: string): Promise<boolean> => {
     try {
-      // Get agent details first
+      // Get agent details first - query with string agentnumber
       const { data: agent, error: agentError } = await supabase
         .from('agents')
         .select('agentnumber, agentname')
-        .eq('agentnumber', parseInt(agentnumber))
+        .eq('agentnumber', agentnumber) // Use string directly, no parseInt
         .single();
 
       if (agentError || !agent) {
@@ -85,7 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Use the new encrypted password verification function
       const { data: isPasswordValid, error: passwordError } = await supabase
         .rpc('verify_agent_password', {
-          agent_number: agentnumber,
+          agent_number: agentnumber, // Pass as string
           input_password: password
         });
 
@@ -96,7 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (isPasswordValid) {
         const currentUser = { 
-          agentnumber: agent.agentnumber.toString(), // Convert to string
+          agentnumber: agent.agentnumber, // Already a string from database
           agentname: agent.agentname 
         };
         
