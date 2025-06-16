@@ -36,8 +36,8 @@ export const NavBar: React.FC = () => {
                 to="/distribution"
                 className={`px-3 py-1.5 text-sm font-bold rounded border transition-all duration-200 ${
                   location.pathname === '/distribution' 
-                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-400 shadow-lg scale-105 ring-2 ring-blue-300/50' 
-                    : 'bg-gradient-to-r from-blue-500/70 to-blue-600/70 text-white border-blue-400/70 hover:from-blue-500 hover:to-blue-600 hover:border-blue-400 hover:shadow-sm'
+                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white border-orange-400 shadow-lg scale-105 ring-2 ring-orange-300/50' 
+                    : 'bg-gradient-to-r from-orange-500/70 to-orange-600/70 text-white border-orange-400/70 hover:from-orange-500 hover:to-orange-600 hover:border-orange-400 hover:shadow-sm'
                 }`}
               >
                 הפצה
