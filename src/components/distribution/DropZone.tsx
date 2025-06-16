@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { useDrop } from 'react-dnd';
 import { useNavigate } from 'react-router-dom';
@@ -139,6 +140,27 @@ export const DropZone: React.FC<DropZoneProps> = ({
     returnItem.schedule_id === scheduleId && 
     distributionSchedules.some(schedule => schedule.schedule_id === scheduleId)
   );
+
+  // Calculate unique customer points (נקודות)
+  const uniqueCustomerPoints = useMemo(() => {
+    const uniqueCustomers = new Set<string>();
+    
+    // Add customer numbers from orders
+    assignedOrders.forEach(order => {
+      if (order.customernumber) {
+        uniqueCustomers.add(order.customernumber);
+      }
+    });
+    
+    // Add customer numbers from returns
+    assignedReturns.forEach(returnItem => {
+      if (returnItem.customernumber) {
+        uniqueCustomers.add(returnItem.customernumber);
+      }
+    });
+    
+    return uniqueCustomers.size;
+  }, [assignedOrders, assignedReturns]);
 
   // Update local state based on zone state from parent
   useEffect(() => {
@@ -366,6 +388,11 @@ export const DropZone: React.FC<DropZoneProps> = ({
               {selectedDriver && (
                 <div className="font-medium text-secondary-foreground">
                   נהג נבחר: {selectedDriver.nahag}
+                </div>
+              )}
+              {scheduleId && (
+                <div className="font-medium text-blue-600 mt-1">
+                  סה"כ נקודות: {uniqueCustomerPoints}
                 </div>
               )}
             </div>

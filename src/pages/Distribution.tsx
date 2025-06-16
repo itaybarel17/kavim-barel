@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -500,14 +501,14 @@ const Distribution = () => {
             <Button 
               onClick={() => navigate('/archive')}
               variant="outline"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white border-none shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
             >
               <Archive className="h-4 w-4" />
               ארכיון
             </Button>
             <Button 
               onClick={() => navigate('/calendar')}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-none shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
             >
               <Calendar className="h-4 w-4" />
               לוח שנה
