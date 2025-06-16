@@ -1,10 +1,19 @@
 
 import React from 'react';
-import { Users, Crown, Clock } from 'lucide-react';
+import { Users, Crown, Clock, Calendar } from 'lucide-react';
 import { useWaitingCustomers } from '@/hooks/useWaitingCustomers';
 
 export const WaitingCustomersCounter: React.FC = () => {
   const { data: waitingData, isLoading, error } = useWaitingCustomers();
+
+  // Get today's date in Hebrew format
+  const today = new Date();
+  const hebrewDate = today.toLocaleDateString('he-IL', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
 
   if (isLoading) {
     return (
@@ -23,9 +32,15 @@ export const WaitingCustomersCounter: React.FC = () => {
 
   if (totalCustomers === 0) {
     return (
-      <div className="flex items-center gap-2 text-green-200">
-        <Users className="h-4 w-4" />
-        <span className="text-sm font-medium">אין לקוחות ממתינים 🎉</span>
+      <div className="flex items-center gap-4 bg-white/10 rounded-lg px-3 py-2 border border-white/20">
+        <div className="flex items-center gap-2 text-green-200">
+          <Users className="h-4 w-4" />
+          <span className="text-sm font-medium">אין לקוחות ממתינים 🎉</span>
+        </div>
+        <div className="flex items-center gap-1 text-blue-200">
+          <Calendar className="h-3 w-3" />
+          <span className="text-xs">{hebrewDate}</span>
+        </div>
       </div>
     );
   }
@@ -56,6 +71,11 @@ export const WaitingCustomersCounter: React.FC = () => {
         
         <div className="flex items-center gap-1 bg-white/20 rounded px-2 py-1">
           <span className="text-sm font-bold text-white">סה"כ: {totalCustomers}</span>
+        </div>
+        
+        <div className="flex items-center gap-1 text-blue-200 border-r border-white/20 pr-3">
+          <Calendar className="h-3 w-3" />
+          <span className="text-xs">{hebrewDate}</span>
         </div>
       </div>
     </div>

@@ -14,7 +14,11 @@ export const useWaitingCustomers = () => {
     queryFn: async (): Promise<WaitingCustomersData> => {
       console.log('Fetching waiting customers data...');
       
-      // Get all orders that are waiting (not done and not cancelled)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayDateString = today.toISOString().split('T')[0];
+      
+      // Get all orders that are waiting based on the new criteria
       const { data: waitingOrders, error } = await supabase
         .from('mainorder')
         .select(`
@@ -28,9 +32,7 @@ export const useWaitingCustomers = () => {
             distribution_date
           )
         `)
-        .is('done_mainorder', null)
-        .is('ordercancel', null)
-        .not('schedule_id', 'is', null);
+        .is('ordercancel', null); // ordercancel must be NULL
 
       if (error) {
         console.error('Error fetching waiting orders:', error);
@@ -41,24 +43,26 @@ export const useWaitingCustomers = () => {
         return { regularCustomers: 0, kandiPlusCustomers: 0, totalCustomers: 0 };
       }
 
-      // Filter orders that are truly waiting (schedule not done or distribution date not passed)
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
+      // Filter orders that are truly waiting based on the new criteria
       const trulyWaitingOrders = waitingOrders.filter(order => {
         const schedule = order.distribution_schedule;
-        if (!schedule) return true;
-
-        // If schedule is not done, it's waiting
-        if (!schedule.done_schedule) return true;
-
-        // If distribution date is in the future, it's waiting
-        if (schedule.distribution_date) {
+        
+        // Criteria 1: done_mainorder is NULL
+        if (!order.done_mainorder) {
+          return true;
+        }
+        
+        // Criteria 2: done_mainorder has timestamp but distribution_date is today or later
+        if (order.done_mainorder && schedule?.distribution_date) {
           const distributionDate = new Date(schedule.distribution_date);
           distributionDate.setHours(0, 0, 0, 0);
-          if (distributionDate >= today) return true;
+          
+          // If distribution date is today or later, it's still waiting
+          if (distributionDate >= today) {
+            return true;
+          }
         }
-
+        
         return false;
       });
 
