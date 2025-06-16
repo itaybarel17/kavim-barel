@@ -7,39 +7,56 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
 
-const agents = [
-  // סוכני מכירות (לפי סדר agentnumber)
-  { id: "1", name: "יניב", title: "סוכן מכירות", category: "מכירות", email: "yanivyeshua@gmail.com" },
-  { id: "2", name: "לינוי", title: "סוכן מכירות", category: "מכירות", email: "linoymirzachi91@gmail.com" },
-  { id: "3", name: "אייל", title: "סוכן מכירות", category: "מכירות", email: "eyal964@gmail.com" },
-  { id: "5", name: "אחמד", title: "סוכן מכירות", category: "מכירות", email: "ahmadk969a@gmail.com" },
-  { id: "6", name: "ג'קי", title: "סוכן מכירות", category: "מכירות", email: "jekievverin@gmail.com" },
-  { id: "7", name: "חיים", title: "סוכן מכירות", category: "מכירות", email: "haim200756@gmail.com" },
-  { id: "8", name: "רונן", title: "סוכן מכירות", category: "מכירות", email: "ronen.segev10@gmail.com" },
-  // מנהל מערכת
-  { id: "4", name: "משרד", title: "מנהל מערכת", category: "ניהול", email: "office@barel-alon.com" },
-  // סוכן מיוחד
-  { id: "99", name: "קנדי", title: "סוכן מיוחד", category: "מיוחד", email: "candyplus955@gmail.com" },
-  // נוספים
-  { id: "10", name: "נועה", title: "סוכן מכירות", category: "מכירות", email: "noa@barel-alon.com" },
-  { id: "11", name: "אילי", title: "סוכן מכירות", category: "מכירות", email: "itai@barel-alon.com" },
-];
+interface Agent {
+  id: string;
+  agentname: string;
+  agentnumber: string;
+}
 
 // Group agents by category for better organization
-const agentsByCategory = {
-  "מכירות": agents.filter(agent => agent.category === "מכירות"),
-  "ניהול": agents.filter(agent => agent.category === "ניהול"),
-  "מיוחד": agents.filter(agent => agent.category === "מיוחד"),
+const getCategoryFromAgentNumber = (agentnumber: string) => {
+  if (agentnumber === "4") return "ניהול";
+  if (agentnumber === "99") return "מיוחד";
+  return "מכירות";
 };
 
 export default function Auth() {
+  const [agents, setAgents] = useState<Agent[]>([]);
   const [selectedAgent, setSelectedAgent] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingAgents, setIsLoadingAgents] = useState(true);
   const { login, user } = useAuth();
   const navigate = useNavigate();
+
+  // Fetch agents from database
+  useEffect(() => {
+    const fetchAgents = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('agents')
+          .select('id, agentname, agentnumber')
+          .order('agentnumber');
+
+        if (error) {
+          console.error('Error fetching agents:', error);
+          setError('שגיאה בטעינת רשימת הסוכנים');
+        } else {
+          setAgents(data || []);
+        }
+      } catch (err) {
+        console.error('Error fetching agents:', err);
+        setError('שגיאה בטעינת רשימת הסוכנים');
+      } finally {
+        setIsLoadingAgents(false);
+      }
+    };
+
+    fetchAgents();
+  }, []);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -76,7 +93,7 @@ export default function Auth() {
         return;
       }
 
-      const success = await login(selectedAgentData.email, password);
+      const success = await login(selectedAgentData.id, password);
       if (!success) {
         setError("שם משתמש או סיסמה שגויים");
       }
@@ -89,6 +106,25 @@ export default function Auth() {
   };
 
   const selectedAgentData = agents.find(agent => agent.id === selectedAgent);
+
+  // Group agents by category
+  const agentsByCategory = agents.reduce((acc, agent) => {
+    const category = getCategoryFromAgentNumber(agent.agentnumber);
+    if (!acc[category]) acc[category] = [];
+    acc[category].push(agent);
+    return acc;
+  }, {} as Record<string, Agent[]>);
+
+  if (isLoadingAgents) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">טוען רשימת סוכנים...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -122,8 +158,8 @@ export default function Auth() {
                         {categoryAgents.map((agent) => (
                           <SelectItem key={agent.id} value={agent.id} className="text-right">
                             <div className="flex flex-col items-end">
-                              <span className="font-medium">{agent.name}</span>
-                              <span className="text-sm text-gray-500">סוכן {agent.id}</span>
+                              <span className="font-medium">{agent.agentname}</span>
+                              <span className="text-sm text-gray-500">סוכן {agent.agentnumber}</span>
                             </div>
                           </SelectItem>
                         ))}
@@ -168,7 +204,7 @@ export default function Auth() {
                     מתחבר...
                   </div>
                 ) : (
-                  selectedAgentData ? `התחבר כ${selectedAgentData.name}` : "התחבר"
+                  selectedAgentData ? `התחבר כ${selectedAgentData.agentname}` : "התחבר"
                 )}
               </Button>
             </form>
