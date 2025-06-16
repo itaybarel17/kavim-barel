@@ -24,7 +24,7 @@ export const NavBar: React.FC = () => {
             to="/calendar"
             className={`px-3 py-1.5 text-sm font-bold rounded border transition-all duration-200 ${
               location.pathname === '/calendar' 
-                ? 'bg-gradient-to-r from-green-500 to-green-600 text-white border-green-400 shadow-md' 
+                ? 'bg-gradient-to-r from-green-500 to-green-600 text-white border-green-400 shadow-lg scale-105 ring-2 ring-green-300/50' 
                 : 'bg-gradient-to-r from-green-500/70 to-green-600/70 text-white border-green-400/70 hover:from-green-500 hover:to-green-600 hover:border-green-400 hover:shadow-sm'
             }`}
           >
@@ -36,7 +36,7 @@ export const NavBar: React.FC = () => {
                 to="/distribution"
                 className={`px-3 py-1.5 text-sm font-bold rounded border transition-all duration-200 ${
                   location.pathname === '/distribution' 
-                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-400 shadow-md' 
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-400 shadow-lg scale-105 ring-2 ring-blue-300/50' 
                     : 'bg-gradient-to-r from-blue-500/70 to-blue-600/70 text-white border-blue-400/70 hover:from-blue-500 hover:to-blue-600 hover:border-blue-400 hover:shadow-sm'
                 }`}
               >
@@ -46,7 +46,7 @@ export const NavBar: React.FC = () => {
                 to="/archive"
                 className={`px-3 py-1.5 text-sm font-bold rounded border transition-all duration-200 ${
                   location.pathname === '/archive' 
-                    ? 'bg-gradient-to-r from-red-500 to-red-600 text-white border-red-400 shadow-md' 
+                    ? 'bg-gradient-to-r from-red-500 to-red-600 text-white border-red-400 shadow-lg scale-105 ring-2 ring-red-300/50' 
                     : 'bg-gradient-to-r from-red-500/70 to-red-600/70 text-white border-red-400/70 hover:from-red-600 hover:to-red-700 hover:border-red-400 hover:shadow-sm'
                 }`}
               >
