@@ -71,41 +71,70 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (agentnumber: string, password: string): Promise<boolean> => {
     try {
       console.log('Attempting login for agent:', agentnumber);
+      console.log('Attempting login with password:', password);
       
-      // Query the agents table to verify credentials
-      const { data: agents, error } = await supabase
+      // Try different approaches to find the agent
+      // First, try exact string match
+      let { data: agents, error } = await supabase
         .from('agents')
         .select('agentnumber, agentname, password_onlyview')
-        .eq('agentnumber', agentnumber)
-        .single();
+        .eq('agentnumber', agentnumber);
+
+      console.log('First query result:', agents, 'Error:', error);
+
+      // If no results, try converting to number and back to string
+      if (!agents || agents.length === 0) {
+        const { data: allAgents, error: allError } = await supabase
+          .from('agents')
+          .select('agentnumber, agentname, password_onlyview');
+        
+        console.log('All agents in database:', allAgents);
+        
+        // Find agent by comparing numbers
+        const agent = allAgents?.find(a => 
+          parseInt(a.agentnumber) === parseInt(agentnumber)
+        );
+        
+        if (agent) {
+          agents = [agent];
+          console.log('Found agent by number comparison:', agent);
+        }
+      }
 
       if (error) {
         console.error('Database error during login:', error);
         return false;
       }
 
-      if (!agents) {
+      if (!agents || agents.length === 0) {
         console.log('Agent not found');
         return false;
       }
 
-      // Check if password matches
-      if (agents.password_onlyview !== password) {
-        console.log('Password mismatch');
+      const agent = agents[0];
+      console.log('Found agent:', agent);
+      console.log('Comparing passwords:', agent.password_onlyview, 'vs', password);
+
+      // Check if password matches (trim whitespace and compare)
+      const storedPassword = agent.password_onlyview?.toString().trim();
+      const inputPassword = password.toString().trim();
+      
+      if (storedPassword !== inputPassword) {
+        console.log('Password mismatch. Stored:', storedPassword, 'Input:', inputPassword);
         return false;
       }
 
       // Login successful
       const currentUser = { 
-        agentnumber: agents.agentnumber, 
-        agentname: agents.agentname 
+        agentnumber: agent.agentnumber, 
+        agentname: agent.agentname 
       };
       
       setUser(currentUser);
       localStorage.setItem('authUser', JSON.stringify(currentUser));
       localStorage.setItem('lastLoginTime', new Date().toISOString());
       
-      console.log('Login successful for:', agents.agentname);
+      console.log('Login successful for:', agent.agentname);
       return true;
 
     } catch (error) {
