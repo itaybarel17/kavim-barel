@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface AuthUser {
-  agentnumber: string;
+  agentnumber: number;
   agentname: string;
 }
 
@@ -74,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: agent, error: agentError } = await supabase
         .from('agents')
         .select('agentnumber, agentname')
-        .eq('agentnumber', agentnumber)
+        .eq('agentnumber', parseInt(agentnumber))
         .single();
 
       if (agentError || !agent) {
