@@ -23,7 +23,7 @@ export const useWaitingCustomers = () => {
         .from('mainorder')
         .select(`
           customernumber,
-          customergroup,
+          agentnumber,
           done_mainorder,
           ordercancel,
           schedule_id,
@@ -73,8 +73,8 @@ export const useWaitingCustomers = () => {
       trulyWaitingOrders.forEach(order => {
         uniqueCustomers.add(order.customernumber);
         
-        // Check if customer is קנדי+
-        if (order.customergroup && order.customergroup.includes('קנדי+')) {
+        // Check if customer is קנדי+ (agent number '99')
+        if (order.agentnumber === '99') {
           kandiPlusCustomers.add(order.customernumber);
         }
       });
