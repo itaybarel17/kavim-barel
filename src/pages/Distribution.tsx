@@ -71,19 +71,29 @@ const Distribution = () => {
   const [draggedItem, setDraggedItem] = useState<{ type: 'order' | 'return'; data: Order | Return } | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { currentUser } = useContext(AuthContext);
+  const { user: currentUser } = useContext(AuthContext);
 
   // Set up realtime subscriptions
   useRealtimeSubscription();
 
-  // Helper function to filter items based on user permissions
-  const filterItemsByUser = (items: (Order | Return)[]) => {
-    // Agent 99 can only see their own orders/returns
+  // Helper function to filter orders based on user permissions
+  const filterOrdersByUser = (orders: Order[]) => {
+    // Agent 99 can only see their own orders
     if (currentUser?.agentnumber === '99') {
-      return items.filter(item => item.agentnumber === '99');
+      return orders.filter(order => order.agentnumber === '99');
     }
     // All other agents can see everything
-    return items;
+    return orders;
+  };
+
+  // Helper function to filter returns based on user permissions
+  const filterReturnsByUser = (returns: Return[]) => {
+    // Agent 99 can only see their own returns
+    if (currentUser?.agentnumber === '99') {
+      return returns.filter(returnItem => returnItem.agentnumber === '99');
+    }
+    // All other agents can see everything
+    return returns;
   };
 
   // Fetch orders (exclude produced orders: done_mainorder IS NOT NULL and deleted orders: ordercancel IS NOT NULL)
@@ -127,8 +137,8 @@ const Distribution = () => {
   });
 
   // Apply user permissions filtering
-  const orders = filterItemsByUser(allOrders);
-  const returns = filterItemsByUser(allReturns);
+  const orders = filterOrdersByUser(allOrders);
+  const returns = filterReturnsByUser(allReturns);
 
   // Fetch customer supply details
   const { data: customerSupplyData = [], isLoading: customerSupplyLoading } = useQuery({
@@ -201,10 +211,10 @@ const Distribution = () => {
   // --- BEGIN CUSTOMER STATUS LOGIC FOR ICONS ---
   // ACTIVE order: done_mainorder == null && ordercancel == null
   // ACTIVE return: done_return == null && returncancel == null
-  function isOrderActive(order) {
+  function isOrderActive(order: Order) {
     return !order.done_mainorder && !order.ordercancel;
   }
-  function isReturnActive(ret) {
+  function isReturnActive(ret: Return) {
     return !ret.done_return && !ret.returncancel;
   }
 
@@ -227,7 +237,7 @@ const Distribution = () => {
   const activeReturns = returns.filter(isReturnActive);
   const orderKeys = new Set(activeOrders.map(o => `${o.customername}^^${o.city}`));
   const returnKeys = new Set(activeReturns.map(r => `${r.customername}^^${r.city}`));
-  const dualActiveOrderReturnCustomers = [];
+  const dualActiveOrderReturnCustomers: { name: string; city: string }[] = [];
   orderKeys.forEach(k => {
     if (returnKeys.has(k)) {
       const [name, city] = k.split('^^');

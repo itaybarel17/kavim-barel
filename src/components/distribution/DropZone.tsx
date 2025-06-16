@@ -80,9 +80,8 @@ interface DropZoneProps {
   // existing props for icons
   multiOrderActiveCustomerList?: any[];
   dualActiveOrderReturnCustomers?: any[];
-  // new props for supply details and agent names
+  // new props for supply details - removed agentNameMap
   customerSupplyMap?: Record<string, string>;
-  agentNameMap?: Record<string, string>;
 }
 
 export const DropZone: React.FC<DropZoneProps> = ({
@@ -100,9 +99,8 @@ export const DropZone: React.FC<DropZoneProps> = ({
   // existing props for icons
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
-  // new props for supply details and agent names
+  // new props for supply details - removed agentNameMap
   customerSupplyMap = {},
-  agentNameMap = {},
 }) => {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [scheduleId, setScheduleId] = useState<number | null>(null);
@@ -391,7 +389,6 @@ export const DropZone: React.FC<DropZoneProps> = ({
             multiOrderActiveCustomerList={multiOrderActiveCustomerList}
             dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
             customerSupplyMap={customerSupplyMap}
-            agentNameMap={agentNameMap}
           />
         ))}
         {assignedReturns.map((returnItem) => (
@@ -403,7 +400,6 @@ export const DropZone: React.FC<DropZoneProps> = ({
             multiOrderActiveCustomerList={multiOrderActiveCustomerList}
             dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
             customerSupplyMap={customerSupplyMap}
-            agentNameMap={agentNameMap}
           />
         ))}
         {assignedOrders.length === 0 && assignedReturns.length === 0 && (
