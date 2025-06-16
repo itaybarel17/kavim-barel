@@ -12,20 +12,23 @@ export type Database = {
       agents: {
         Row: {
           agentname: string
-          agentnumber: string
+          agentnumber: number
           id: string
+          password_hash: string | null
           password_onlyview: string | null
         }
         Insert: {
           agentname: string
-          agentnumber: string
+          agentnumber: number
           id?: string
+          password_hash?: string | null
           password_onlyview?: string | null
         }
         Update: {
           agentname?: string
-          agentnumber?: string
+          agentnumber?: number
           id?: string
+          password_hash?: string | null
           password_onlyview?: string | null
         }
         Relationships: []
@@ -969,6 +972,14 @@ export type Database = {
       produce_schedule: {
         Args: { schedule_id_param: number }
         Returns: number
+      }
+      update_agent_password: {
+        Args: { agent_number: string; new_password: string }
+        Returns: boolean
+      }
+      verify_agent_password: {
+        Args: { agent_number: string; input_password: string }
+        Returns: boolean
       }
     }
     Enums: {

@@ -70,22 +70,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (agentnumber: string, password: string): Promise<boolean> => {
     try {
-      const { data: agent, error } = await supabase
+      // Get agent details first
+      const { data: agent, error: agentError } = await supabase
         .from('agents')
-        .select('agentnumber, agentname, password_onlyview')
+        .select('agentnumber, agentname')
         .eq('agentnumber', agentnumber)
         .single();
 
-      if (error || !agent) {
+      if (agentError || !agent) {
         console.log('Agent not found:', agentnumber);
         return false;
       }
 
-      // Compare passwords (both as strings)
-      const storedPassword = agent.password_onlyview?.toString().trim();
-      const inputPassword = password.toString().trim();
+      // Use the new encrypted password verification function
+      const { data: isPasswordValid, error: passwordError } = await supabase
+        .rpc('verify_agent_password', {
+          agent_number: agentnumber,
+          input_password: password
+        });
 
-      if (storedPassword === inputPassword) {
+      if (passwordError) {
+        console.error('Password verification error:', passwordError);
+        return false;
+      }
+
+      if (isPasswordValid) {
         const currentUser = { 
           agentnumber: agent.agentnumber, 
           agentname: agent.agentname 
