@@ -191,7 +191,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
     }
   };
   return <div>
-      <h2 className="text-xl font-semibold mb-4 text-[#02090c]">לוח שנה - שבועיים</h2>
+      <h2 className="text-xl font-semibold mb-4 text-gray-700">לוח שנה - שבועיים</h2>
       
       {/* Week 1 - Mobile: single column, Desktop: 6 columns */}
       <div className="grid grid-cols-1 sm:grid-cols-6 gap-4 mb-6" dir="rtl">
