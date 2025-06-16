@@ -100,19 +100,28 @@ export default function Auth() {
                   בחירת סוכן
                 </Label>
                 <Select value={selectedAgent} onValueChange={setSelectedAgent}>
-                  <SelectTrigger className="w-full h-12 text-right">
+                  <SelectTrigger className="w-full h-12 text-right" dir="rtl">
                     <SelectValue placeholder="בחר סוכן..." />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent 
+                    side="bottom" 
+                    align="start" 
+                    className="w-full min-w-[var(--radix-select-trigger-width)] max-h-[300px] bg-white border border-gray-200 shadow-lg rounded-md z-50"
+                    sideOffset={4}
+                  >
                     {Object.entries(agentsByCategory).map(([category, categoryAgents]) => (
                       <div key={category}>
-                        <div className="px-2 py-1 text-xs font-semibold text-gray-500 bg-gray-50">
+                        <div className="px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50 text-right border-b">
                           {category}
                         </div>
                         {categoryAgents.map((agent) => (
-                          <SelectItem key={agent.id} value={agent.id} className="text-right">
-                            <div className="flex flex-col items-end">
-                              <span className="font-medium">{agent.name}</span>
+                          <SelectItem 
+                            key={agent.id} 
+                            value={agent.id} 
+                            className="text-right pr-8 pl-3 py-3 hover:bg-gray-50 cursor-pointer"
+                          >
+                            <div className="flex flex-col items-end w-full">
+                              <span className="font-medium text-gray-900">{agent.name}</span>
                               <span className="text-sm text-gray-500">סוכן {agent.id}</span>
                             </div>
                           </SelectItem>
