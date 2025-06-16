@@ -96,7 +96,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   const agentName = data.agentnumber ? agentNameMap[data.agentnumber] : '';
 
   // Smart icon logic
-  // כאן השוואת שם + עיר (case/city-insensitive)
   const isMultiOrderActive = multiOrderActiveCustomerList.some(
     (cust) =>
       cust.name === data.customername && cust.city === data.city
@@ -108,6 +107,13 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
   // Size for prominent icon
   const iconSize = 24;
+
+  // Format hour to show only hours:minutes
+  const formatHour = (timeString: string) => {
+    if (!timeString) return '';
+    // Remove seconds from time string (e.g., "12:40:00" -> "12:40")
+    return timeString.substring(0, 5);
+  };
 
   return (
     <Card
@@ -129,7 +135,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                   <span className="ml-1">{new Date(date).toLocaleDateString('he-IL')}</span>
                 )}
                 {hour && (
-                  <span className="ml-1">{hour}</span>
+                  <span className="ml-1">{formatHour(hour)}</span>
                 )}
                 </>
               : 
@@ -138,31 +144,31 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                   <span className="ml-1">{new Date(date).toLocaleDateString('he-IL')}</span>
                 )}
                 {hour && (
-                  <span className="ml-1">{hour}</span>
+                  <span className="ml-1">{formatHour(hour)}</span>
                 )}
                 </>
             }
           </span>
         </div>
         
-        {/* שורה שנייה: הסכום */}
-        <div className="mb-2">
-          <span className="text-sm font-bold">₪{total?.toLocaleString()}</span>
-        </div>
-        
-        {/* שורה שלישית: שם הלקוח */}
-        <h3 className="font-medium text-sm mb-1 flex items-center gap-2">
+        {/* שורה שנייה: שם הלקוח */}
+        <h3 className="font-medium text-sm mb-1">
           {data.customername}
         </h3>
         
-        {/* שורה רביעית: כתובת */}
+        {/* שורה שלישית: כתובת */}
         <p className="text-xs text-muted-foreground">{data.address}</p>
         
-        {/* שורה חמישית: עיר */}
-        <p className="text-xs text-muted-foreground">{data.city}</p>
+        {/* שורה רביעית: עיר */}
+        <p className="text-xs text-muted-foreground mb-2">{data.city}</p>
+        
+        {/* שורה חמישית: הסכום */}
+        <div className="mb-2">
+          <span className="text-xs font-bold">₪{total?.toLocaleString()}</span>
+        </div>
         
         <div className="mt-2 space-y-1 flex flex-col">
-          {/* שורה שישית: מספר לקוח + שם סוכן */}
+          {/* שורה שישית: מספר לקוח + שם סוכן + אייקונים */}
           <div className="flex items-center gap-2">
             {data.customernumber && (
               <>
@@ -171,7 +177,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 </span>
                 {agentName && (
                   <span className="text-xs text-muted-foreground">
-                    | {agentName}
+                    | סוכן: {agentName}
                   </span>
                 )}
                 {isCandyPlus && (
