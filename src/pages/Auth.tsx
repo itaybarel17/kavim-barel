@@ -10,17 +10,20 @@ import { Label } from "@/components/ui/label";
 
 const agents = [
   // סוכני מכירות (לפי סדר agentnumber)
-  { id: "1", name: "יניב", title: "סוכן מכירות", category: "מכירות", email: "yaniv@company.local" },
-  { id: "2", name: "לינוי", title: "סוכן מכירות", category: "מכירות", email: "linoy@company.local" },
-  { id: "3", name: "אייל", title: "סוכן מכירות", category: "מכירות", email: "eyal@company.local" },
-  { id: "5", name: "אחמד", title: "סוכן מכירות", category: "מכירות", email: "ahmad@company.local" },
-  { id: "6", name: "ג'קי", title: "סוכן מכירות", category: "מכירות", email: "jackie@company.local" },
-  { id: "7", name: "חיים", title: "סוכן מכירות", category: "מכירות", email: "haim@company.local" },
-  { id: "8", name: "רונן", title: "סוכן מכירות", category: "מכירות", email: "ronen@company.local" },
+  { id: "1", name: "יניב", title: "סוכן מכירות", category: "מכירות", email: "yanivyeshua@gmail.com" },
+  { id: "2", name: "לינוי", title: "סוכן מכירות", category: "מכירות", email: "linoymirzachi91@gmail.com" },
+  { id: "3", name: "אייל", title: "סוכן מכירות", category: "מכירות", email: "eyal964@gmail.com" },
+  { id: "5", name: "אחמד", title: "סוכן מכירות", category: "מכירות", email: "ahmadk969a@gmail.com" },
+  { id: "6", name: "ג'קי", title: "סוכן מכירות", category: "מכירות", email: "jekievverin@gmail.com" },
+  { id: "7", name: "חיים", title: "סוכן מכירות", category: "מכירות", email: "haim200756@gmail.com" },
+  { id: "8", name: "רונן", title: "סוכן מכירות", category: "מכירות", email: "ronen.segev10@gmail.com" },
   // מנהל מערכת
-  { id: "4", name: "משרד", title: "מנהל מערכת", category: "ניהול", email: "office@company.local" },
+  { id: "4", name: "משרד", title: "מנהל מערכת", category: "ניהול", email: "office@barel-alon.com" },
   // סוכן מיוחד
-  { id: "99", name: "קנדי", title: "סוכן מיוחד", category: "מיוחד", email: "kennedy@company.local" },
+  { id: "99", name: "קנדי", title: "סוכן מיוחד", category: "מיוחד", email: "candyplus955@gmail.com" },
+  // נוספים
+  { id: "10", name: "נועה", title: "סוכן מכירות", category: "מכירות", email: "noa@barel-alon.com" },
+  { id: "11", name: "אילי", title: "סוכן מכירות", category: "מכירות", email: "itai@barel-alon.com" },
 ];
 
 // Group agents by category for better organization
