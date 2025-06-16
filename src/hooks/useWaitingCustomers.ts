@@ -39,12 +39,39 @@ export const useWaitingCustomers = () => {
         throw error;
       }
 
-      if (!waitingOrders) {
+      // Get all unassigned orders (without schedule_id or with schedule_id pointing to produced schedules)
+      const { data: unassignedOrders, error: unassignedError } = await supabase
+        .from('mainorder')
+        .select(`
+          customernumber,
+          agentnumber,
+          done_mainorder,
+          ordercancel,
+          schedule_id
+        `)
+        .is('ordercancel', null) // ordercancel must be NULL
+        .is('done_mainorder', null) // unassigned orders should not be produced
+        .or('schedule_id.is.null,schedule_id.not.in.(select schedule_id from distribution_schedule where done_schedule is null)');
+
+      if (unassignedError) {
+        console.error('Error fetching unassigned orders:', unassignedError);
+        throw unassignedError;
+      }
+
+      // Combine waiting orders and unassigned orders
+      const allWaitingOrders = [...(waitingOrders || []), ...(unassignedOrders || [])];
+
+      if (!allWaitingOrders.length) {
         return { regularCustomers: 0, kandiPlusCustomers: 0, totalCustomers: 0 };
       }
 
-      // Filter orders that are truly waiting based on the new criteria
-      const trulyWaitingOrders = waitingOrders.filter(order => {
+      // Filter orders that are truly waiting based on the criteria
+      const trulyWaitingOrders = allWaitingOrders.filter(order => {
+        // For unassigned orders, they are waiting if done_mainorder is NULL
+        if (!order.schedule_id) {
+          return !order.done_mainorder;
+        }
+
         const schedule = order.distribution_schedule;
         
         // Criteria 1: done_mainorder is NULL

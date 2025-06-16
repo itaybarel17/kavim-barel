@@ -57,7 +57,7 @@ export const WaitingCustomersCounter: React.FC = () => {
           <div className="flex items-center gap-1 bg-blue-500/30 rounded px-2 py-1">
             <Users className="h-4 w-4 text-blue-200" />
             <span className="text-sm font-bold text-blue-100">{regularCustomers}</span>
-            <span className="text-xs text-blue-200">רגילים</span>
+            <span className="text-xs text-blue-200">בראל</span>
           </div>
         )}
         
