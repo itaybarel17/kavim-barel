@@ -25,6 +25,8 @@ interface Order {
   orderdate?: string;
   invoicenumber?: number;
   totalinvoice?: number;
+  hour?: string;
+  remark?: string;
 }
 
 interface Return {
@@ -38,6 +40,8 @@ interface Return {
   customernumber?: string;
   agentnumber?: string;
   returndate?: string;
+  hour?: string;
+  remark?: string;
 }
 
 interface DistributionGroup {
@@ -57,6 +61,16 @@ interface Driver {
   nahag: string;
 }
 
+interface CustomerSupply {
+  customernumber: string;
+  supplydetails?: string;
+}
+
+interface Agent {
+  agentnumber: string;
+  agentname: string;
+}
+
 const Distribution = () => {
   const [draggedItem, setDraggedItem] = useState<{ type: 'order' | 'return'; data: Order | Return } | null>(null);
   const navigate = useNavigate();
@@ -72,7 +86,7 @@ const Distribution = () => {
       console.log('Fetching orders...');
       const { data, error } = await supabase
         .from('mainorder')
-        .select('ordernumber, customername, address, city, totalorder, schedule_id, icecream, customernumber, agentnumber, orderdate, invoicenumber, totalinvoice')
+        .select('ordernumber, customername, address, city, totalorder, schedule_id, icecream, customernumber, agentnumber, orderdate, invoicenumber, totalinvoice, hour, remark')
         .or('icecream.is.null,icecream.eq.')
         .is('done_mainorder', null)
         .is('ordercancel', null) // Exclude deleted orders
@@ -92,7 +106,7 @@ const Distribution = () => {
       console.log('Fetching returns...');
       const { data, error } = await supabase
         .from('mainreturns')
-        .select('returnnumber, customername, address, city, totalreturn, schedule_id, icecream, customernumber, agentnumber, returndate')
+        .select('returnnumber, customername, address, city, totalreturn, schedule_id, icecream, customernumber, agentnumber, returndate, hour, remark')
         .or('icecream.is.null,icecream.eq.')
         .is('done_return', null)
         .is('returncancel', null) // Exclude deleted returns
@@ -102,6 +116,36 @@ const Distribution = () => {
       if (error) throw error;
       console.log('Returns fetched:', data);
       return data as Return[];
+    }
+  });
+
+  // Fetch customer supply details
+  const { data: customerSupplyData = [], isLoading: customerSupplyLoading } = useQuery({
+    queryKey: ['customer-supply'],
+    queryFn: async () => {
+      console.log('Fetching customer supply details...');
+      const { data, error } = await supabase
+        .from('customerlist')
+        .select('customernumber, supplydetails');
+      
+      if (error) throw error;
+      console.log('Customer supply data fetched:', data);
+      return data as CustomerSupply[];
+    }
+  });
+
+  // Fetch agents data
+  const { data: agentsData = [], isLoading: agentsLoading } = useQuery({
+    queryKey: ['agents'],
+    queryFn: async () => {
+      console.log('Fetching agents...');
+      const { data, error } = await supabase
+        .from('agents')
+        .select('agentnumber, agentname');
+      
+      if (error) throw error;
+      console.log('Agents data fetched:', data);
+      return data as Agent[];
     }
   });
 
@@ -151,6 +195,17 @@ const Distribution = () => {
       return data as Driver[];
     }
   });
+
+  // Create maps for easy lookup
+  const customerSupplyMap = customerSupplyData.reduce((map, customer) => {
+    map[customer.customernumber] = customer.supplydetails || '';
+    return map;
+  }, {} as Record<string, string>);
+
+  const agentNameMap = agentsData.reduce((map, agent) => {
+    map[agent.agentnumber] = agent.agentname;
+    return map;
+  }, {} as Record<string, string>);
 
   // --- BEGIN CUSTOMER STATUS LOGIC FOR ICONS ---
   // ACTIVE order: done_mainorder == null && ordercancel == null
@@ -418,7 +473,7 @@ const Distribution = () => {
   console.log('Distribution groups:', distributionGroups.length);
   console.log('Active schedules:', distributionSchedules.length);
 
-  const isLoading = ordersLoading || returnsLoading || groupsLoading || schedulesLoading || driversLoading;
+  const isLoading = ordersLoading || returnsLoading || groupsLoading || schedulesLoading || driversLoading || customerSupplyLoading || agentsLoading;
 
   if (isLoading) {
     return (
@@ -464,6 +519,8 @@ const Distribution = () => {
           onDeleteItem={handleDeleteItem}
           multiOrderActiveCustomerList={multiOrderActiveCustomerList}
           dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
+          customerSupplyMap={customerSupplyMap}
+          agentNameMap={agentNameMap}
         />
 
         {/* Mobile: single column, Tablet: 2 columns, Desktop: 4 columns */}
@@ -485,6 +542,8 @@ const Distribution = () => {
               // icons data
               multiOrderActiveCustomerList={multiOrderActiveCustomerList}
               dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
+              customerSupplyMap={customerSupplyMap}
+              agentNameMap={agentNameMap}
             />
           ))}
         </div>

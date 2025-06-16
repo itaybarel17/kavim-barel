@@ -274,6 +274,7 @@ export type Database = {
           done_mainorder: string | null
           end_picking_time: string | null
           euro_pallet: number | null
+          hour: string | null
           icecream: string | null
           invoicedate: string | null
           invoicenumber: number | null
@@ -287,6 +288,7 @@ export type Database = {
           paymentdate: string | null
           priority: string | null
           red_stamp: number | null
+          remark: string | null
           return_reason: Json | null
           schedule_id: number | null
           schedule_id_if_changed: Json | null
@@ -313,6 +315,7 @@ export type Database = {
           done_mainorder?: string | null
           end_picking_time?: string | null
           euro_pallet?: number | null
+          hour?: string | null
           icecream?: string | null
           invoicedate?: string | null
           invoicenumber?: number | null
@@ -326,6 +329,7 @@ export type Database = {
           paymentdate?: string | null
           priority?: string | null
           red_stamp?: number | null
+          remark?: string | null
           return_reason?: Json | null
           schedule_id?: number | null
           schedule_id_if_changed?: Json | null
@@ -352,6 +356,7 @@ export type Database = {
           done_mainorder?: string | null
           end_picking_time?: string | null
           euro_pallet?: number | null
+          hour?: string | null
           icecream?: string | null
           invoicedate?: string | null
           invoicenumber?: number | null
@@ -365,6 +370,7 @@ export type Database = {
           paymentdate?: string | null
           priority?: string | null
           red_stamp?: number | null
+          remark?: string | null
           return_reason?: Json | null
           schedule_id?: number | null
           schedule_id_if_changed?: Json | null
@@ -403,7 +409,9 @@ export type Database = {
           customername: string | null
           customernumber: string | null
           done_return: string | null
+          hour: string | null
           icecream: string | null
+          remark: string | null
           return_reason: Json | null
           returncancel: string | null
           returndate: string | null
@@ -421,7 +429,9 @@ export type Database = {
           customername?: string | null
           customernumber?: string | null
           done_return?: string | null
+          hour?: string | null
           icecream?: string | null
+          remark?: string | null
           return_reason?: Json | null
           returncancel?: string | null
           returndate?: string | null
@@ -439,7 +449,9 @@ export type Database = {
           customername?: string | null
           customernumber?: string | null
           done_return?: string | null
+          hour?: string | null
           icecream?: string | null
+          remark?: string | null
           return_reason?: Json | null
           returncancel?: string | null
           returndate?: string | null
@@ -498,6 +510,21 @@ export type Database = {
             referencedColumns: ["truck_id"]
           },
         ]
+      }
+      ordershour: {
+        Row: {
+          hour: string | null
+          ordernumber: number
+        }
+        Insert: {
+          hour?: string | null
+          ordernumber: number
+        }
+        Update: {
+          hour?: string | null
+          ordernumber?: number
+        }
+        Relationships: []
       }
       ordersITEMS: {
         Row: {

@@ -15,6 +15,8 @@ interface Order {
   customernumber?: string;
   done_mainorder?: string | null;
   ordercancel?: string | null;
+  hour?: string;
+  remark?: string;
 }
 
 interface Return {
@@ -27,6 +29,8 @@ interface Return {
   customernumber?: string;
   done_return?: string | null;
   returncancel?: string | null;
+  hour?: string;
+  remark?: string;
 }
 
 interface UnassignedAreaProps {
@@ -38,6 +42,9 @@ interface UnassignedAreaProps {
   // new props for icons
   multiOrderActiveCustomerList?: { name: string; city: string }[];
   dualActiveOrderReturnCustomers?: { name: string; city: string }[];
+  // new props for supply details and agent names
+  customerSupplyMap?: Record<string, string>;
+  agentNameMap?: Record<string, string>;
 }
 
 export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
@@ -48,6 +55,8 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
   onDeleteItem,
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
+  customerSupplyMap = {},
+  agentNameMap = {},
 }) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ type: 'order' | 'return'; data: Order | Return } | null>(null);
@@ -94,6 +103,8 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
               onDragStart={onDragStart}
               multiOrderActiveCustomerList={multiOrderActiveCustomerList}
               dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
+              customerSupplyMap={customerSupplyMap}
+              agentNameMap={agentNameMap}
             />
             {onDeleteItem && (
               <button
@@ -114,6 +125,8 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
               onDragStart={onDragStart}
               multiOrderActiveCustomerList={multiOrderActiveCustomerList}
               dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
+              customerSupplyMap={customerSupplyMap}
+              agentNameMap={agentNameMap}
             />
             {onDeleteItem && (
               <button

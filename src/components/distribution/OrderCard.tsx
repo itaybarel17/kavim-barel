@@ -22,6 +22,8 @@ interface Order {
   totalinvoice?: number;
   done_mainorder?: string | null;
   ordercancel?: string | null;
+  hour?: string;
+  remark?: string;
 }
 
 interface Return {
@@ -36,6 +38,8 @@ interface Return {
   returndate?: string;
   done_return?: string | null;
   returncancel?: string | null;
+  hour?: string;
+  remark?: string;
 }
 
 interface OrderCardProps {
@@ -46,6 +50,10 @@ interface OrderCardProps {
   // lists for smarter customer icons
   multiOrderActiveCustomerList?: { name: string; city: string }[];
   dualActiveOrderReturnCustomers?: { name: string; city: string }[];
+  
+  // new props for supply details and agent names
+  customerSupplyMap?: Record<string, string>;
+  agentNameMap?: Record<string, string>;
 }
 
 export const OrderCard: React.FC<OrderCardProps> = ({
@@ -54,6 +62,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   onDragStart,
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
+  customerSupplyMap = {},
+  agentNameMap = {},
 }) => {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'card',
@@ -70,6 +80,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   const number = isOrder ? (data as Order).ordernumber : (data as Return).returnnumber;
   const total = isOrder ? (data as Order).totalorder : (data as Return).totalreturn;
   const date = isOrder ? (data as Order).orderdate : (data as Return).returndate;
+  const hour = data.hour;
+  const remark = data.remark;
 
   // For archive or future: check for invoicedate display.
   const invoicedate = isOrder ? (data as any).invoicedate : undefined;
@@ -78,6 +90,10 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
   // Check if this is a Candy+ order (agent 99)
   const isCandyPlus = data.agentnumber === '99';
+
+  // Get supply details and agent name
+  const customerSupplyDetails = data.customernumber ? customerSupplyMap[data.customernumber] : '';
+  const agentName = data.agentnumber ? agentNameMap[data.agentnumber] : '';
 
   // Smart icon logic
   // כאן השוואת שם + עיר (case/city-insensitive)
@@ -103,6 +119,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       }`}
     >
       <CardContent className="p-4">
+        {/* שורה ראשונה: מספר הזמנה/החזרה + תאריך + שעה */}
         <div className="flex justify-between items-start mb-2">
           <span className={`text-sm font-semibold flex items-center gap-2 ${isOrder ? 'text-blue-600' : 'text-red-600'}`}>
             {isOrder 
@@ -111,30 +128,52 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 {date && (
                   <span className="ml-1">{new Date(date).toLocaleDateString('he-IL')}</span>
                 )}
+                {hour && (
+                  <span className="ml-1">{hour}</span>
+                )}
                 </>
               : 
                 <>החזרה #{number}
                 {date && (
                   <span className="ml-1">{new Date(date).toLocaleDateString('he-IL')}</span>
                 )}
+                {hour && (
+                  <span className="ml-1">{hour}</span>
+                )}
                 </>
             }
           </span>
+        </div>
+        
+        {/* שורה שנייה: הסכום */}
+        <div className="mb-2">
           <span className="text-sm font-bold">₪{total?.toLocaleString()}</span>
         </div>
+        
+        {/* שורה שלישית: שם הלקוח */}
         <h3 className="font-medium text-sm mb-1 flex items-center gap-2">
           {data.customername}
         </h3>
+        
+        {/* שורה רביעית: כתובת */}
         <p className="text-xs text-muted-foreground">{data.address}</p>
+        
+        {/* שורה חמישית: עיר */}
         <p className="text-xs text-muted-foreground">{data.city}</p>
         
         <div className="mt-2 space-y-1 flex flex-col">
+          {/* שורה שישית: מספר לקוח + שם סוכן */}
           <div className="flex items-center gap-2">
             {data.customernumber && (
               <>
                 <span className="text-xs text-muted-foreground">
                   לקוח: {data.customernumber}
                 </span>
+                {agentName && (
+                  <span className="text-xs text-muted-foreground">
+                    | {agentName}
+                  </span>
+                )}
                 {isCandyPlus && (
                   <Badge className="bg-pink-200 text-pink-800 border-pink-300 text-xs font-bold">
                     קנדי+
@@ -162,12 +201,22 @@ export const OrderCard: React.FC<OrderCardProps> = ({
               </>
             )}
           </div>
-          {data.agentnumber && (
-            <p className="text-xs text-muted-foreground">
-              סוכן: {data.agentnumber}
-            </p>
+          
+          {/* שורה שביעית: הערת סוכן */}
+          {remark && (
+            <div className="text-xs text-gray-600">
+              הערת סוכן: {remark}
+            </div>
+          )}
+          
+          {/* שורה שמינית: פרטי אספקה */}
+          {customerSupplyDetails && (
+            <div className="text-xs text-gray-600">
+              אספקה: {customerSupplyDetails}
+            </div>
           )}
         </div>
+        
         {/* Show archive invoice date in green if exists */}
         {invoicedate && (
           <div className="mt-2 text-xs text-green-600 font-medium flex items-center gap-2">
