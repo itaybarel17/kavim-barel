@@ -268,16 +268,31 @@ const ProductionSummary = () => {
     return 'מעורב'; // Mixed agents
   };
 
+  // Check if schedule is produced (done_schedule is not null/empty)
+  const isScheduleProduced = schedule?.done_schedule && schedule.done_schedule.trim() !== '';
+
   return (
     <div className="min-h-screen p-2 bg-background">
       <div className="max-w-full mx-auto">
         {/* Header - hidden on print */}
         <div className="flex items-center justify-between mb-4 print:hidden">
           <div className="flex gap-2">
-            <Button onClick={handlePrint} variant="outline" className="flex items-center gap-2">
-              <Printer className="h-4 w-4" />
-              הדפס
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                onClick={handlePrint} 
+                variant="outline" 
+                className="flex items-center gap-2"
+                disabled={!isScheduleProduced}
+              >
+                <Printer className="h-4 w-4" />
+                הדפס
+              </Button>
+              {!isScheduleProduced && (
+                <span className="text-sm text-red-600 font-medium">
+                  יש להפיק לפני הדפסה
+                </span>
+              )}
+            </div>
             <Button onClick={() => navigate('/calendar')} variant="outline" className="flex items-center gap-2">
               <ArrowRight className="h-4 w-4" />
               חזרה ללוח השנה
