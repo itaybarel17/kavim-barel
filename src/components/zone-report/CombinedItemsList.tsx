@@ -2,12 +2,14 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CombinedItem, Order, Return } from './utils';
+
 interface CombinedItemsListProps {
   combinedItems: CombinedItem[];
   numberedOrdersCount: number;
   returnsCount: number;
   customerSupplyMap: Record<string, string>;
 }
+
 export const CombinedItemsList: React.FC<CombinedItemsListProps> = ({
   combinedItems,
   numberedOrdersCount,
@@ -55,7 +57,7 @@ export const CombinedItemsList: React.FC<CombinedItemsListProps> = ({
           <div className="flex items-center justify-between">
             <span>{data.address}, {data.city}</span>
             {data.remark && <span className="text-gray-600 italic text-xs mr-2">
-                {data.remark}
+                <span className="font-bold">הערה: </span>{data.remark}
               </span>}
           </div>
           <div className="flex items-center justify-between">
@@ -86,6 +88,7 @@ export const CombinedItemsList: React.FC<CombinedItemsListProps> = ({
         </div>
       </div>;
   };
+
   if (combinedItems.length === 0) return null;
 
   // Split combined items into two columns
