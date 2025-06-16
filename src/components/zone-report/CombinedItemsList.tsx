@@ -44,6 +44,10 @@ export const CombinedItemsList: React.FC<CombinedItemsListProps> = ({
     // Get supply details for this customer
     const supplyDetails = data.customernumber ? customerSupplyMap[data.customernumber] : '';
     
+    // Debug log to check if supply details are being found
+    console.log('Customer number:', data.customernumber, 'Supply details:', supplyDetails);
+    console.log('CustomerSupplyMap:', customerSupplyMap);
+    
     return (
       <div
         key={`${item.type}-${isOrder ? order.ordernumber : returnItem.returnnumber}`}
@@ -83,7 +87,14 @@ export const CombinedItemsList: React.FC<CombinedItemsListProps> = ({
             <div className="flex items-center gap-2">
               <div className="flex flex-col items-end gap-1">
                 {(isOrder ? order.orderdate : returnItem.returndate) && (
-                  <span>{new Date(isOrder ? order.orderdate! : returnItem.returndate!).toLocaleDateString('he-IL')}</span>
+                  <div className="flex items-center gap-1">
+                    <span>{new Date(isOrder ? order.orderdate! : returnItem.returndate!).toLocaleDateString('he-IL')}</span>
+                    {(isOrder ? order.hour : returnItem.hour) && (
+                      <span className="text-gray-600">
+                        {isOrder ? order.hour : returnItem.hour}
+                      </span>
+                    )}
+                  </div>
                 )}
                 {supplyDetails && (
                   <span className="text-gray-600 italic text-xs">

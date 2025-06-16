@@ -9,6 +9,7 @@ export interface Order {
   orderdate?: string;
   invoicenumber?: number;
   remark?: string;
+  hour?: string;
 }
 
 export interface Return {
@@ -21,6 +22,7 @@ export interface Return {
   agentnumber?: string;
   returndate?: string;
   remark?: string;
+  hour?: string;
 }
 
 export interface ZoneReportData {
