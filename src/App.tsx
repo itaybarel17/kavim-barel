@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -17,47 +16,49 @@ import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { NavBar } from "@/components/layout/NavBar";
-
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
+      refetchOnWindowFocus: false
+    }
+  }
 });
+function ProtectedRoute({
+  children,
+  adminOnly = false
+}: {
+  children: React.ReactNode;
+  adminOnly?: boolean;
+}) {
+  const {
+    user,
+    isLoading
+  } = useAuth();
 
-function ProtectedRoute({ children, adminOnly = false }: { children: React.ReactNode, adminOnly?: boolean }) {
-  const { user, isLoading } = useAuth();
-  
   // Show loading while checking auth state
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    return <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
           <p className="text-muted-foreground">טוען...</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-  
+
   // Redirect to auth if no user
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
-  
+
   // Redirect non-admin users away from admin pages
   if (adminOnly && user.agentnumber !== "4") {
     return <Navigate to="/calendar" replace />;
   }
-  
   return <>{children}</>;
 }
-
 function App() {
-  return (
-    <AuthProvider>
+  return <AuthProvider>
       <QueryClientProvider client={queryClient}>
         <DndProvider backend={HTML5Backend}>
           <TooltipProvider>
@@ -66,39 +67,27 @@ function App() {
             <BrowserRouter>
               <div className="min-h-screen bg-gray-50">
                 <NavBar />
-                <div className="px-4 lg:px-6 pb-6">
+                <div className="px-4 lg:px-6 pb-6 bg-[#7c8788]/[0.02]">
                   <Routes>
                     <Route path="/auth" element={<Auth />} />
-                    <Route path="/" element={
-                      <ProtectedRoute>
+                    <Route path="/" element={<ProtectedRoute>
                         <Index />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/distribution" element={
-                      <ProtectedRoute adminOnly>
+                      </ProtectedRoute>} />
+                    <Route path="/distribution" element={<ProtectedRoute adminOnly>
                         <Distribution />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/calendar" element={
-                      <ProtectedRoute>
+                      </ProtectedRoute>} />
+                    <Route path="/calendar" element={<ProtectedRoute>
                         <Calendar />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/archive" element={
-                      <ProtectedRoute adminOnly>
+                      </ProtectedRoute>} />
+                    <Route path="/archive" element={<ProtectedRoute adminOnly>
                         <Archive />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/zone-report/:zoneNumber" element={
-                      <ProtectedRoute>
+                      </ProtectedRoute>} />
+                    <Route path="/zone-report/:zoneNumber" element={<ProtectedRoute>
                         <ZoneReport />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/production-summary/:scheduleId" element={
-                      <ProtectedRoute>
+                      </ProtectedRoute>} />
+                    <Route path="/production-summary/:scheduleId" element={<ProtectedRoute>
                         <ProductionSummary />
-                      </ProtectedRoute>
-                    } />
+                      </ProtectedRoute>} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </div>
@@ -107,8 +96,6 @@ function App() {
           </TooltipProvider>
         </DndProvider>
       </QueryClientProvider>
-    </AuthProvider>
-  );
+    </AuthProvider>;
 }
-
 export default App;
