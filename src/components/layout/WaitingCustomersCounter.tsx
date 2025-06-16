@@ -2,9 +2,11 @@
 import React from 'react';
 import { Users, Candy, Clock, Calendar } from 'lucide-react';
 import { useWaitingCustomers } from '@/hooks/useWaitingCustomers';
+import { useAuth } from '@/context/AuthContext';
 
 export const WaitingCustomersCounter: React.FC = () => {
-  const { data: waitingData, isLoading, error } = useWaitingCustomers();
+  const { user } = useAuth();
+  const { data: waitingData, isLoading, error } = useWaitingCustomers(user?.agentnumber);
 
   // Get today's date in Hebrew format
   const today = new Date();
@@ -24,11 +26,13 @@ export const WaitingCustomersCounter: React.FC = () => {
     );
   }
 
-  if (error || !waitingData) {
+  if (error || !waitingData || !user) {
     return null;
   }
 
   const { regularCustomers, kandiPlusCustomers, totalCustomers } = waitingData;
+  const isAdmin = user.agentnumber === "4";
+  const isKandi = user.agentnumber === "99";
 
   if (totalCustomers === 0) {
     return (
@@ -53,7 +57,8 @@ export const WaitingCustomersCounter: React.FC = () => {
       </div>
       
       <div className="flex items-center gap-3">
-        {regularCustomers > 0 && (
+        {/* Show Barel customers for admin and regular agents (not Kandi) */}
+        {!isKandi && regularCustomers > 0 && (
           <div className="flex items-center gap-1 bg-blue-500/30 rounded px-2 py-1">
             <Users className="h-4 w-4 text-blue-200" />
             <span className="text-sm font-bold text-blue-100">{regularCustomers}</span>
@@ -61,7 +66,8 @@ export const WaitingCustomersCounter: React.FC = () => {
           </div>
         )}
         
-        {kandiPlusCustomers > 0 && (
+        {/* Show Kandi+ customers for admin and Kandi agents only */}
+        {(isAdmin || isKandi) && kandiPlusCustomers > 0 && (
           <div className="flex items-center gap-1 bg-blue-500/30 rounded px-2 py-1">
             <Candy className="h-4 w-4 text-blue-200" />
             <span className="text-sm font-bold text-blue-100">{kandiPlusCustomers}</span>
@@ -69,9 +75,12 @@ export const WaitingCustomersCounter: React.FC = () => {
           </div>
         )}
         
-        <div className="flex items-center gap-1 bg-white/20 rounded px-2 py-1">
-          <span className="text-sm font-bold text-white">סה"כ: {totalCustomers}</span>
-        </div>
+        {/* Show total only for admin */}
+        {isAdmin && (
+          <div className="flex items-center gap-1 bg-white/20 rounded px-2 py-1">
+            <span className="text-sm font-bold text-white">סה"כ: {totalCustomers}</span>
+          </div>
+        )}
         
         <div className="flex items-center gap-1 text-blue-200 border-r border-white/20 pr-3">
           <Calendar className="h-3 w-3" />

@@ -8,11 +8,11 @@ interface WaitingCustomersData {
   totalCustomers: number;
 }
 
-export const useWaitingCustomers = () => {
+export const useWaitingCustomers = (currentUserAgent?: string) => {
   return useQuery({
-    queryKey: ['waiting-customers'],
+    queryKey: ['waiting-customers', currentUserAgent],
     queryFn: async (): Promise<WaitingCustomersData> => {
-      console.log('Fetching waiting customers data...');
+      console.log('Fetching waiting customers data for agent:', currentUserAgent);
       
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -86,7 +86,21 @@ export const useWaitingCustomers = () => {
       const trulyWaitingUnassignedOrders = unassignedOrders || [];
 
       // Combine both types of waiting orders
-      const allWaitingOrders = [...trulyWaitingAssignedOrders, ...trulyWaitingUnassignedOrders];
+      let allWaitingOrders = [...trulyWaitingAssignedOrders, ...trulyWaitingUnassignedOrders];
+
+      // Filter orders based on current user agent
+      if (currentUserAgent && currentUserAgent !== '4') {
+        if (currentUserAgent === '99') {
+          // Kandi+ user - show only orders with agent number 99
+          allWaitingOrders = allWaitingOrders.filter(order => order.agentnumber === '99');
+        } else {
+          // Regular agent - show only their orders, excluding Kandi+ (99)
+          allWaitingOrders = allWaitingOrders.filter(order => 
+            order.agentnumber === currentUserAgent && order.agentnumber !== '99'
+          );
+        }
+      }
+      // Agent 4 (admin) sees all orders - no filtering
 
       if (!allWaitingOrders.length) {
         return { regularCustomers: 0, kandiPlusCustomers: 0, totalCustomers: 0 };
@@ -109,7 +123,7 @@ export const useWaitingCustomers = () => {
       const kandiPlusCount = kandiPlusCustomers.size;
       const regularCount = totalCustomers - kandiPlusCount;
 
-      console.log('Waiting customers:', {
+      console.log('Waiting customers for agent', currentUserAgent, ':', {
         regular: regularCount,
         kandiPlus: kandiPlusCount,
         total: totalCustomers
