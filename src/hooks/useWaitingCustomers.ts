@@ -8,15 +8,11 @@ interface WaitingCustomersData {
   totalCustomers: number;
 }
 
-interface UseWaitingCustomersProps {
-  currentUser?: { agentnumber: string; agentname: string };
-}
-
-export const useWaitingCustomers = ({ currentUser }: UseWaitingCustomersProps = {}) => {
+export const useWaitingCustomers = () => {
   return useQuery({
-    queryKey: ['waiting-customers', currentUser?.agentnumber],
+    queryKey: ['waiting-customers'],
     queryFn: async (): Promise<WaitingCustomersData> => {
-      console.log('Fetching waiting customers data for user:', currentUser?.agentnumber);
+      console.log('Fetching waiting customers data...');
       
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -90,20 +86,7 @@ export const useWaitingCustomers = ({ currentUser }: UseWaitingCustomersProps = 
       const trulyWaitingUnassignedOrders = unassignedOrders || [];
 
       // Combine both types of waiting orders
-      let allWaitingOrders = [...trulyWaitingAssignedOrders, ...trulyWaitingUnassignedOrders];
-
-      // Filter by current user's agent number if not admin
-      if (currentUser && currentUser.agentnumber !== "4") {
-        if (currentUser.agentnumber === "99") {
-          // For Kandi+ user (99), show only Kandi+ orders
-          allWaitingOrders = allWaitingOrders.filter(order => order.agentnumber === '99');
-        } else {
-          // For regular agents, show only their own orders, excluding Kandi+ orders
-          allWaitingOrders = allWaitingOrders.filter(order => 
-            order.agentnumber === currentUser.agentnumber && order.agentnumber !== '99'
-          );
-        }
-      }
+      const allWaitingOrders = [...trulyWaitingAssignedOrders, ...trulyWaitingUnassignedOrders];
 
       if (!allWaitingOrders.length) {
         return { regularCustomers: 0, kandiPlusCustomers: 0, totalCustomers: 0 };
@@ -126,7 +109,7 @@ export const useWaitingCustomers = ({ currentUser }: UseWaitingCustomersProps = 
       const kandiPlusCount = kandiPlusCustomers.size;
       const regularCount = totalCustomers - kandiPlusCount;
 
-      console.log('Waiting customers for user', currentUser?.agentnumber, ':', {
+      console.log('Waiting customers:', {
         regular: regularCount,
         kandiPlus: kandiPlusCount,
         total: totalCustomers
