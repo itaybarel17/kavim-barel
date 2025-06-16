@@ -33,7 +33,7 @@ function ProtectedRoute({ children, adminOnly = false }: { children: React.React
   // Show loading while checking auth state
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
           <p className="text-muted-foreground">טוען...</p>
@@ -64,41 +64,45 @@ function App() {
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <NavBar />
-              <Routes>
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/" element={
-                  <ProtectedRoute>
-                    <Index />
-                  </ProtectedRoute>
-                } />
-                <Route path="/distribution" element={
-                  <ProtectedRoute adminOnly>
-                    <Distribution />
-                  </ProtectedRoute>
-                } />
-                <Route path="/calendar" element={
-                  <ProtectedRoute>
-                    <Calendar />
-                  </ProtectedRoute>
-                } />
-                <Route path="/archive" element={
-                  <ProtectedRoute adminOnly>
-                    <Archive />
-                  </ProtectedRoute>
-                } />
-                <Route path="/zone-report/:zoneNumber" element={
-                  <ProtectedRoute>
-                    <ZoneReport />
-                  </ProtectedRoute>
-                } />
-                <Route path="/production-summary/:scheduleId" element={
-                  <ProtectedRoute>
-                    <ProductionSummary />
-                  </ProtectedRoute>
-                } />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <div className="min-h-screen bg-gray-50">
+                <NavBar />
+                <div className="px-4 lg:px-6 pb-6">
+                  <Routes>
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/" element={
+                      <ProtectedRoute>
+                        <Index />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/distribution" element={
+                      <ProtectedRoute adminOnly>
+                        <Distribution />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/calendar" element={
+                      <ProtectedRoute>
+                        <Calendar />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/archive" element={
+                      <ProtectedRoute adminOnly>
+                        <Archive />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/zone-report/:zoneNumber" element={
+                      <ProtectedRoute>
+                        <ZoneReport />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/production-summary/:scheduleId" element={
+                      <ProtectedRoute>
+                        <ProductionSummary />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </div>
+              </div>
             </BrowserRouter>
           </TooltipProvider>
         </DndProvider>

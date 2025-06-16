@@ -85,10 +85,10 @@ export default function Auth() {
       <div className="w-full max-w-md">
         <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
           <CardHeader className="text-center pb-4">
-            <CardTitle className="text-2xl font-bold text-gray-800">
+            <CardTitle className="text-xl lg:text-2xl font-bold text-gray-800">
               התחברות למערכת ההפצה
             </CardTitle>
-            <CardDescription className="text-gray-600">
+            <CardDescription className="text-gray-600 text-sm lg:text-base">
               בחר סוכן והכנס פרטי התחברות
             </CardDescription>
           </CardHeader>
@@ -158,7 +158,7 @@ export default function Auth() {
 
               <Button 
                 type="submit" 
-                className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium text-lg transition-all duration-200 transform hover:scale-[1.02]"
+                className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium text-base lg:text-lg transition-all duration-200 transform hover:scale-[1.02]"
                 disabled={!selectedAgent || !password || isLoading}
               >
                 {isLoading ? (

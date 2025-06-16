@@ -169,15 +169,43 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
   }), [isAdmin, onDropToKanban]);
   const schedulesWithItems = filteredSchedulesWithItems;
   const unscheduledSchedules = schedulesWithItems.filter(schedule => !schedule.distribution_date).sort((a, b) => a.schedule_id - b.schedule_id);
-  return <div ref={drop} className={`mb-8 ${isOver ? 'bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg' : ''}`}>
-      <h2 className="text-xl font-semibold mb-4 text-gray-700">קווי חלוקה</h2>
-      {unscheduledSchedules.length > 0 ? <Card className="mb-6 p-4">
-          <h3 className="text-lg font-medium mb-3 text-gray-700">לא מתוזמן</h3>
-          <div className="flex gap-4 overflow-x-auto pb-4">
-            {unscheduledSchedules.map(schedule => <CalendarCard key={schedule.schedule_id} scheduleId={schedule.schedule_id} groupId={schedule.groups_id} distributionGroups={distributionGroups} drivers={drivers} orders={orders} returns={returns} driverId={schedule.driver_id} showAllCustomers={true} onUpdateDestinations={onUpdateDestinations} schedule={schedule} multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} currentUser={currentUser} />)}
+  return (
+    <div ref={drop} className={`mb-8 ${isOver ? 'bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg' : ''}`}>
+      <h2 className="text-lg lg:text-xl font-semibold mb-4 text-gray-700 px-2 lg:px-0">
+        קווי חלוקה
+      </h2>
+      {unscheduledSchedules.length > 0 ? (
+        <Card className="mb-6 p-3 lg:p-4 mx-2 lg:mx-0">
+          <h3 className="text-base lg:text-lg font-medium mb-3 text-gray-700">
+            לא מתוזמן
+          </h3>
+          <div className="flex gap-3 lg:gap-4 overflow-x-auto pb-4 -mx-1">
+            {unscheduledSchedules.map(schedule => (
+              <div key={schedule.schedule_id} className="flex-shrink-0 min-w-[280px] lg:min-w-[320px]">
+                <CalendarCard 
+                  scheduleId={schedule.schedule_id}
+                  groupId={schedule.groups_id}
+                  distributionGroups={distributionGroups}
+                  drivers={drivers}
+                  orders={orders}
+                  returns={returns}
+                  driverId={schedule.driver_id}
+                  showAllCustomers={true}
+                  onUpdateDestinations={onUpdateDestinations}
+                  schedule={schedule}
+                  multiOrderActiveCustomerList={multiOrderActiveCustomerList}
+                  dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
+                  currentUser={currentUser}
+                />
+              </div>
+            ))}
           </div>
-        </Card> : <div className="text-center py-8 text-gray-500">
+        </Card>
+      ) : (
+        <div className="text-center py-8 text-gray-500 mx-2 lg:mx-0">
           {isOver ? 'שחרר כאן כדי להחזיר לקווי חלוקה לא מתוזמנים' : 'אין קווי חלוקה לא מתוזמנים'}
-        </div>}
-    </div>;
+        </div>
+      )}
+    </div>
+  );
 };

@@ -190,19 +190,62 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
       onRefreshData();
     }
   };
-  return <div>
-      <h2 className="text-xl font-semibold mb-4 text-gray-700">לוח שנה - שבועיים</h2>
+  return (
+    <div className="space-y-6">
+      <h2 className="text-lg lg:text-xl font-semibold text-gray-700 px-2 lg:px-0">
+        לוח שנה - שבועיים
+      </h2>
       
       {/* Week 1 - Mobile: single column, Desktop: 6 columns */}
-      <div className="grid grid-cols-1 sm:grid-cols-6 gap-4 mb-6" dir="rtl">
-        {firstWeekDays.map((date, index) => <CalendarDay key={`week1-${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`} date={date} schedulesForDate={getSchedulesForDate(date)} distributionGroups={distributionGroups} drivers={drivers} orders={orders} returns={returns} onDropToDate={onDropToDate} onProductionDialogOpen={handleProductionDialogOpen} currentUser={currentUser} />)}
+      <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-6 lg:gap-4" dir="rtl">
+        {firstWeekDays.map((date, index) => (
+          <div key={`week1-${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`} className="w-full">
+            <CalendarDay 
+              date={date}
+              schedulesForDate={getSchedulesForDate(date)}
+              distributionGroups={distributionGroups}
+              drivers={drivers}
+              orders={orders}
+              returns={returns}
+              onDropToDate={onDropToDate}
+              onProductionDialogOpen={handleProductionDialogOpen}
+              currentUser={currentUser}
+            />
+          </div>
+        ))}
       </div>
 
       {/* Week 2 - Mobile: single column, Desktop: 6 columns */}
-      <div className="grid grid-cols-1 sm:grid-cols-6 gap-4" dir="rtl">
-        {secondWeekDays.map((date, index) => <CalendarDay key={`week2-${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`} date={date} schedulesForDate={getSchedulesForDate(date)} distributionGroups={distributionGroups} drivers={drivers} orders={orders} returns={returns} onDropToDate={onDropToDate} onProductionDialogOpen={handleProductionDialogOpen} currentUser={currentUser} />)}
+      <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-6 lg:gap-4" dir="rtl">
+        {secondWeekDays.map((date, index) => (
+          <div key={`week2-${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`} className="w-full">
+            <CalendarDay 
+              date={date}
+              schedulesForDate={getSchedulesForDate(date)}
+              distributionGroups={distributionGroups}
+              drivers={drivers}
+              orders={orders}
+              returns={returns}
+              onDropToDate={onDropToDate}
+              onProductionDialogOpen={handleProductionDialogOpen}
+              currentUser={currentUser}
+            />
+          </div>
+        ))}
       </div>
 
-      <ProductionDialog isOpen={productionDialogOpen} onClose={() => setProductionDialogOpen(false)} selectedDate={selectedDate} distributionSchedules={distributionSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={orders} returns={returns} onProduced={handleProduced} currentUser={currentUser} />
-    </div>;
+      <ProductionDialog 
+        isOpen={productionDialogOpen}
+        onClose={() => setProductionDialogOpen(false)}
+        selectedDate={selectedDate}
+        distributionSchedules={distributionSchedules}
+        distributionGroups={distributionGroups}
+        drivers={drivers}
+        orders={orders}
+        returns={returns}
+        onProduced={handleProduced}
+        currentUser={currentUser}
+      />
+    </div>
+  );
 };
