@@ -504,7 +504,7 @@ const Distribution = () => {
   return <DndProvider backend={HTML5Backend}>
       <div className="min-h-screen p-6 bg-[#52a0e4]/15">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">ממשק הפצה</h1>
+          <h1 className="text-3xl font-bold text-gray-700">ממשק הפצה</h1>
           <div className="flex gap-2">
             
             
