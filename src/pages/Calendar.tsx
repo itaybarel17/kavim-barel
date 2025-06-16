@@ -11,7 +11,6 @@ import { CalendarCard } from '@/components/calendar/CalendarCard';
 import { CalendarGrid } from '@/components/calendar/CalendarGrid';
 import { HorizontalKanban } from '@/components/calendar/HorizontalKanban';
 import { useAuth } from '@/context/AuthContext';
-
 interface Order {
   ordernumber: number;
   customername: string;
@@ -177,7 +176,7 @@ const Calendar = () => {
   const allowedGroupIds = useMemo(() => {
     if (!currentUser) return [];
     if (currentUser.agentnumber === "4") return null; // 4 ("משרד") sees all
-    
+
     // Special logic for Agent 99 - only see specific schedule_ids that have his orders/returns
     if (currentUser.agentnumber === "99") {
       const agent99ScheduleIds = new Set<number>();
@@ -196,10 +195,8 @@ const Calendar = () => {
               relevantScheduleIds.push(order.schedule_id_if_changed.schedule_id);
             }
           }
-          
           return relevantScheduleIds.includes(schedule.schedule_id) && order.agentnumber === '99';
         });
-        
         const hasAgent99Returns = returns.some(returnItem => {
           const relevantScheduleIds = [];
           if (typeof returnItem.schedule_id === 'number') relevantScheduleIds.push(returnItem.schedule_id);
@@ -214,17 +211,15 @@ const Calendar = () => {
               relevantScheduleIds.push(returnItem.schedule_id_if_changed.schedule_id);
             }
           }
-          
           return relevantScheduleIds.includes(schedule.schedule_id) && returnItem.agentnumber === '99';
         });
-
         if (hasAgent99Orders || hasAgent99Returns) {
           agent99ScheduleIds.add(schedule.schedule_id);
         }
       });
       return Array.from(agent99ScheduleIds);
     }
-    
+
     // Allow only groups where agent is in distribution_groups.agents (array of agentnumbers in jsonb)
     return distributionGroups.filter(group => {
       if (!group.agents) return false;
@@ -250,12 +245,11 @@ const Calendar = () => {
     if (!currentUser) return [];
     if (currentUser.agentnumber === "4") return distributionSchedules;
     if (!allowedGroupIds || allowedGroupIds.length === 0) return [];
-    
+
     // For Agent 99, allowedGroupIds actually contains schedule_ids
     if (currentUser.agentnumber === "99") {
       return distributionSchedules.filter(sch => allowedGroupIds.includes(sch.schedule_id));
     }
-    
     return distributionSchedules.filter(sch => allowedGroupIds.includes(sch.groups_id));
   }, [distributionSchedules, allowedGroupIds, currentUser]);
 
@@ -264,9 +258,8 @@ const Calendar = () => {
     if (!currentUser) return [];
     if (currentUser.agentnumber === "4") return orders;
     if (!allowedGroupIds || allowedGroupIds.length === 0) return [];
-    
     let filteredResults;
-    
+
     // Special filtering for Agent 99 - check schedule_id directly
     if (currentUser.agentnumber === "99") {
       filteredResults = orders.filter(o => {
@@ -277,7 +270,6 @@ const Calendar = () => {
         if (Array.isArray(o.schedule_id_if_changed)) o.schedule_id_if_changed.forEach(sid => {
           if (typeof sid === 'number') allScheduleIds.push(sid);
         });
-        
         return allScheduleIds.some(sid => allowedGroupIds.includes(sid)) && o.agentnumber === '99';
       });
     } else {
@@ -298,17 +290,14 @@ const Calendar = () => {
         return inAllowed;
       });
     }
-    
     return filteredResults;
   }, [orders, allowedGroupIds, currentUser, distributionSchedules]);
-  
   const filteredReturns = useMemo(() => {
     if (!currentUser) return [];
     if (currentUser.agentnumber === "4") return returns;
     if (!allowedGroupIds || allowedGroupIds.length === 0) return [];
-    
     let filteredResults;
-    
+
     // Special filtering for Agent 99 - check schedule_id directly
     if (currentUser.agentnumber === "99") {
       filteredResults = returns.filter(o => {
@@ -319,7 +308,6 @@ const Calendar = () => {
         if (Array.isArray(o.schedule_id_if_changed)) o.schedule_id_if_changed.forEach(sid => {
           if (typeof sid === 'number') allScheduleIds.push(sid);
         });
-        
         return allScheduleIds.some(sid => allowedGroupIds.includes(sid)) && o.agentnumber === '99';
       });
     } else {
@@ -340,7 +328,6 @@ const Calendar = () => {
         return inAllowed;
       });
     }
-    
     return filteredResults;
   }, [returns, allowedGroupIds, currentUser, distributionSchedules]);
 
@@ -467,13 +454,11 @@ const Calendar = () => {
     refetchReturns();
     refetchSchedules();
   };
-
   const navigateWeeks = (direction: 'prev' | 'next') => {
     const newDate = new Date(currentWeekStart);
     newDate.setDate(newDate.getDate() + (direction === 'next' ? 14 : -14));
     setCurrentWeekStart(newDate);
   };
-
   const isLoading = ordersLoading || returnsLoading || groupsLoading || schedulesLoading || driversLoading;
   if (isLoading) {
     return <div className="min-h-screen p-6 bg-background flex items-center justify-center">
@@ -485,19 +470,13 @@ const Calendar = () => {
   }
   return <div className="min-h-screen p-6 bg-background">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">לוח שנה הפצה</h1>
+        <h1 className="text-3xl font-bold">לוח שנה</h1>
         <div className="flex gap-2">
-          <Button 
-            onClick={() => navigate('/archive')}
-            className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-none shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-          >
+          <Button onClick={() => navigate('/archive')} className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-none shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105">
             <Archive className="h-4 w-4" />
             ארכיון
           </Button>
-          <Button 
-            onClick={() => navigate('/distribution')}
-            className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-none shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-          >
+          <Button onClick={() => navigate('/distribution')} className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-none shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105">
             <CalendarIcon className="h-4 w-4" />
             ממשק הפצה
           </Button>
@@ -525,18 +504,7 @@ const Calendar = () => {
       </div>
 
       {/* Calendar Grid */}
-      <CalendarGrid 
-        currentWeekStart={currentWeekStart} 
-        distributionSchedules={filteredSchedules} 
-        distributionGroups={distributionGroups} 
-        drivers={drivers} 
-        orders={filteredOrders} 
-        returns={filteredReturns} 
-        onDropToDate={currentUser?.agentnumber === "4" ? handleDropToDate : undefined} 
-        currentUser={currentUser}
-        onRefreshData={handleRefreshData}
-      />
+      <CalendarGrid currentWeekStart={currentWeekStart} distributionSchedules={filteredSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={filteredOrders} returns={filteredReturns} onDropToDate={currentUser?.agentnumber === "4" ? handleDropToDate : undefined} currentUser={currentUser} onRefreshData={handleRefreshData} />
     </div>;
 };
-
 export default Calendar;
