@@ -52,23 +52,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const findUserEmailByAgentId = async (agentId: string): Promise<string | null> => {
-    try {
-      // Get all auth users and find the one that matches our agent ID
-      const { data, error } = await supabase.auth.admin.listUsers();
-      
-      if (error || !data.users) {
-        console.error('Error fetching auth users:', error);
-        return null;
-      }
-
-      // Find user whose ID matches the agent ID
-      const matchingUser = data.users.find(authUser => authUser.id === agentId);
-      return matchingUser?.email || null;
-    } catch (error) {
-      console.error('Error finding user email:', error);
-      return null;
-    }
+  // מיפוי ישיר בין agent ID למייל - זה יש לעדכן בהתאם למשתמשים האמיתיים
+  const getEmailByAgentId = (agentId: string): string | null => {
+    // כאן תצטרך להחליף את המיילים האמיתיים של הסוכנים
+    const agentEmailMap: { [key: string]: string } = {
+      // דוגמאות - יש להחליף במיילים האמיתיים
+      'agent1-uuid': 'agent1@company.com',
+      'agent2-uuid': 'agent2@company.com',
+      // הוסף כאן את כל הסוכנים עם המיילים שלהם
+    };
+    
+    return agentEmailMap[agentId] || null;
   };
 
   useEffect(() => {
@@ -113,8 +107,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (agentId: string, password: string): Promise<boolean> => {
     try {
-      // First, find the email associated with this agent ID
-      const email = await findUserEmailByAgentId(agentId);
+      // חפש את המייל המתאים לסוכן
+      const email = getEmailByAgentId(agentId);
       
       if (!email) {
         console.log('No email found for agent ID:', agentId);
