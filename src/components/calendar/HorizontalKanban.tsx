@@ -3,13 +3,11 @@ import { useDrop } from 'react-dnd';
 import { CalendarCard } from './CalendarCard';
 import { getUniqueCustomersForSchedule } from '@/utils/scheduleUtils';
 import type { OrderWithSchedule, ReturnWithSchedule } from '@/utils/scheduleUtils';
-
 interface DistributionGroup {
   groups_id: number;
   separation: string;
   agents?: any;
 }
-
 interface DistributionSchedule {
   schedule_id: number;
   groups_id: number;
@@ -20,17 +18,14 @@ interface DistributionSchedule {
   dis_number?: number;
   done_schedule?: string;
 }
-
 interface Driver {
   id: number;
   nahag: string;
 }
-
 interface User {
   agentnumber: string;
   agentname: string;
 }
-
 interface HorizontalKanbanProps {
   distributionSchedules: DistributionSchedule[];
   distributionGroups: DistributionGroup[];
@@ -39,11 +34,16 @@ interface HorizontalKanbanProps {
   returns: ReturnWithSchedule[];
   onUpdateDestinations?: (scheduleId: number) => void;
   onDropToKanban?: (scheduleId: number) => void;
-  multiOrderActiveCustomerList?: { name: string; city: string }[];
-  dualActiveOrderReturnCustomers?: { name: string; city: string }[];
+  multiOrderActiveCustomerList?: {
+    name: string;
+    city: string;
+  }[];
+  dualActiveOrderReturnCustomers?: {
+    name: string;
+    city: string;
+  }[];
   currentUser?: User;
 }
-
 export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
   distributionSchedules,
   distributionGroups,
@@ -54,7 +54,7 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
   onDropToKanban,
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
-  currentUser,
+  currentUser
 }) => {
   // Filter schedules by agent (admin sees all)
   const isAdmin = currentUser?.agentnumber === "4";
@@ -64,7 +64,7 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
   const allowedGroupIds = React.useMemo(() => {
     if (isAdmin) return null; // All
     if (!currentUser) return [];
-    
+
     // Special logic for Agent 99 - only see specific schedule_ids that have his orders/returns
     if (isAgent99) {
       const agent99ScheduleIds = new Set<number>();
@@ -83,10 +83,8 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
               relevantScheduleIds.push(order.schedule_id_if_changed.schedule_id);
             }
           }
-          
           return relevantScheduleIds.includes(schedule.schedule_id) && order.agentnumber === '99';
         });
-        
         const hasAgent99Returns = returns.some(returnItem => {
           const relevantScheduleIds = [];
           if (typeof returnItem.schedule_id === 'number') relevantScheduleIds.push(returnItem.schedule_id);
@@ -101,43 +99,36 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
               relevantScheduleIds.push(returnItem.schedule_id_if_changed.schedule_id);
             }
           }
-          
           return relevantScheduleIds.includes(schedule.schedule_id) && returnItem.agentnumber === '99';
         });
-
         if (hasAgent99Orders || hasAgent99Returns) {
           agent99ScheduleIds.add(schedule.schedule_id);
         }
       });
       return Array.from(agent99ScheduleIds);
     }
-    
-    // Get groups where agent is allowed
-    const agentAllowedGroups = distributionGroups
-      .filter((group) => {
-        if (!group.agents) return false;
-        if (Array.isArray(group.agents)) {
-          return group.agents.includes(parseInt(currentUser.agentnumber));
-        }
-        if (typeof group.agents === "string") {
-          try {
-            const arr = JSON.parse(group.agents);
-            return arr.includes(parseInt(currentUser.agentnumber));
-          } catch {
-            return false;
-          }
-        }
-        return false;
-      })
-      .map((group) => group.groups_id);
 
+    // Get groups where agent is allowed
+    const agentAllowedGroups = distributionGroups.filter(group => {
+      if (!group.agents) return false;
+      if (Array.isArray(group.agents)) {
+        return group.agents.includes(parseInt(currentUser.agentnumber));
+      }
+      if (typeof group.agents === "string") {
+        try {
+          const arr = JSON.parse(group.agents);
+          return arr.includes(parseInt(currentUser.agentnumber));
+        } catch {
+          return false;
+        }
+      }
+      return false;
+    }).map(group => group.groups_id);
     return agentAllowedGroups;
   }, [currentUser, isAdmin, isAgent99, distributionGroups, distributionSchedules, orders, returns]);
-
   const filteredSchedulesWithItems = distributionSchedules.filter(schedule => {
     if (!isAdmin && !isAgent99) {
-      if (!allowedGroupIds || !allowedGroupIds.includes(schedule.groups_id))
-        return false;
+      if (!allowedGroupIds || !allowedGroupIds.includes(schedule.groups_id)) return false;
     }
     if (isAgent99 && (!allowedGroupIds || !allowedGroupIds.includes(schedule.schedule_id))) {
       return false;
@@ -145,85 +136,47 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
     const uniqueCustomers = getUniqueCustomersForSchedule(orders, returns, schedule.schedule_id);
     return uniqueCustomers.size > 0;
   });
-
   const hasPriorityCustomers = (schedule: DistributionSchedule): boolean => {
-    const scheduleOrders = orders.filter(order => 
-      order.schedule_id === schedule.schedule_id || 
-      (order.schedule_id_if_changed && 
-       ((typeof order.schedule_id_if_changed === 'object' && order.schedule_id_if_changed.schedule_id === schedule.schedule_id) ||
-        order.schedule_id_if_changed === schedule.schedule_id))
-    );
-    
-    const scheduleReturns = returns.filter(returnItem => 
-      returnItem.schedule_id === schedule.schedule_id || 
-      (returnItem.schedule_id_if_changed && 
-       ((typeof returnItem.schedule_id_if_changed === 'object' && returnItem.schedule_id_if_changed.schedule_id === schedule.schedule_id) ||
-        returnItem.schedule_id_if_changed === schedule.schedule_id))
-    );
-
+    const scheduleOrders = orders.filter(order => order.schedule_id === schedule.schedule_id || order.schedule_id_if_changed && (typeof order.schedule_id_if_changed === 'object' && order.schedule_id_if_changed.schedule_id === schedule.schedule_id || order.schedule_id_if_changed === schedule.schedule_id));
+    const scheduleReturns = returns.filter(returnItem => returnItem.schedule_id === schedule.schedule_id || returnItem.schedule_id_if_changed && (typeof returnItem.schedule_id_if_changed === 'object' && returnItem.schedule_id_if_changed.schedule_id === schedule.schedule_id || returnItem.schedule_id_if_changed === schedule.schedule_id));
     const allCustomers = [...scheduleOrders, ...scheduleReturns];
-    
+
     // Check if any customer in this schedule has blue or red icons
     return allCustomers.some(item => {
       const customerKey = `${item.customername}^^${item.city}`;
-      return multiOrderActiveCustomerList.some(customer => `${customer.name}^^${customer.city}` === customerKey) ||
-             dualActiveOrderReturnCustomers.some(customer => `${customer.name}^^${customer.city}` === customerKey);
+      return multiOrderActiveCustomerList.some(customer => `${customer.name}^^${customer.city}` === customerKey) || dualActiveOrderReturnCustomers.some(customer => `${customer.name}^^${customer.city}` === customerKey);
     });
   };
 
   // Only admin can drop to kanban
-  const [{ isOver }, drop] = useDrop(() => ({
-    accept: (isAdmin ? ['calendar-card', 'card'] : []),
-    drop: (item: { scheduleId?: number; type?: 'order' | 'return'; data?: OrderWithSchedule | ReturnWithSchedule }) => {
+  const [{
+    isOver
+  }, drop] = useDrop(() => ({
+    accept: isAdmin ? ['calendar-card', 'card'] : [],
+    drop: (item: {
+      scheduleId?: number;
+      type?: 'order' | 'return';
+      data?: OrderWithSchedule | ReturnWithSchedule;
+    }) => {
       if (isAdmin && item.scheduleId && onDropToKanban) {
         onDropToKanban(item.scheduleId);
       }
     },
-    collect: (monitor) => ({
-      isOver: isAdmin && monitor.isOver(),
-    }),
+    collect: monitor => ({
+      isOver: isAdmin && monitor.isOver()
+    })
   }), [isAdmin, onDropToKanban]);
-
   const schedulesWithItems = filteredSchedulesWithItems;
-  const unscheduledSchedules = schedulesWithItems
-    .filter(schedule => !schedule.distribution_date)
-    .sort((a, b) => a.schedule_id - b.schedule_id);
-
-  return (
-    <div
-      ref={drop}
-      className={`mb-8 ${isOver ? 'bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg' : ''}`}
-    >
+  const unscheduledSchedules = schedulesWithItems.filter(schedule => !schedule.distribution_date).sort((a, b) => a.schedule_id - b.schedule_id);
+  return <div ref={drop} className={`mb-8 ${isOver ? 'bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg' : ''}`}>
       <h2 className="text-xl font-semibold mb-4">קווי חלוקה</h2>
-      {unscheduledSchedules.length > 0 ? (
-        <div className="mb-6">
+      {unscheduledSchedules.length > 0 ? <div className="mb-6 bg-slate-100">
           <h3 className="text-lg font-medium mb-3 text-gray-700">לא מתוזמן</h3>
-          <div className="flex gap-4 overflow-x-auto pb-4">
-            {unscheduledSchedules.map((schedule) => (
-              <CalendarCard
-                key={schedule.schedule_id}
-                scheduleId={schedule.schedule_id}
-                groupId={schedule.groups_id}
-                distributionGroups={distributionGroups}
-                drivers={drivers}
-                orders={orders}
-                returns={returns}
-                driverId={schedule.driver_id}
-                showAllCustomers={true}
-                onUpdateDestinations={onUpdateDestinations}
-                schedule={schedule}
-                multiOrderActiveCustomerList={multiOrderActiveCustomerList}
-                dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
-                currentUser={currentUser}
-              />
-            ))}
+          <div className="flex gap-4 overflow-x-auto pb-4 bg-white">
+            {unscheduledSchedules.map(schedule => <CalendarCard key={schedule.schedule_id} scheduleId={schedule.schedule_id} groupId={schedule.groups_id} distributionGroups={distributionGroups} drivers={drivers} orders={orders} returns={returns} driverId={schedule.driver_id} showAllCustomers={true} onUpdateDestinations={onUpdateDestinations} schedule={schedule} multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} currentUser={currentUser} />)}
           </div>
-        </div>
-      ) : (
-        <div className="text-center py-8 text-gray-500">
+        </div> : <div className="text-center py-8 text-gray-500">
           {isOver ? 'שחרר כאן כדי להחזיר לקווי חלוקה לא מתוזמנים' : 'אין קווי חלוקה לא מתוזמנים'}
-        </div>
-      )}
-    </div>
-  );
+        </div>}
+    </div>;
 };
