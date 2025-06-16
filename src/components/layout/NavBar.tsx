@@ -25,7 +25,7 @@ export const NavBar: React.FC = () => {
             className={`px-3 py-1.5 text-sm font-bold rounded border transition-all duration-200 ${
               location.pathname === '/calendar' 
                 ? 'bg-gradient-to-r from-green-500 to-green-600 text-white border-green-400 shadow-lg scale-105 ring-2 ring-green-300/50' 
-                : 'bg-gradient-to-r from-green-500/70 to-green-600/70 text-white border-green-400/70 hover:from-green-500 hover:to-green-600 hover:border-green-400 hover:shadow-sm'
+                : 'bg-gradient-to-r from-green-500/40 to-green-600/40 text-white/70 border-green-400/40 hover:from-green-500/70 hover:to-green-600/70 hover:border-green-400/70 hover:text-white hover:shadow-sm'
             }`}
           >
             לוח שנה
@@ -37,7 +37,7 @@ export const NavBar: React.FC = () => {
                 className={`px-3 py-1.5 text-sm font-bold rounded border transition-all duration-200 ${
                   location.pathname === '/distribution' 
                     ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white border-orange-400 shadow-lg scale-105 ring-2 ring-orange-300/50' 
-                    : 'bg-gradient-to-r from-orange-500/70 to-orange-600/70 text-white border-orange-400/70 hover:from-orange-500 hover:to-orange-600 hover:border-orange-400 hover:shadow-sm'
+                    : 'bg-gradient-to-r from-orange-500/40 to-orange-600/40 text-white/70 border-orange-400/40 hover:from-orange-500/70 hover:to-orange-600/70 hover:border-orange-400/70 hover:text-white hover:shadow-sm'
                 }`}
               >
                 הפצה
@@ -47,7 +47,7 @@ export const NavBar: React.FC = () => {
                 className={`px-3 py-1.5 text-sm font-bold rounded border transition-all duration-200 ${
                   location.pathname === '/archive' 
                     ? 'bg-gradient-to-r from-red-500 to-red-600 text-white border-red-400 shadow-lg scale-105 ring-2 ring-red-300/50' 
-                    : 'bg-gradient-to-r from-red-500/70 to-red-600/70 text-white border-red-400/70 hover:from-red-600 hover:to-red-700 hover:border-red-400 hover:shadow-sm'
+                    : 'bg-gradient-to-r from-red-500/40 to-red-600/40 text-white/70 border-red-400/40 hover:from-red-600/70 hover:to-red-700/70 hover:border-red-400/70 hover:text-white hover:shadow-sm'
                 }`}
               >
                 ארכיון
