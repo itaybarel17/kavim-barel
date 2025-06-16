@@ -1,8 +1,10 @@
 import React from 'react';
 import { useDrop } from 'react-dnd';
+import { Card } from '@/components/ui/card';
 import { CalendarCard } from './CalendarCard';
 import { getUniqueCustomersForSchedule } from '@/utils/scheduleUtils';
 import type { OrderWithSchedule, ReturnWithSchedule } from '@/utils/scheduleUtils';
+
 interface DistributionGroup {
   groups_id: number;
   separation: string;
@@ -170,12 +172,12 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
   const unscheduledSchedules = schedulesWithItems.filter(schedule => !schedule.distribution_date).sort((a, b) => a.schedule_id - b.schedule_id);
   return <div ref={drop} className={`mb-8 ${isOver ? 'bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg' : ''}`}>
       <h2 className="text-xl font-semibold mb-4">קווי חלוקה</h2>
-      {unscheduledSchedules.length > 0 ? <div className="mb-6 bg-white px-[10px] mx-0">
+      {unscheduledSchedules.length > 0 ? <Card className="mb-6 p-4">
           <h3 className="text-lg font-medium mb-3 text-gray-900">לא מתוזמן</h3>
-          <div className="flex gap-4 overflow-x-auto pb-4 bg-white">
+          <div className="flex gap-4 overflow-x-auto pb-4">
             {unscheduledSchedules.map(schedule => <CalendarCard key={schedule.schedule_id} scheduleId={schedule.schedule_id} groupId={schedule.groups_id} distributionGroups={distributionGroups} drivers={drivers} orders={orders} returns={returns} driverId={schedule.driver_id} showAllCustomers={true} onUpdateDestinations={onUpdateDestinations} schedule={schedule} multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} currentUser={currentUser} />)}
           </div>
-        </div> : <div className="text-center py-8 text-gray-500">
+        </Card> : <div className="text-center py-8 text-gray-500">
           {isOver ? 'שחרר כאן כדי להחזיר לקווי חלוקה לא מתוזמנים' : 'אין קווי חלוקה לא מתוזמנים'}
         </div>}
     </div>;
