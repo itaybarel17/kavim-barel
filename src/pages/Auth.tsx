@@ -7,64 +7,36 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
 
-interface Agent {
-  id: string;
-  agentname: string;
-  agentnumber: string;
-}
+const agents = [
+  // סוכני מכירות (לפי סדר agentnumber)
+  { id: "1", name: "יניב", title: "סוכן מכירות", category: "מכירות", email: "yaniv@company.local" },
+  { id: "2", name: "לינוי", title: "סוכן מכירות", category: "מכירות", email: "linoy@company.local" },
+  { id: "3", name: "אייל", title: "סוכן מכירות", category: "מכירות", email: "eyal@company.local" },
+  { id: "5", name: "אחמד", title: "סוכן מכירות", category: "מכירות", email: "ahmad@company.local" },
+  { id: "6", name: "ג'קי", title: "סוכן מכירות", category: "מכירות", email: "jackie@company.local" },
+  { id: "7", name: "חיים", title: "סוכן מכירות", category: "מכירות", email: "haim@company.local" },
+  { id: "8", name: "רונן", title: "סוכן מכירות", category: "מכירות", email: "ronen@company.local" },
+  // מנהל מערכת
+  { id: "4", name: "משרד", title: "מנהל מערכת", category: "ניהול", email: "office@company.local" },
+  // סוכן מיוחד
+  { id: "99", name: "קנדי", title: "סוכן מיוחד", category: "מיוחד", email: "kennedy@company.local" },
+];
 
 // Group agents by category for better organization
-const getCategoryFromAgentNumber = (agentnumber: string) => {
-  if (agentnumber === "4") return "ניהול";
-  if (agentnumber === "99") return "מיוחד";
-  return "מכירות";
+const agentsByCategory = {
+  "מכירות": agents.filter(agent => agent.category === "מכירות"),
+  "ניהול": agents.filter(agent => agent.category === "ניהול"),
+  "מיוחד": agents.filter(agent => agent.category === "מיוחד"),
 };
 
 export default function Auth() {
-  const [agents, setAgents] = useState<Agent[]>([]);
   const [selectedAgent, setSelectedAgent] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingAgents, setIsLoadingAgents] = useState(true);
   const { login, user } = useAuth();
   const navigate = useNavigate();
-
-  // Fetch agents from database
-  useEffect(() => {
-    const fetchAgents = async () => {
-      console.log('Starting to fetch agents...');
-      try {
-        const { data, error } = await supabase
-          .from('agents')
-          .select('id, agentname, agentnumber')
-          .order('agentnumber');
-
-        console.log('Supabase response:', { data, error });
-
-        if (error) {
-          console.error('Error fetching agents:', error);
-          setError('שגיאה בטעינת רשימת הסוכנים: ' + error.message);
-        } else {
-          console.log('Successfully fetched agents:', data);
-          setAgents(data || []);
-          if (!data || data.length === 0) {
-            console.warn('No agents found in database');
-            setError('לא נמצאו סוכנים במערכת');
-          }
-        }
-      } catch (err) {
-        console.error('Exception while fetching agents:', err);
-        setError('שגיאה בטעינת רשימת הסוכנים');
-      } finally {
-        setIsLoadingAgents(false);
-      }
-    };
-
-    fetchAgents();
-  }, []);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -101,8 +73,7 @@ export default function Auth() {
         return;
       }
 
-      console.log('Attempting login for agent:', selectedAgentData);
-      const success = await login(selectedAgentData.id, password);
+      const success = await login(selectedAgentData.email, password);
       if (!success) {
         setError("שם משתמש או סיסמה שגויים");
       }
@@ -115,32 +86,6 @@ export default function Auth() {
   };
 
   const selectedAgentData = agents.find(agent => agent.id === selectedAgent);
-
-  // Group agents by category
-  const agentsByCategory = agents.reduce((acc, agent) => {
-    const category = getCategoryFromAgentNumber(agent.agentnumber);
-    if (!acc[category]) acc[category] = [];
-    acc[category].push(agent);
-    return acc;
-  }, {} as Record<string, Agent[]>);
-
-  console.log('Current state:', { 
-    isLoadingAgents, 
-    agentsCount: agents.length, 
-    agentsByCategory,
-    error 
-  });
-
-  if (isLoadingAgents) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">טוען רשימת סוכנים...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -159,38 +104,28 @@ export default function Auth() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="agent-select" className="text-sm font-medium text-gray-700">
-                  בחירת סוכן {agents.length > 0 && `(${agents.length} סוכנים)`}
+                  בחירת סוכן
                 </Label>
                 <Select value={selectedAgent} onValueChange={setSelectedAgent}>
                   <SelectTrigger className="w-full h-12 text-right">
-                    <SelectValue placeholder={
-                      agents.length === 0 
-                        ? "אין סוכנים זמינים..." 
-                        : "בחר סוכן..."
-                    } />
+                    <SelectValue placeholder="בחר סוכן..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {agents.length === 0 ? (
-                      <div className="px-2 py-4 text-center text-gray-500">
-                        לא נמצאו סוכנים
-                      </div>
-                    ) : (
-                      Object.entries(agentsByCategory).map(([category, categoryAgents]) => (
-                        <div key={category}>
-                          <div className="px-2 py-1 text-xs font-semibold text-gray-500 bg-gray-50">
-                            {category}
-                          </div>
-                          {categoryAgents.map((agent) => (
-                            <SelectItem key={agent.id} value={agent.id} className="text-right">
-                              <div className="flex flex-col items-end">
-                                <span className="font-medium">{agent.agentname}</span>
-                                <span className="text-sm text-gray-500">סוכן {agent.agentnumber}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
+                    {Object.entries(agentsByCategory).map(([category, categoryAgents]) => (
+                      <div key={category}>
+                        <div className="px-2 py-1 text-xs font-semibold text-gray-500 bg-gray-50">
+                          {category}
                         </div>
-                      ))
-                    )}
+                        {categoryAgents.map((agent) => (
+                          <SelectItem key={agent.id} value={agent.id} className="text-right">
+                            <div className="flex flex-col items-end">
+                              <span className="font-medium">{agent.name}</span>
+                              <span className="text-sm text-gray-500">סוכן {agent.id}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </div>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -222,7 +157,7 @@ export default function Auth() {
               <Button 
                 type="submit" 
                 className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium text-lg transition-all duration-200 transform hover:scale-[1.02]"
-                disabled={!selectedAgent || !password || isLoading || agents.length === 0}
+                disabled={!selectedAgent || !password || isLoading}
               >
                 {isLoading ? (
                   <div className="flex items-center gap-2">
@@ -230,7 +165,7 @@ export default function Auth() {
                     מתחבר...
                   </div>
                 ) : (
-                  selectedAgentData ? `התחבר כ${selectedAgentData.agentname}` : "התחבר"
+                  selectedAgentData ? `התחבר כ${selectedAgentData.name}` : "התחבר"
                 )}
               </Button>
             </form>

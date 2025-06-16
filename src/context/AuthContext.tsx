@@ -11,7 +11,7 @@ export interface AuthUser {
 interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
-  login: (agentId: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
 
@@ -48,27 +48,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
     } catch (error) {
       console.error('Error fetching agent data:', error);
-      return null;
-    }
-  };
-
-  // פונקציה לקבלת המייל של הסוכן מהטבלה
-  const getEmailByAgentId = async (agentId: string): Promise<string | null> => {
-    try {
-      const { data: agent, error } = await supabase
-        .from('agents')
-        .select('agentEmailMap')
-        .eq('id', agentId)
-        .single();
-
-      if (error || !agent) {
-        console.error('Error fetching agent email:', error);
-        return null;
-      }
-
-      return agent.agentEmailMap;
-    } catch (error) {
-      console.error('Error fetching agent email:', error);
       return null;
     }
   };
@@ -113,18 +92,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (agentId: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      // חפש את המייל המתאים לסוכן מהטבלה
-      const email = await getEmailByAgentId(agentId);
-      
-      if (!email) {
-        console.log('No email found for agent ID:', agentId);
-        return false;
-      }
-
-      console.log('Attempting login with email:', email);
-
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
         password: password,
