@@ -468,7 +468,7 @@ const Calendar = () => {
         </div>
       </div>;
   }
-  return <div className="min-h-screen p-6 bg-background">
+  return <div className="min-h-screen p-6 bg-[#52a0e4]/15">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">לוח שנה</h1>
         <div className="flex gap-2">
