@@ -14,19 +14,19 @@ export type Database = {
           agentname: string
           agentnumber: string
           id: string
-          password: string | null
+          password_onlyview: string | null
         }
         Insert: {
           agentname: string
           agentnumber: string
           id?: string
-          password?: string | null
+          password_onlyview?: string | null
         }
         Update: {
           agentname?: string
           agentnumber?: string
           id?: string
-          password?: string | null
+          password_onlyview?: string | null
         }
         Relationships: []
       }

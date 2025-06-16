@@ -1,5 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface AuthUser {
   agentnumber: string;
@@ -9,14 +10,14 @@ export interface AuthUser {
 interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
-  login: (agentnumber: string) => void;
+  login: (agentnumber: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   isLoading: true,
-  login: () => {},
+  login: async () => false,
   logout: () => {},
 });
 
@@ -67,18 +68,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearInterval(interval);
   }, []);
 
-  const login = (agentnumber: string) => {
-    // Hard-coded agents: 1=יניב (רגיל), 4=משרד (מנהל), 99=קנדי (מיוחד)
-    let agentname = '';
-    if (agentnumber === '1') agentname = 'יניב';
-    else if (agentnumber === '4') agentname = 'משרד';
-    else if (agentnumber === '99') agentname = 'קנדי';
-    else agentname = 'סוכן אחר';
-    
-    const current = { agentnumber, agentname };
-    setUser(current);
-    localStorage.setItem('authUser', JSON.stringify(current));
-    localStorage.setItem('lastLoginTime', new Date().toISOString());
+  const login = async (agentnumber: string, password: string): Promise<boolean> => {
+    try {
+      console.log('Attempting login for agent:', agentnumber);
+      
+      // Query the agents table to verify credentials
+      const { data: agents, error } = await supabase
+        .from('agents')
+        .select('agentnumber, agentname, password_onlyview')
+        .eq('agentnumber', agentnumber)
+        .single();
+
+      if (error) {
+        console.error('Database error during login:', error);
+        return false;
+      }
+
+      if (!agents) {
+        console.log('Agent not found');
+        return false;
+      }
+
+      // Check if password matches
+      if (agents.password_onlyview !== password) {
+        console.log('Password mismatch');
+        return false;
+      }
+
+      // Login successful
+      const currentUser = { 
+        agentnumber: agents.agentnumber, 
+        agentname: agents.agentname 
+      };
+      
+      setUser(currentUser);
+      localStorage.setItem('authUser', JSON.stringify(currentUser));
+      localStorage.setItem('lastLoginTime', new Date().toISOString());
+      
+      console.log('Login successful for:', agents.agentname);
+      return true;
+
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
+    }
   };
 
   const logout = () => {

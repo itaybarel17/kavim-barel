@@ -9,16 +9,32 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 
 const agents = [
-  { id: "1", name: "יניב", title: "סוכן מכירות" },
-  { id: "4", name: "משרד", title: "מנהל מערכת" },
-  { id: "99", name: "קנדי", title: "סוכן מיוחד" },
-  // Add more agents as needed
+  // סוכני מכירות (לפי סדר agentnumber)
+  { id: "1", name: "יניב", title: "סוכן מכירות", category: "מכירות" },
+  { id: "2", name: "לינוי", title: "סוכן מכירות", category: "מכירות" },
+  { id: "3", name: "אייל", title: "סוכן מכירות", category: "מכירות" },
+  { id: "5", name: "אחמד", title: "סוכן מכירות", category: "מכירות" },
+  { id: "6", name: "ג'קי", title: "סוכן מכירות", category: "מכירות" },
+  { id: "7", name: "חיים", title: "סוכן מכירות", category: "מכירות" },
+  { id: "8", name: "רונן", title: "סוכן מכירות", category: "מכירות" },
+  // מנהל מערכת
+  { id: "4", name: "משרד", title: "מנהל מערכת", category: "ניהול" },
+  // סוכן מיוחד
+  { id: "99", name: "קנדי", title: "סוכן מיוחד", category: "מיוחד" },
 ];
+
+// Group agents by category for better organization
+const agentsByCategory = {
+  "מכירות": agents.filter(agent => agent.category === "מכירות"),
+  "ניהול": agents.filter(agent => agent.category === "ניהול"),
+  "מיוחד": agents.filter(agent => agent.category === "מיוחד"),
+};
 
 export default function Auth() {
   const [selectedAgent, setSelectedAgent] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const { login, user } = useAuth();
   const navigate = useNavigate();
 
@@ -33,7 +49,7 @@ export default function Auth() {
     }
   }, [user, navigate]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!selectedAgent) {
@@ -45,11 +61,21 @@ export default function Auth() {
       setError("נא להזין סיסמה");
       return;
     }
-    
-    login(selectedAgent);
+
+    setIsLoading(true);
     setError("");
-    
-    // Navigation will be handled by the useEffect above
+
+    try {
+      const success = await login(selectedAgent, password);
+      if (!success) {
+        setError("שם משתמש או סיסמה שגויים");
+      }
+    } catch (err) {
+      setError("שגיאה בהתחברות. נסה שוב.");
+      console.error("Login error:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const selectedAgentData = agents.find(agent => agent.id === selectedAgent);
@@ -78,13 +104,20 @@ export default function Auth() {
                     <SelectValue placeholder="בחר סוכן..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {agents.map((agent) => (
-                      <SelectItem key={agent.id} value={agent.id} className="text-right">
-                        <div className="flex flex-col items-end">
-                          <span className="font-medium">{agent.name}</span>
-                          <span className="text-sm text-gray-500">{agent.title}</span>
+                    {Object.entries(agentsByCategory).map(([category, categoryAgents]) => (
+                      <div key={category}>
+                        <div className="px-2 py-1 text-xs font-semibold text-gray-500 bg-gray-50">
+                          {category}
                         </div>
-                      </SelectItem>
+                        {categoryAgents.map((agent) => (
+                          <SelectItem key={agent.id} value={agent.id} className="text-right">
+                            <div className="flex flex-col items-end">
+                              <span className="font-medium">{agent.name}</span>
+                              <span className="text-sm text-gray-500">סוכן {agent.id}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </div>
                     ))}
                   </SelectContent>
                 </Select>
@@ -117,9 +150,16 @@ export default function Auth() {
               <Button 
                 type="submit" 
                 className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium text-lg transition-all duration-200 transform hover:scale-[1.02]"
-                disabled={!selectedAgent || !password}
+                disabled={!selectedAgent || !password || isLoading}
               >
-                {selectedAgentData ? `התחבר כ${selectedAgentData.name}` : "התחבר"}
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    מתחבר...
+                  </div>
+                ) : (
+                  selectedAgentData ? `התחבר כ${selectedAgentData.name}` : "התחבר"
+                )}
               </Button>
             </form>
           </CardContent>
