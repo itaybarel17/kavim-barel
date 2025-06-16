@@ -354,7 +354,7 @@ const Archive = () => {
   } = groupOrdersByInvoice(filteredOrders);
   return <div className="min-h-screen p-6 bg-[#52a0e4]/15">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">ארכיון הזמנות והחזרות</h1>
+        <h1 className="text-3xl font-bold text-gray-700">ארכיון הזמנות והחזרות</h1>
         <div className="flex gap-2">
           
           
@@ -372,7 +372,7 @@ const Archive = () => {
             {/* Deleted Orders */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-gray-700">
                   <Package className="h-5 w-5" />
                   הזמנות מחוקות ({filteredDeletedOrders.length})
                 </CardTitle>
@@ -422,7 +422,7 @@ const Archive = () => {
             {/* Deleted Returns */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-gray-700">
                   <RotateCcw className="h-5 w-5" />
                   החזרות מחוקות ({filteredDeletedReturns.length})
                 </CardTitle>
@@ -473,7 +473,7 @@ const Archive = () => {
           {/* Archived Orders */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-gray-700">
                 <Package className="h-5 w-5" />
                 הזמנות מופקות ({filteredOrders.length})
               </CardTitle>
@@ -626,7 +626,7 @@ const Archive = () => {
           {/* Archived Returns */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-gray-700">
                 <RotateCcw className="h-5 w-5" />
                 החזרות מופקות ({filteredReturns.length})
               </CardTitle>
