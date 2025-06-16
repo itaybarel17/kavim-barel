@@ -17,24 +17,44 @@ export const NavBar: React.FC = () => {
     <nav className="flex justify-between items-center py-4 px-6 mb-8 bg-gradient-to-r from-blue-600 to-blue-700 border-b shadow-lg">
       <div className="flex gap-4 items-center">
         <Link to="/" className="text-xl font-bold text-white hover:text-blue-100 transition-colors">מערכת ההפצה</Link>
-        <Link
-          to="/calendar"
-          className={`font-medium transition-colors hover:text-blue-100 ${location.pathname === '/calendar' ? 'text-white' : 'text-blue-200'}`}
-        >
-          לוח שנה
-        </Link>
-        {isAdmin && (
-          <>
-            <Link
-              to="/distribution"
-              className={`font-medium transition-colors hover:text-blue-100 ${location.pathname === '/distribution' ? 'text-white' : 'text-blue-200'}`}
-            >הפצה</Link>
-            <Link
-              to="/archive"
-              className={`font-medium transition-colors hover:text-blue-100 ${location.pathname === '/archive' ? 'text-white' : 'text-blue-200'}`}
-            >ארכיון</Link>
-          </>
-        )}
+        
+        {/* Navigation menu with frame */}
+        <div className="flex gap-2 p-2 border-2 border-white/30 rounded-lg bg-white/10 backdrop-blur-sm">
+          <Link
+            to="/calendar"
+            className={`px-4 py-2 rounded-lg border-2 transition-all duration-300 transform hover:scale-105 hover:shadow-lg ${
+              location.pathname === '/calendar' 
+                ? 'bg-green-500 text-white border-green-400 shadow-lg' 
+                : 'bg-green-500/80 text-white border-green-400/80 hover:bg-green-500 hover:border-green-400'
+            }`}
+          >
+            לוח שנה
+          </Link>
+          {isAdmin && (
+            <>
+              <Link
+                to="/distribution"
+                className={`px-4 py-2 rounded-lg border-2 transition-all duration-300 transform hover:scale-105 hover:shadow-lg ${
+                  location.pathname === '/distribution' 
+                    ? 'bg-blue-500 text-white border-blue-400 shadow-lg' 
+                    : 'bg-blue-500/80 text-white border-blue-400/80 hover:bg-blue-500 hover:border-blue-400'
+                }`}
+              >
+                הפצה
+              </Link>
+              <Link
+                to="/archive"
+                className={`px-4 py-2 rounded-lg border-2 transition-all duration-300 transform hover:scale-105 hover:shadow-lg ${
+                  location.pathname === '/archive' 
+                    ? 'bg-red-500 text-white border-red-400 shadow-lg' 
+                    : 'bg-red-500/80 text-white border-red-400/80 hover:bg-red-500 hover:border-red-400'
+                }`}
+              >
+                ארכיון
+              </Link>
+            </>
+          )}
+        </div>
       </div>
       
       <div className="flex gap-4 items-center">
