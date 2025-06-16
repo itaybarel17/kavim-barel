@@ -355,7 +355,20 @@ const Archive = () => {
   return <div className="min-h-screen p-6 bg-background">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">ארכיון הזמנות והחזרות</h1>
-        
+        <div className="flex gap-2">
+          <Button
+            onClick={() => navigate('/distribution')}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition-colors"
+          >
+            ממשק הפצה
+          </Button>
+          <Button
+            onClick={() => navigate('/calendar')}
+            className="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition-colors"
+          >
+            לוח שנה
+          </Button>
+        </div>
       </div>
 
       {/* Search input */}
