@@ -3,6 +3,7 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
+import { WaitingCustomersCounter } from "./WaitingCustomersCounter";
 
 export const NavBar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -14,7 +15,7 @@ export const NavBar: React.FC = () => {
 
   return (
     <nav className="flex justify-between items-center py-4 px-6 mb-8 bg-gradient-to-r from-blue-600 to-blue-700 border-b shadow-lg">
-      <div className="flex gap-4">
+      <div className="flex gap-4 items-center">
         <Link to="/" className="text-xl font-bold text-white hover:text-blue-100 transition-colors">מערכת ההפצה</Link>
         <Link
           to="/calendar"
@@ -35,16 +36,20 @@ export const NavBar: React.FC = () => {
           </>
         )}
       </div>
-      <div className="flex gap-2 items-center">
-        <span className="text-sm text-blue-100">{user.agentname}</span>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={logout}
-          className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white transition-all duration-200"
-        >
-          התנתקות
-        </Button>
+      
+      <div className="flex gap-4 items-center">
+        <WaitingCustomersCounter />
+        <div className="flex gap-2 items-center">
+          <span className="text-sm text-blue-100">{user.agentname}</span>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={logout}
+            className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white transition-all duration-200"
+          >
+            התנתקות
+          </Button>
+        </div>
       </div>
     </nav>
   );
