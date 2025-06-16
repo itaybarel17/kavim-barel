@@ -13,18 +13,21 @@ export type Database = {
         Row: {
           agentname: string
           agentnumber: string
+          email: string | null
           id: string
           password_onlyview: string | null
         }
         Insert: {
           agentname: string
           agentnumber: string
+          email?: string | null
           id?: string
           password_onlyview?: string | null
         }
         Update: {
           agentname?: string
           agentnumber?: string
+          email?: string | null
           id?: string
           password_onlyview?: string | null
         }
