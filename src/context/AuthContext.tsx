@@ -70,72 +70,116 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (agentnumber: string, password: string): Promise<boolean> => {
     try {
-      console.log('Attempting login for agent:', agentnumber);
-      console.log('Attempting login with password:', password);
+      console.log('=== Starting login process ===');
+      console.log('Agent number:', agentnumber, 'Type:', typeof agentnumber);
+      console.log('Password:', password, 'Type:', typeof password);
       
-      // Try different approaches to find the agent
-      // First, try exact string match
-      let { data: agents, error } = await supabase
+      // First, let's test basic connection to Supabase
+      console.log('Testing Supabase connection...');
+      const { data: testData, error: testError } = await supabase
+        .from('agents')
+        .select('count');
+
+      console.log('Connection test result:', testData, 'Error:', testError);
+
+      // Now let's try to get all agents to see what's in the table
+      console.log('Fetching all agents from database...');
+      const { data: allAgents, error: allError } = await supabase
+        .from('agents')
+        .select('*');
+
+      console.log('All agents result:', allAgents, 'Error:', allError);
+      console.log('Number of agents found:', allAgents?.length || 0);
+
+      if (allAgents && allAgents.length > 0) {
+        console.log('Sample agent:', allAgents[0]);
+        console.log('Agent numbers in DB:', allAgents.map(a => a.agentnumber));
+      }
+
+      // Now try to find our specific agent
+      console.log('Looking for agent with number:', agentnumber);
+      const { data: specificAgent, error: specificError } = await supabase
         .from('agents')
         .select('agentnumber, agentname, password_onlyview')
         .eq('agentnumber', agentnumber);
 
-      console.log('First query result:', agents, 'Error:', error);
+      console.log('Specific agent query result:', specificAgent, 'Error:', specificError);
 
-      // If no results, try converting to number and back to string
-      if (!agents || agents.length === 0) {
-        const { data: allAgents, error: allError } = await supabase
-          .from('agents')
-          .select('agentnumber, agentname, password_onlyview');
+      if (!specificAgent || specificAgent.length === 0) {
+        console.log('No agent found with exact match. Trying alternative search...');
         
-        console.log('All agents in database:', allAgents);
+        // Try to find by manual comparison
+        const foundAgent = allAgents?.find(agent => {
+          console.log(`Comparing "${agent.agentnumber}" with "${agentnumber}"`);
+          return agent.agentnumber === agentnumber || 
+                 agent.agentnumber.toString() === agentnumber.toString() ||
+                 parseInt(agent.agentnumber) === parseInt(agentnumber);
+        });
+
+        if (foundAgent) {
+          console.log('Found agent through manual comparison:', foundAgent);
+          
+          // Check password
+          const storedPassword = foundAgent.password_onlyview?.toString().trim();
+          const inputPassword = password.toString().trim();
+          
+          console.log('Password comparison:', {
+            stored: storedPassword,
+            input: inputPassword,
+            match: storedPassword === inputPassword
+          });
+
+          if (storedPassword === inputPassword) {
+            const currentUser = { 
+              agentnumber: foundAgent.agentnumber, 
+              agentname: foundAgent.agentname 
+            };
+            
+            setUser(currentUser);
+            localStorage.setItem('authUser', JSON.stringify(currentUser));
+            localStorage.setItem('lastLoginTime', new Date().toISOString());
+            
+            console.log('Login successful for:', foundAgent.agentname);
+            return true;
+          } else {
+            console.log('Password mismatch');
+            return false;
+          }
+        } else {
+          console.log('Agent not found through any method');
+          return false;
+        }
+      } else {
+        // Found agent through direct query
+        const agent = specificAgent[0];
+        console.log('Found agent through direct query:', agent);
         
-        // Find agent by comparing numbers
-        const agent = allAgents?.find(a => 
-          parseInt(a.agentnumber) === parseInt(agentnumber)
-        );
+        const storedPassword = agent.password_onlyview?.toString().trim();
+        const inputPassword = password.toString().trim();
         
-        if (agent) {
-          agents = [agent];
-          console.log('Found agent by number comparison:', agent);
+        console.log('Password comparison:', {
+          stored: storedPassword,
+          input: inputPassword,
+          match: storedPassword === inputPassword
+        });
+
+        if (storedPassword === inputPassword) {
+          const currentUser = { 
+            agentnumber: agent.agentnumber, 
+            agentname: agent.agentname 
+          };
+          
+          setUser(currentUser);
+          localStorage.setItem('authUser', JSON.stringify(currentUser));
+          localStorage.setItem('lastLoginTime', new Date().toISOString());
+          
+          console.log('Login successful for:', agent.agentname);
+          return true;
+        } else {
+          console.log('Password mismatch');
+          return false;
         }
       }
-
-      if (error) {
-        console.error('Database error during login:', error);
-        return false;
-      }
-
-      if (!agents || agents.length === 0) {
-        console.log('Agent not found');
-        return false;
-      }
-
-      const agent = agents[0];
-      console.log('Found agent:', agent);
-      console.log('Comparing passwords:', agent.password_onlyview, 'vs', password);
-
-      // Check if password matches (trim whitespace and compare)
-      const storedPassword = agent.password_onlyview?.toString().trim();
-      const inputPassword = password.toString().trim();
-      
-      if (storedPassword !== inputPassword) {
-        console.log('Password mismatch. Stored:', storedPassword, 'Input:', inputPassword);
-        return false;
-      }
-
-      // Login successful
-      const currentUser = { 
-        agentnumber: agent.agentnumber, 
-        agentname: agent.agentname 
-      };
-      
-      setUser(currentUser);
-      localStorage.setItem('authUser', JSON.stringify(currentUser));
-      localStorage.setItem('lastLoginTime', new Date().toISOString());
-      
-      console.log('Login successful for:', agent.agentname);
-      return true;
 
     } catch (error) {
       console.error('Login error:', error);
