@@ -170,7 +170,7 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
   const unscheduledSchedules = schedulesWithItems.filter(schedule => !schedule.distribution_date).sort((a, b) => a.schedule_id - b.schedule_id);
   return <div ref={drop} className={`mb-8 ${isOver ? 'bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg' : ''}`}>
       <h2 className="text-xl font-semibold mb-4">קווי חלוקה</h2>
-      {unscheduledSchedules.length > 0 ? <div className="mb-6 bg-white">
+      {unscheduledSchedules.length > 0 ? <div className="mb-6 bg-white px-[10px] mx-0">
           <h3 className="text-lg font-medium mb-3 text-gray-900">לא מתוזמן</h3>
           <div className="flex gap-4 overflow-x-auto pb-4 bg-white">
             {unscheduledSchedules.map(schedule => <CalendarCard key={schedule.schedule_id} scheduleId={schedule.schedule_id} groupId={schedule.groups_id} distributionGroups={distributionGroups} drivers={drivers} orders={orders} returns={returns} driverId={schedule.driver_id} showAllCustomers={true} onUpdateDestinations={onUpdateDestinations} schedule={schedule} multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} currentUser={currentUser} />)}
