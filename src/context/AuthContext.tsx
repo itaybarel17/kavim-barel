@@ -52,18 +52,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const findUserEmailByAgentId = async (agentId: string) => {
+  const findUserEmailByAgentId = async (agentId: string): Promise<string | null> => {
     try {
       // Get all auth users and find the one that matches our agent ID
-      const { data: { users }, error } = await supabase.auth.admin.listUsers();
+      const { data, error } = await supabase.auth.admin.listUsers();
       
-      if (error) {
+      if (error || !data.users) {
         console.error('Error fetching auth users:', error);
         return null;
       }
 
       // Find user whose ID matches the agent ID
-      const matchingUser = users?.find(user => user.id === agentId);
+      const matchingUser = data.users.find(authUser => authUser.id === agentId);
       return matchingUser?.email || null;
     } catch (error) {
       console.error('Error finding user email:', error);
