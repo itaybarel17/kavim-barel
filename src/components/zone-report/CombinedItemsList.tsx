@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -33,12 +34,15 @@ export const CombinedItemsList: React.FC<CombinedItemsListProps> = ({
     // Check if this is a Candy+ order (agent 99)
     const isCandyPlus = data.agentnumber === '99';
 
-    // Get supply details for this customer
+    // Get supply details for this customer from customerlist table
     const supplyDetails = data.customernumber ? customerSupplyMap[data.customernumber] : '';
 
-    // Debug log to check if supply details are being found
-    console.log('Customer number:', data.customernumber, 'Supply details:', supplyDetails);
-    console.log('CustomerSupplyMap:', customerSupplyMap);
+    // Format hour without seconds
+    const formatHour = (hour: string | undefined) => {
+      if (!hour) return '';
+      return hour.substring(0, 5); // Remove seconds (13:10:00 -> 13:10)
+    };
+
     return <div key={`${item.type}-${isOrder ? order.ordernumber : returnItem.returnnumber}`} className={`p-1 border rounded text-xs mb-1 ${isOrder ? 'border-blue-300' : 'border-red-300'}`}>
         <div className="flex items-start justify-between mb-1">
           <span className={`font-medium text-xs ${isOrder ? 'text-blue-900' : 'text-red-900'}`}>
@@ -68,18 +72,18 @@ export const CombinedItemsList: React.FC<CombinedItemsListProps> = ({
                 {(isOrder ? order.orderdate : returnItem.returndate) && <div className="flex items-center gap-1">
                     <span>{new Date(isOrder ? order.orderdate! : returnItem.returndate!).toLocaleDateString('he-IL')}</span>
                     {(isOrder ? order.hour : returnItem.hour) && <span className="text-blue-800">
-                        {isOrder ? order.hour : returnItem.hour}
+                        {formatHour(isOrder ? order.hour : returnItem.hour)}
                       </span>}
                   </div>}
-                {supplyDetails && <span className="text-gray-600 italic text-xs">
-                    {supplyDetails}
-                  </span>}
               </div>
               {isOrder && isCandyPlus && <Badge className="bg-pink-200 text-pink-800 border-pink-300 text-xs px-2 py-1 font-bold">
                   קנדי+
                 </Badge>}
             </div>
           </div>
+          {supplyDetails && <div className="mt-1 text-gray-600 italic text-xs">
+              {supplyDetails}
+            </div>}
         </div>
       </div>;
   };

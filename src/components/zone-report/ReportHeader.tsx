@@ -19,11 +19,15 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
     <Card className="mb-3 border">
       <CardHeader className="pb-2">
         <div className="text-center mb-2">
-          <CardTitle className="text-lg font-bold text-primary mb-1">
-            דוח אזור {zoneNumber}
-          </CardTitle>
-          <div className="text-sm text-muted-foreground">
-            {groupName || 'לא מוגדר'}
+          <div className="flex items-center justify-center gap-2">
+            <CardTitle className="text-lg font-bold text-primary">
+              דוח אזור {zoneNumber}
+            </CardTitle>
+            {groupName && groupName !== 'לא מוגדר' && (
+              <span className="text-lg font-bold text-primary">
+                {groupName}
+              </span>
+            )}
           </div>
         </div>
       </CardHeader>
