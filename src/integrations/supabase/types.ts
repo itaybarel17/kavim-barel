@@ -11,23 +11,23 @@ export type Database = {
     Tables: {
       agents: {
         Row: {
+          agentEmailMap: string | null
           agentname: string
           agentnumber: string
-          email: string | null
           id: string
           password_onlyview: string | null
         }
         Insert: {
+          agentEmailMap?: string | null
           agentname: string
           agentnumber: string
-          email?: string | null
           id?: string
           password_onlyview?: string | null
         }
         Update: {
+          agentEmailMap?: string | null
           agentname?: string
           agentnumber?: string
-          email?: string | null
           id?: string
           password_onlyview?: string | null
         }

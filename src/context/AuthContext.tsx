@@ -52,24 +52,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // מיפוי בין ID של הסוכן (מהטבלה agents) למייל - עדכן בהתאם למשתמשים האמיתיים
-  const getEmailByAgentId = (agentId: string): string | null => {
-    // כאן תצטרך להחליף את המיילים האמיתיים של הסוכנים
-    const agentEmailMap: { [key: string]: string } = {
-      // דוגמאות - יש להחליף במיילים האמיתיים בהתאם ל-ID מהטבלה agents
-      '37ca6d7d-4aee-4836-9a5a-70b4415315f': 'agent1@company.com',
-      '4a77cdb7-a829-423c-b119-bd5ffd0c372f': 'agent2@company.com',
-      '4e7b7470-e7ca-40a0-9de0-b34104ba6c3b': 'agent3@company.com',
-      '5cda7e80-5699-4b5b-9c9c-41dcb027ac2a': 'agent4@company.com',
-      '6463cbdc-22ca-4c0f-bf3c-794095c10ebe': 'agent5@company.com',
-      '8c8ae7ad-56f7-4fc6-99d9-7f7d7d5795d4': 'agent6@company.com',
-      'dbe930f9-6ff9-45cf-9842-39b44998a524': 'agent7@company.com',
-      'e3229fd4-875a-44c5-90ff-a30498faf121': 'agent8@company.com',
-      'e98681bc-475f-4ad4-8368-3cf59e667292': 'agent9@company.com',
-      // הוסף כאן את כל הסוכנים עם המיילים שלהם
-    };
-    
-    return agentEmailMap[agentId] || null;
+  // פונקציה לקבלת המייל של הסוכן מהטבלה
+  const getEmailByAgentId = async (agentId: string): Promise<string | null> => {
+    try {
+      const { data: agent, error } = await supabase
+        .from('agents')
+        .select('agentEmailMap')
+        .eq('id', agentId)
+        .single();
+
+      if (error || !agent) {
+        console.error('Error fetching agent email:', error);
+        return null;
+      }
+
+      return agent.agentEmailMap;
+    } catch (error) {
+      console.error('Error fetching agent email:', error);
+      return null;
+    }
   };
 
   useEffect(() => {
@@ -114,8 +115,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (agentId: string, password: string): Promise<boolean> => {
     try {
-      // חפש את המייל המתאים לסוכן לפי ה-ID שלו
-      const email = getEmailByAgentId(agentId);
+      // חפש את המייל המתאים לסוכן מהטבלה
+      const email = await getEmailByAgentId(agentId);
       
       if (!email) {
         console.log('No email found for agent ID:', agentId);
