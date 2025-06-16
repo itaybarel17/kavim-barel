@@ -102,7 +102,94 @@ export const useWaitingCustomers = (currentUserAgent?: string) => {
       }
       // Agent 4 (admin) sees all orders - no filtering
 
-      if (!allWaitingOrders.length) {
+      // Get all returns that are assigned to schedules and waiting
+      const { data: assignedReturns, error: assignedReturnsError } = await supabase
+        .from('mainreturns')
+        .select(`
+          customernumber,
+          agentnumber,
+          done_return,
+          returncancel,
+          schedule_id,
+          distribution_schedule!inner(
+            done_schedule,
+            distribution_date
+          )
+        `)
+        .is('returncancel', null) // returncancel must be NULL
+        .not('schedule_id', 'is', null); // only returns with schedule_id
+
+      if (assignedReturnsError) {
+        console.error('Error fetching assigned returns:', assignedReturnsError);
+        throw assignedReturnsError;
+      }
+
+      // Get all unassigned returns (without schedule_id)
+      const { data: unassignedReturns, error: unassignedReturnsError } = await supabase
+        .from('mainreturns')
+        .select(`
+          customernumber,
+          agentnumber,
+          done_return,
+          returncancel,
+          schedule_id
+        `)
+        .is('returncancel', null) // returncancel must be NULL
+        .is('done_return', null) // unassigned returns should not be produced
+        .is('schedule_id', null); // only returns without schedule_id
+
+      if (unassignedReturnsError) {
+        console.error('Error fetching unassigned returns:', unassignedReturnsError);
+        throw unassignedReturnsError;
+      }
+
+      // Filter assigned returns that are truly waiting
+      const trulyWaitingAssignedReturns = (assignedReturns || []).filter(returnItem => {
+        const schedule = returnItem.distribution_schedule;
+        
+        // Criteria 1: done_return is NULL
+        if (!returnItem.done_return) {
+          return true;
+        }
+        
+        // Criteria 2: done_return has timestamp but distribution_date is today or later
+        if (returnItem.done_return && schedule?.distribution_date) {
+          const distributionDate = new Date(schedule.distribution_date);
+          distributionDate.setHours(0, 0, 0, 0);
+          
+          // If distribution date is today or later, it's still waiting
+          if (distributionDate >= today) {
+            return true;
+          }
+        }
+        
+        return false;
+      });
+
+      // All unassigned returns are considered waiting
+      const trulyWaitingUnassignedReturns = unassignedReturns || [];
+
+      // Combine both types of waiting returns
+      let allWaitingReturns = [...trulyWaitingAssignedReturns, ...trulyWaitingUnassignedReturns];
+
+      // Filter returns based on current user agent (same logic as orders)
+      if (currentUserAgent && currentUserAgent !== '4') {
+        if (currentUserAgent === '99') {
+          // Kandi+ user - show only returns with agent number 99
+          allWaitingReturns = allWaitingReturns.filter(returnItem => returnItem.agentnumber === '99');
+        } else {
+          // Regular agent - show only their returns, excluding Kandi+ (99)
+          allWaitingReturns = allWaitingReturns.filter(returnItem => 
+            returnItem.agentnumber === currentUserAgent && returnItem.agentnumber !== '99'
+          );
+        }
+      }
+      // Agent 4 (admin) sees all returns - no filtering
+
+      // Combine orders and returns for final calculation
+      const allWaitingItems = [...allWaitingOrders, ...allWaitingReturns];
+
+      if (!allWaitingItems.length) {
         return { regularCustomers: 0, kandiPlusCustomers: 0, totalCustomers: 0 };
       }
 
@@ -110,12 +197,12 @@ export const useWaitingCustomers = (currentUserAgent?: string) => {
       const uniqueCustomers = new Set();
       const kandiPlusCustomers = new Set();
 
-      allWaitingOrders.forEach(order => {
-        uniqueCustomers.add(order.customernumber);
+      allWaitingItems.forEach(item => {
+        uniqueCustomers.add(item.customernumber);
         
         // Check if customer is קנדי+ (agent number '99')
-        if (order.agentnumber === '99') {
-          kandiPlusCustomers.add(order.customernumber);
+        if (item.agentnumber === '99') {
+          kandiPlusCustomers.add(item.customernumber);
         }
       });
 
