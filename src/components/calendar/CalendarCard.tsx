@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
@@ -141,15 +140,15 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
         isProduced 
           ? 'cursor-not-allowed border-4 border-green-500 bg-green-50 shadow-lg' 
           : canDrag 
-            ? 'cursor-move border-blue-200 bg-blue-50'
-            : 'cursor-default border-blue-200 bg-blue-50'
+            ? 'cursor-move border-blue-200'
+            : 'cursor-default border-blue-200'
       }`
     : `min-w-[250px] max-w-[280px] ${
         isProduced 
           ? 'cursor-not-allowed border-4 border-green-500 bg-green-50 shadow-lg' 
           : canDrag 
-            ? 'cursor-move border-blue-200 bg-blue-50'
-            : 'cursor-default border-blue-200 bg-blue-50'
+            ? 'cursor-move border-blue-200'
+            : 'cursor-default border-blue-200'
       }`;
 
   const contentPadding = isCalendarMode ? "p-2" : "p-3";
@@ -163,7 +162,7 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
       ref={canDrag ? drag : null}
       className={`${cardClasses} ${isDragging ? 'opacity-50' : ''}`}
     >
-      <CardContent className={contentPadding}>
+      <CardContent className={`${contentPadding} ${isProduced ? '' : 'bg-[#e8f6fb]'}`}>
         <div className={spacing}>
           <div className="flex items-center justify-between">
             <h3 className={`font-bold ${titleSize} ${isProduced ? 'text-green-800' : 'text-blue-800'} truncate`}>
