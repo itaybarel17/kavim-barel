@@ -1,4 +1,3 @@
-
 export interface Order {
   ordernumber: number;
   customername: string;
@@ -9,6 +8,7 @@ export interface Order {
   agentnumber?: string;
   orderdate?: string;
   invoicenumber?: number;
+  remark?: string;
 }
 
 export interface Return {
@@ -20,6 +20,7 @@ export interface Return {
   customernumber?: string;
   agentnumber?: string;
   returndate?: string;
+  remark?: string;
 }
 
 export interface ZoneReportData {

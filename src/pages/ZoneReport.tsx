@@ -23,7 +23,7 @@ const ZoneReport = () => {
   const reportRef = useRef<HTMLDivElement>(null);
 
   // Get data from location state
-  const reportData = location.state as ZoneReportData;
+  const reportData = location.state as ZoneReportData & { customerSupplyMap?: Record<string, string> };
 
   if (!reportData) {
     return (
@@ -38,7 +38,7 @@ const ZoneReport = () => {
     );
   }
 
-  const { zoneNumber, scheduleId, groupName, driverName, orders, returns } = reportData;
+  const { zoneNumber, scheduleId, groupName, driverName, orders, returns, customerSupplyMap = {} } = reportData;
 
   // Process data with sorting and numbering
   const sortedOrders = sortOrdersByLocationAndCustomer(orders);
@@ -130,6 +130,7 @@ const ZoneReport = () => {
           combinedItems={combinedItems}
           numberedOrdersCount={numberedOrdersCount}
           returnsCount={returns.length}
+          customerSupplyMap={customerSupplyMap}
         />
 
         <SummarySection

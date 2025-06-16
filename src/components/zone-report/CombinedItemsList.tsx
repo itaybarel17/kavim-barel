@@ -8,12 +8,14 @@ interface CombinedItemsListProps {
   combinedItems: CombinedItem[];
   numberedOrdersCount: number;
   returnsCount: number;
+  customerSupplyMap: Record<string, string>;
 }
 
 export const CombinedItemsList: React.FC<CombinedItemsListProps> = ({
   combinedItems,
   numberedOrdersCount,
-  returnsCount
+  returnsCount,
+  customerSupplyMap
 }) => {
   const renderItem = (item: CombinedItem) => {
     if (item.type === 'returns-header') {
@@ -39,6 +41,9 @@ export const CombinedItemsList: React.FC<CombinedItemsListProps> = ({
     // Check if this is a Candy+ order (agent 99)
     const isCandyPlus = data.agentnumber === '99';
     
+    // Get supply details for this customer
+    const supplyDetails = data.customernumber ? customerSupplyMap[data.customernumber] : '';
+    
     return (
       <div
         key={`${item.type}-${isOrder ? order.ordernumber : returnItem.returnnumber}`}
@@ -59,7 +64,14 @@ export const CombinedItemsList: React.FC<CombinedItemsListProps> = ({
           </span>
         </div>
         <div className={`text-xs ${isOrder ? 'text-blue-800' : 'text-red-800'}`}>
-          <div>{data.address}, {data.city}</div>
+          <div className="flex items-center justify-between">
+            <span>{data.address}, {data.city}</span>
+            {data.remark && (
+              <span className="text-gray-600 italic text-xs mr-2">
+                {data.remark}
+              </span>
+            )}
+          </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span>
@@ -69,9 +81,16 @@ export const CombinedItemsList: React.FC<CombinedItemsListProps> = ({
               {data.customernumber && <span>{data.customernumber}</span>}
             </div>
             <div className="flex items-center gap-2">
-              {(isOrder ? order.orderdate : returnItem.returndate) && (
-                <span>{new Date(isOrder ? order.orderdate! : returnItem.returndate!).toLocaleDateString('he-IL')}</span>
-              )}
+              <div className="flex flex-col items-end gap-1">
+                {(isOrder ? order.orderdate : returnItem.returndate) && (
+                  <span>{new Date(isOrder ? order.orderdate! : returnItem.returndate!).toLocaleDateString('he-IL')}</span>
+                )}
+                {supplyDetails && (
+                  <span className="text-gray-600 italic text-xs">
+                    {supplyDetails}
+                  </span>
+                )}
+              </div>
               {isOrder && isCandyPlus && (
                 <Badge className="bg-pink-200 text-pink-800 border-pink-300 text-xs px-2 py-1 font-bold">
                   קנדי+
