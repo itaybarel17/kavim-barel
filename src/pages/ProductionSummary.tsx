@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -276,28 +277,29 @@ const ProductionSummary = () => {
       <div className="max-w-full mx-auto">
         {/* Header - hidden on print */}
         <div className="flex items-center justify-between mb-4 print:hidden">
-          <div className="flex gap-2">
-            <div className="flex items-center gap-2">
-              <Button 
-                onClick={handlePrint} 
-                variant="outline" 
-                className="flex items-center gap-2"
-                disabled={!isScheduleProduced}
-              >
-                <Printer className="h-4 w-4" />
-                הדפס
-              </Button>
-              {!isScheduleProduced && (
-                <span className="text-sm text-red-600 font-medium">
-                  יש להפיק לפני הדפסה
-                </span>
-              )}
-            </div>
-            <Button onClick={() => navigate('/calendar')} variant="outline" className="flex items-center gap-2">
-              <ArrowRight className="h-4 w-4" />
-              חזרה ללוח השנה
+          <div className="flex items-center gap-2">
+            <Button 
+              onClick={handlePrint} 
+              variant="outline" 
+              className="flex items-center gap-2"
+              disabled={!isScheduleProduced}
+            >
+              <Printer className="h-4 w-4" />
+              הדפס
             </Button>
+            {!isScheduleProduced && (
+              <span className="text-sm text-red-600 font-medium">
+                יש להפיק לפני הדפסה
+              </span>
+            )}
           </div>
+          <Button 
+            onClick={() => navigate('/calendar')} 
+            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+          >
+            <ArrowRight className="h-4 w-4" />
+            חזרה ללוח השנה
+          </Button>
         </div>
 
         {/* Distribution Line Summary */}
