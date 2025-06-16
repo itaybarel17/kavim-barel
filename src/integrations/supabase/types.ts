@@ -12,21 +12,21 @@ export type Database = {
       agents: {
         Row: {
           agentname: string
-          agentnumber: number
+          agentnumber: string
           id: string
           password_hash: string | null
           password_onlyview: string | null
         }
         Insert: {
           agentname: string
-          agentnumber: number
+          agentnumber: string
           id?: string
           password_hash?: string | null
           password_onlyview?: string | null
         }
         Update: {
           agentname?: string
-          agentnumber?: number
+          agentnumber?: string
           id?: string
           password_hash?: string | null
           password_onlyview?: string | null

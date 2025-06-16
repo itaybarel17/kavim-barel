@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface AuthUser {
-  agentnumber: number;
+  agentnumber: string;
   agentname: string;
 }
 
@@ -96,7 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (isPasswordValid) {
         const currentUser = { 
-          agentnumber: agent.agentnumber, 
+          agentnumber: agent.agentnumber.toString(), // Convert to string
           agentname: agent.agentname 
         };
         
