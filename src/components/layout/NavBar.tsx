@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -25,7 +24,7 @@ export const NavBar: React.FC = () => {
             className={`px-3 py-1.5 text-sm font-bold rounded border transition-all duration-200 ${
               location.pathname === '/calendar' 
                 ? 'bg-gradient-to-r from-green-500 to-green-600 text-white border-green-400 shadow-lg scale-105 ring-2 ring-green-300/50' 
-                : 'bg-gradient-to-r from-green-500/60 to-green-600/60 text-white/80 border-green-400/60 hover:from-green-500/80 hover:to-green-600/80 hover:border-green-400/80 hover:text-white hover:shadow-sm'
+                : 'bg-gradient-to-r from-green-500/80 to-green-600/80 text-white/90 border-green-400/80 hover:from-green-500 hover:to-green-600 hover:border-green-400 hover:text-white hover:shadow-sm'
             }`}
           >
             לוח שנה
@@ -37,7 +36,7 @@ export const NavBar: React.FC = () => {
                 className={`px-3 py-1.5 text-sm font-bold rounded border transition-all duration-200 ${
                   location.pathname === '/distribution' 
                     ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white border-orange-400 shadow-lg scale-105 ring-2 ring-orange-300/50' 
-                    : 'bg-gradient-to-r from-orange-500/60 to-orange-600/60 text-white/80 border-orange-400/60 hover:from-orange-500/80 hover:to-orange-600/80 hover:border-orange-400/80 hover:text-white hover:shadow-sm'
+                    : 'bg-gradient-to-r from-orange-500/80 to-orange-600/80 text-white/90 border-orange-400/80 hover:from-orange-500 hover:to-orange-600 hover:border-orange-400 hover:text-white hover:shadow-sm'
                 }`}
               >
                 הפצה
@@ -47,7 +46,7 @@ export const NavBar: React.FC = () => {
                 className={`px-3 py-1.5 text-sm font-bold rounded border transition-all duration-200 ${
                   location.pathname === '/archive' 
                     ? 'bg-gradient-to-r from-red-500 to-red-600 text-white border-red-400 shadow-lg scale-105 ring-2 ring-red-300/50' 
-                    : 'bg-gradient-to-r from-red-500/60 to-red-600/60 text-white/80 border-red-400/60 hover:from-red-600/80 hover:to-red-700/80 hover:border-red-400/80 hover:text-white hover:shadow-sm'
+                    : 'bg-gradient-to-r from-red-500/80 to-red-600/80 text-white/90 border-red-400/80 hover:from-red-600 hover:to-red-700 hover:border-red-400 hover:text-white hover:shadow-sm'
                 }`}
               >
                 ארכיון
