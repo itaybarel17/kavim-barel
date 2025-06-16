@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,7 +11,7 @@ import { Loader2, Calendar, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { AuthContext } from '@/context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 
 interface Order {
   ordernumber: number;
@@ -28,6 +28,8 @@ interface Order {
   totalinvoice?: number;
   hour?: string;
   remark?: string;
+  done_mainorder?: string | null;
+  ordercancel?: string | null;
 }
 
 interface Return {
@@ -43,6 +45,8 @@ interface Return {
   returndate?: string;
   hour?: string;
   remark?: string;
+  done_return?: string | null;
+  returncancel?: string | null;
 }
 
 interface DistributionGroup {
@@ -71,7 +75,7 @@ const Distribution = () => {
   const [draggedItem, setDraggedItem] = useState<{ type: 'order' | 'return'; data: Order | Return } | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user: currentUser } = useContext(AuthContext);
+  const { user: currentUser } = useAuth();
 
   // Set up realtime subscriptions
   useRealtimeSubscription();
