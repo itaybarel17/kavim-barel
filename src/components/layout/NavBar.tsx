@@ -27,16 +27,16 @@ export const NavBar: React.FC = () => {
     const isActive = location.pathname === path;
     return `px-3 py-2 text-sm font-bold rounded border transition-all duration-200 ${
       isActive 
-        ? `bg-gradient-to-r from-${color}-500 to-${color}-600 text-white border-${color}-400 shadow-lg scale-105 ring-2 ring-${color}-300/50`
-        : `bg-gradient-to-r from-${color}-500/80 to-${color}-600/80 text-white/90 border-${color}-400/80 hover:from-${color}-500 hover:to-${color}-600 hover:border-${color}-400 hover:text-white hover:shadow-sm`
+        ? `bg-${color}-500 text-white border-${color}-400 shadow-lg scale-105 ring-2 ring-${color}-300/50`
+        : `bg-${color}-400 text-white hover:bg-${color}-500 border-${color}-300 hover:border-${color}-400 hover:shadow-sm`
     }`;
   };
 
   return (
     <>
       {/* Mobile Header */}
-      <nav className="lg:hidden flex justify-between items-center py-3 bg-gradient-to-r from-blue-600 to-blue-700 border-b shadow-lg px-0">
-        <div className="flex items-center gap-3 px-0">
+      <nav className="lg:hidden flex justify-between items-center py-3 bg-gradient-to-r from-blue-600 to-blue-700 border-b shadow-lg px-4">
+        <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="sm"
@@ -45,7 +45,7 @@ export const NavBar: React.FC = () => {
           >
             {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </Button>
-          <Link to="/" className="text-lg font-bold text-white px-0">
+          <Link to="/" className="text-lg font-bold text-white">
             מערכת ההפצה
           </Link>
         </div>
