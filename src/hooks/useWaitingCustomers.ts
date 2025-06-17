@@ -28,6 +28,7 @@ export const useWaitingCustomers = (currentUserAgent?: string) => {
           ordercancel,
           schedule_id,
           icecream,
+          ordernumber,
           distribution_schedule!inner(
             done_schedule,
             distribution_date
@@ -53,7 +54,8 @@ export const useWaitingCustomers = (currentUserAgent?: string) => {
           done_mainorder,
           ordercancel,
           schedule_id,
-          icecream
+          icecream,
+          ordernumber
         `)
         .is('ordercancel', null) // ordercancel must be NULL
         .is('done_mainorder', null) // unassigned orders should not be produced
