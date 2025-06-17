@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
+
 interface Order {
   ordernumber: number;
   customername: string;
@@ -64,11 +65,16 @@ interface CustomerSupply {
   customernumber: string;
   supplydetails?: string;
 }
+
 const Distribution = () => {
   const [draggedItem, setDraggedItem] = useState<{
     type: 'order' | 'return';
     data: Order | Return;
   } | null>(null);
+  
+  // Add state for zone-schedule mapping
+  const [zoneScheduleMapping, setZoneScheduleMapping] = useState<Record<number, number | null>>({});
+  
   const navigate = useNavigate();
   const {
     toast
@@ -271,6 +277,48 @@ const Distribution = () => {
       });
     }
   });
+
+  // Update zone-schedule mapping when schedules change
+  useEffect(() => {
+    console.log('Updating zone-schedule mapping based on schedules:', distributionSchedules);
+    
+    const newMapping: Record<number, number | null> = {};
+    
+    // First, preserve existing mappings that still have valid schedules
+    Object.entries(zoneScheduleMapping).forEach(([zoneStr, scheduleId]) => {
+      const zoneNumber = parseInt(zoneStr);
+      if (scheduleId && distributionSchedules.some(s => s.schedule_id === scheduleId)) {
+        newMapping[zoneNumber] = scheduleId;
+      }
+    });
+    
+    // Then assign unassigned schedules to zones without schedules
+    const assignedScheduleIds = new Set(Object.values(newMapping).filter(Boolean));
+    const unassignedSchedules = distributionSchedules
+      .filter(schedule => !assignedScheduleIds.has(schedule.schedule_id))
+      .sort((a, b) => a.schedule_id - b.schedule_id);
+    
+    // Find zones without schedules and assign them
+    for (let zone = 1; zone <= 12; zone++) {
+      if (!newMapping[zone] && unassignedSchedules.length > 0) {
+        const schedule = unassignedSchedules.shift();
+        if (schedule) {
+          newMapping[zone] = schedule.schedule_id;
+        }
+      }
+    }
+    
+    // Ensure all zones exist in mapping (even if null)
+    for (let zone = 1; zone <= 12; zone++) {
+      if (!(zone in newMapping)) {
+        newMapping[zone] = null;
+      }
+    }
+    
+    console.log('New zone-schedule mapping:', newMapping);
+    setZoneScheduleMapping(newMapping);
+  }, [distributionSchedules]);
+
   const handleDrop = async (zoneNumber: number, item: {
     type: 'order' | 'return';
     data: Order | Return;
@@ -278,19 +326,21 @@ const Distribution = () => {
     try {
       console.log('handleDrop called with zoneNumber:', zoneNumber, 'item:', item);
 
-      // Get the current zone state to find the schedule ID
-      const currentZoneState = getZoneState(zoneNumber);
-      if (!currentZoneState.scheduleId) {
+      // Get the schedule ID for this zone from our mapping
+      const scheduleId = zoneScheduleMapping[zoneNumber];
+      if (!scheduleId) {
         console.log('No schedule ID found for zone, cannot drop item');
         return;
       }
-      console.log('Using existing schedule ID:', currentZoneState.scheduleId);
+      
+      console.log('Using schedule ID from mapping:', scheduleId);
+      
       if (item.type === 'order') {
-        console.log('Updating order', (item.data as Order).ordernumber, 'with schedule_id:', currentZoneState.scheduleId);
+        console.log('Updating order', (item.data as Order).ordernumber, 'with schedule_id:', scheduleId);
         const {
           error
         } = await supabase.from('mainorder').update({
-          schedule_id: currentZoneState.scheduleId
+          schedule_id: scheduleId
         }).eq('ordernumber', (item.data as Order).ordernumber);
         if (error) {
           console.error('Error updating order:', error);
@@ -299,11 +349,11 @@ const Distribution = () => {
         console.log('Order updated successfully');
         refetchOrders();
       } else {
-        console.log('Updating return', (item.data as Return).returnnumber, 'with schedule_id:', currentZoneState.scheduleId);
+        console.log('Updating return', (item.data as Return).returnnumber, 'with schedule_id:', scheduleId);
         const {
           error
         } = await supabase.from('mainreturns').update({
-          schedule_id: currentZoneState.scheduleId
+          schedule_id: scheduleId
         }).eq('returnnumber', (item.data as Return).returnnumber);
         if (error) {
           console.error('Error updating return:', error);
@@ -363,10 +413,19 @@ const Distribution = () => {
     refetchReturns();
     refetchSchedules();
   };
-  const handleScheduleCreated = () => {
-    console.log('Schedule created, refreshing schedules...');
+
+  const handleScheduleCreated = (zoneNumber: number, newScheduleId: number) => {
+    console.log('Schedule created for zone', zoneNumber, 'with ID:', newScheduleId);
+    
+    // Update the zone-schedule mapping immediately
+    setZoneScheduleMapping(prev => ({
+      ...prev,
+      [zoneNumber]: newScheduleId
+    }));
+    
     refetchSchedules();
   };
+
   const handleRemoveFromZone = async (item: {
     type: 'order' | 'return';
     data: Order | Return;
@@ -422,61 +481,35 @@ const Distribution = () => {
     }
   };
 
-  // Updated helper function to get the current state of a zone - ONLY considers ACTIVE schedules
+  // Updated helper function to get the current state of a zone using stable mapping
   const getZoneState = (zoneNumber: number) => {
     console.log('getZoneState called for zone:', zoneNumber);
-    console.log('Available active schedules:', distributionSchedules);
+    console.log('Current zone-schedule mapping:', zoneScheduleMapping);
 
-    // Find items that are assigned to any ACTIVE schedule
-    const assignedOrders = orders.filter(order => order.schedule_id && distributionSchedules.some(schedule => schedule.schedule_id === order.schedule_id));
-    const assignedReturns = returns.filter(returnItem => returnItem.schedule_id && distributionSchedules.some(schedule => schedule.schedule_id === returnItem.schedule_id));
-    const allAssignedItems = [...assignedOrders, ...assignedReturns];
-
-    // Group items by schedule_id
-    const scheduleItemsMap = new Map();
-    allAssignedItems.forEach(item => {
-      const scheduleId = item.schedule_id;
-      if (scheduleId) {
-        if (!scheduleItemsMap.has(scheduleId)) {
-          scheduleItemsMap.set(scheduleId, []);
-        }
-        scheduleItemsMap.get(scheduleId).push(item);
-      }
-    });
-
-    // Get ACTIVE schedules with items, sorted by creation time
-    const schedulesWithItems = distributionSchedules.filter(schedule => scheduleItemsMap.has(schedule.schedule_id)).sort((a, b) => a.schedule_id - b.schedule_id);
-    console.log('Schedules with items:', schedulesWithItems);
-
-    // Check if this zone should handle one of the assigned schedules
-    if (schedulesWithItems.length >= zoneNumber) {
-      const targetSchedule = schedulesWithItems[zoneNumber - 1];
-      console.log(`Zone ${zoneNumber} mapped to schedule with items:`, targetSchedule);
+    const scheduleId = zoneScheduleMapping[zoneNumber];
+    
+    if (!scheduleId) {
+      console.log(`Zone ${zoneNumber} has no schedule - completely empty`);
       return {
-        selectedGroupId: targetSchedule.groups_id,
-        scheduleId: targetSchedule.schedule_id
+        selectedGroupId: null,
+        scheduleId: null
       };
     }
 
-    // Get all ACTIVE schedules (including empty ones), sorted by creation time
-    const allActiveSchedules = distributionSchedules.sort((a, b) => a.schedule_id - b.schedule_id);
-    console.log('All active schedules:', allActiveSchedules);
-
-    // Calculate which schedule this zone should use
-    const scheduleIndex = zoneNumber - 1;
-    if (scheduleIndex >= 0 && scheduleIndex < allActiveSchedules.length) {
-      const targetSchedule = allActiveSchedules[scheduleIndex];
-      console.log(`Zone ${zoneNumber} mapped to schedule:`, targetSchedule);
+    // Find the schedule details
+    const schedule = distributionSchedules.find(s => s.schedule_id === scheduleId);
+    if (!schedule) {
+      console.log(`Schedule ${scheduleId} not found for zone ${zoneNumber}`);
       return {
-        selectedGroupId: targetSchedule.groups_id,
-        scheduleId: targetSchedule.schedule_id
+        selectedGroupId: null,
+        scheduleId: null
       };
     }
-    console.log(`Zone ${zoneNumber} has no schedule - completely empty`);
-    // If no active schedule exists for this zone, return completely empty state
+
+    console.log(`Zone ${zoneNumber} mapped to schedule:`, schedule);
     return {
-      selectedGroupId: null,
-      scheduleId: null
+      selectedGroupId: schedule.groups_id,
+      scheduleId: schedule.schedule_id
     };
   };
 

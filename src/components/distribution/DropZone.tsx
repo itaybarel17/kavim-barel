@@ -62,7 +62,7 @@ interface DropZoneProps {
   orders: Order[];
   returns: Return[];
   onScheduleDeleted: () => void;
-  onScheduleCreated: () => void;
+  onScheduleCreated: (zoneNumber: number, newScheduleId: number) => void;
   onRemoveFromZone: (item: {
     type: 'order' | 'return';
     data: Order | Return;
@@ -127,7 +127,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
 
   // Get assigned items for this zone based on schedule_id - ONLY for ACTIVE schedules
   const assignedOrders = orders.filter(order => scheduleId && order.schedule_id === scheduleId && distributionSchedules.some(schedule => schedule.schedule_id === scheduleId));
-  const assignedReturns = returns.filter(returnItem => scheduleId && returnItem.schedule_id === scheduleId && distributionSchedules.some(schedule => schedule.schedule_id === scheduleId));
+  const assignedReturns = returns.filter(returnItem => scheduleId && returnItem.schedule_id === scheduleId && distributionSchedules.some(schedule => schedule.schedule_id === returnItem.schedule_id));
 
   // Calculate unique customer points (נקודות)
   const uniqueCustomerPoints = useMemo(() => {
@@ -212,7 +212,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
       setSelectedGroupId(groupId);
       setScheduleId(newScheduleId);
       setSelectedDriverId(null);
-      onScheduleCreated();
+      onScheduleCreated(zoneNumber, newScheduleId);
     } catch (error) {
       console.error('Error in group selection:', error);
     }
