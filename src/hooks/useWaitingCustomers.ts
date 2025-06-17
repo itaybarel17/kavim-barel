@@ -35,12 +35,14 @@ export const useWaitingCustomers = (currentUserAgent?: string) => {
         `)
         .is('ordercancel', null) // ordercancel must be NULL
         .not('schedule_id', 'is', null) // only orders with schedule_id
-        .neq('icecream', '1'); // exclude ice cream orders
+        .is('icecream', null); // only orders where icecream is NULL
 
       if (assignedError) {
         console.error('Error fetching assigned orders:', assignedError);
         throw assignedError;
       }
+
+      console.log('Assigned orders fetched (before filtering):', assignedOrders?.length || 0);
 
       // Get all unassigned orders (without schedule_id)
       const { data: unassignedOrders, error: unassignedError } = await supabase
@@ -56,12 +58,14 @@ export const useWaitingCustomers = (currentUserAgent?: string) => {
         .is('ordercancel', null) // ordercancel must be NULL
         .is('done_mainorder', null) // unassigned orders should not be produced
         .is('schedule_id', null) // only orders without schedule_id
-        .neq('icecream', '1'); // exclude ice cream orders
+        .is('icecream', null); // only orders where icecream is NULL
 
       if (unassignedError) {
         console.error('Error fetching unassigned orders:', unassignedError);
         throw unassignedError;
       }
+
+      console.log('Unassigned orders fetched:', unassignedOrders?.length || 0);
 
       // Filter assigned orders that are truly waiting based on the criteria
       const trulyWaitingAssignedOrders = (assignedOrders || []).filter(order => {
@@ -86,11 +90,17 @@ export const useWaitingCustomers = (currentUserAgent?: string) => {
         return false;
       });
 
+      console.log('Truly waiting assigned orders:', trulyWaitingAssignedOrders.length);
+
       // All unassigned orders are considered waiting (they already have done_mainorder = NULL filter)
       const trulyWaitingUnassignedOrders = unassignedOrders || [];
 
+      console.log('Truly waiting unassigned orders:', trulyWaitingUnassignedOrders.length);
+
       // Combine both types of waiting orders
       let allWaitingOrders = [...trulyWaitingAssignedOrders, ...trulyWaitingUnassignedOrders];
+
+      console.log('All waiting orders before agent filter:', allWaitingOrders.length);
 
       // Filter orders based on current user agent
       if (currentUserAgent && currentUserAgent !== '4') {
@@ -105,6 +115,8 @@ export const useWaitingCustomers = (currentUserAgent?: string) => {
         }
       }
       // Agent 4 (admin) sees all orders - no filtering
+
+      console.log('All waiting orders after agent filter:', allWaitingOrders.length);
 
       if (!allWaitingOrders.length) {
         return { regularCustomers: 0, kandiPlusCustomers: 0, totalCustomers: 0 };
@@ -127,10 +139,11 @@ export const useWaitingCustomers = (currentUserAgent?: string) => {
       const kandiPlusCount = kandiPlusCustomers.size;
       const regularCount = totalCustomers - kandiPlusCount;
 
-      console.log('Waiting customers (orders only, excluding ice cream) for agent', currentUserAgent, ':', {
+      console.log('Final waiting customers (orders only, icecream=NULL only) for agent', currentUserAgent, ':', {
         regular: regularCount,
         kandiPlus: kandiPlusCount,
-        total: totalCustomers
+        total: totalCustomers,
+        orderNumbers: allWaitingOrders.map(order => order.ordernumber || 'no order number')
       });
 
       return {
