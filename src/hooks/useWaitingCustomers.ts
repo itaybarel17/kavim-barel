@@ -27,13 +27,15 @@ export const useWaitingCustomers = (currentUserAgent?: string) => {
           done_mainorder,
           ordercancel,
           schedule_id,
+          icecream,
           distribution_schedule!inner(
             done_schedule,
             distribution_date
           )
         `)
         .is('ordercancel', null) // ordercancel must be NULL
-        .not('schedule_id', 'is', null); // only orders with schedule_id
+        .not('schedule_id', 'is', null) // only orders with schedule_id
+        .neq('icecream', '1'); // exclude ice cream orders
 
       if (assignedError) {
         console.error('Error fetching assigned orders:', assignedError);
@@ -48,11 +50,13 @@ export const useWaitingCustomers = (currentUserAgent?: string) => {
           agentnumber,
           done_mainorder,
           ordercancel,
-          schedule_id
+          schedule_id,
+          icecream
         `)
         .is('ordercancel', null) // ordercancel must be NULL
         .is('done_mainorder', null) // unassigned orders should not be produced
-        .is('schedule_id', null); // only orders without schedule_id
+        .is('schedule_id', null) // only orders without schedule_id
+        .neq('icecream', '1'); // exclude ice cream orders
 
       if (unassignedError) {
         console.error('Error fetching unassigned orders:', unassignedError);
@@ -123,7 +127,7 @@ export const useWaitingCustomers = (currentUserAgent?: string) => {
       const kandiPlusCount = kandiPlusCustomers.size;
       const regularCount = totalCustomers - kandiPlusCount;
 
-      console.log('Waiting customers (orders only) for agent', currentUserAgent, ':', {
+      console.log('Waiting customers (orders only, excluding ice cream) for agent', currentUserAgent, ':', {
         regular: regularCount,
         kandiPlus: kandiPlusCount,
         total: totalCustomers
