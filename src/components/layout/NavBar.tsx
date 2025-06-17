@@ -25,10 +25,10 @@ export const NavBar: React.FC = () => {
 
   const getNavItemClasses = (path: string, color: string) => {
     const isActive = location.pathname === path;
-    return `px-3 py-2 text-sm font-bold rounded border transition-all duration-200 ${
+    return `px-2 lg:px-3 py-2 text-xs lg:text-sm font-bold rounded border transition-all duration-200 ${
       isActive 
-        ? `bg-${color}-500 text-white border-${color}-400 shadow-lg scale-105 ring-2 ring-${color}-300/50`
-        : `bg-${color}-400 text-white hover:bg-${color}-500 border-${color}-300 hover:border-${color}-400 hover:shadow-sm`
+        ? `bg-gradient-to-r from-${color}-500 to-${color}-600 text-white border-${color}-400 shadow-lg scale-105 ring-2 ring-${color}-300/50`
+        : `bg-gradient-to-r from-${color}-500/80 to-${color}-600/80 text-white/90 border-${color}-400/80 hover:from-${color}-500 hover:to-${color}-600 hover:border-${color}-400 hover:text-white hover:shadow-sm`
     }`;
   };
 
@@ -114,7 +114,7 @@ export const NavBar: React.FC = () => {
             מערכת ההפצה
           </Link>
           
-          <div className="flex gap-1 p-1.5 border border-white/20 rounded-md bg-white/5 backdrop-blur-sm shadow-inner">
+          <div className="flex gap-1 p-1 lg:p-1.5 border border-white/20 rounded-md bg-white/5 backdrop-blur-sm shadow-inner">
             {navItems.map(({ path, label, color }) => (
               <Link key={path} to={path} className={getNavItemClasses(path, color)}>
                 {label}
