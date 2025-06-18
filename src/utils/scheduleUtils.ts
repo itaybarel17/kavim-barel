@@ -51,7 +51,7 @@ export const getAllRelevantScheduleIds = (item: OrderWithSchedule | ReturnWithSc
         for (const v of changed) {
           if (v != null && typeof v === 'number' && !isNaN(v)) {
             scheduleIds.push(v);
-          } else if (v != null && typeof v === 'object' && 'schedule_id' in v && typeof v.schedule_id === 'number') {
+          } else if (v != null && typeof v === 'object' && v !== null && 'schedule_id' in v && typeof v.schedule_id === 'number') {
             scheduleIds.push(v.schedule_id);
           }
         }

@@ -80,7 +80,7 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
               order.schedule_id_if_changed.forEach(sid => {
                 if (typeof sid === 'number') relevantScheduleIds.push(sid);
               });
-            } else if (typeof order.schedule_id_if_changed === 'object' && order.schedule_id_if_changed !== null && 'schedule_id' in order.schedule_id_if_changed) {
+            } else if (typeof order.schedule_id_if_changed === 'object' && order.schedule_id_if_changed !== null && 'schedule_id' in order.schedule_id_if_changed && typeof order.schedule_id_if_changed.schedule_id === 'number') {
               relevantScheduleIds.push(order.schedule_id_if_changed.schedule_id);
             }
           }
@@ -96,7 +96,7 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
               returnItem.schedule_id_if_changed.forEach(sid => {
                 if (typeof sid === 'number') relevantScheduleIds.push(sid);
               });
-            } else if (typeof returnItem.schedule_id_if_changed === 'object' && returnItem.schedule_id_if_changed !== null && 'schedule_id' in returnItem.schedule_id_if_changed) {
+            } else if (typeof returnItem.schedule_id_if_changed === 'object' && returnItem.schedule_id_if_changed !== null && 'schedule_id' in returnItem.schedule_id_if_changed && typeof returnItem.schedule_id_if_changed.schedule_id === 'number') {
               relevantScheduleIds.push(returnItem.schedule_id_if_changed.schedule_id);
             }
           }
