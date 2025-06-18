@@ -77,6 +77,7 @@ interface DropZoneProps {
   dualActiveOrderReturnCustomers?: any[];
   // new props for supply details - removed agentNameMap
   customerSupplyMap?: Record<string, string>;
+  onAlertStatusChange?: () => void;
 }
 export const DropZone: React.FC<DropZoneProps> = ({
   zoneNumber,
@@ -94,7 +95,8 @@ export const DropZone: React.FC<DropZoneProps> = ({
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
   // new props for supply details - removed agentNameMap
-  customerSupplyMap = {}
+  customerSupplyMap = {},
+  onAlertStatusChange
 }) => {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [scheduleId, setScheduleId] = useState<number | null>(null);
@@ -367,8 +369,8 @@ export const DropZone: React.FC<DropZoneProps> = ({
         </div>
       </CardHeader>
       <CardContent className="space-y-2 px-[4px]">
-        {assignedOrders.map(order => <OrderCard key={`order-${order.ordernumber}`} type="order" data={order} onDragStart={handleItemDragStart} multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} customerSupplyMap={customerSupplyMap} />)}
-        {assignedReturns.map(returnItem => <OrderCard key={`return-${returnItem.returnnumber}`} type="return" data={returnItem} onDragStart={handleItemDragStart} multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} customerSupplyMap={customerSupplyMap} />)}
+        {assignedOrders.map(order => <OrderCard key={`order-${order.ordernumber}`} type="order" data={order} onDragStart={handleItemDragStart} multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} customerSupplyMap={customerSupplyMap} onAlertStatusChange={onAlertStatusChange} />)}
+        {assignedReturns.map(returnItem => <OrderCard key={`return-${returnItem.returnnumber}`} type="return" data={returnItem} onDragStart={handleItemDragStart} multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} customerSupplyMap={customerSupplyMap} onAlertStatusChange={onAlertStatusChange} />)}
         {assignedOrders.length === 0 && assignedReturns.length === 0 && <div className="text-center text-muted-foreground text-sm py-8">
             {selectedGroupId ? 'גרור הזמנות או החזרות לכאן' : 'בחר אזור ליצירת מזהה'}
           </div>}

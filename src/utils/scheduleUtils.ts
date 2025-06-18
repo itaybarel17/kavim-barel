@@ -1,3 +1,4 @@
+
 // Utility functions for handling schedule IDs with fallback logic
 
 interface OrderWithSchedule {
@@ -48,10 +49,13 @@ export const getAllRelevantScheduleIds = (item: OrderWithSchedule | ReturnWithSc
       // Array format: e.g., [92] or similar
       if (Array.isArray(changed)) {
         for (const v of changed) {
-          if (typeof v === 'number' && !isNaN(v)) scheduleIds.push(v);
-          else if (typeof v === 'object' && v?.schedule_id) scheduleIds.push(v.schedule_id);
+          if (v != null && typeof v === 'number' && !isNaN(v)) {
+            scheduleIds.push(v);
+          } else if (v != null && typeof v === 'object' && 'schedule_id' in v && typeof v.schedule_id === 'number') {
+            scheduleIds.push(v.schedule_id);
+          }
         }
-      } else if (changed.schedule_id) {
+      } else if ('schedule_id' in changed && typeof changed.schedule_id === 'number') {
         scheduleIds.push(changed.schedule_id);
       }
     } else if (typeof changed === 'number' && !isNaN(changed)) {
@@ -71,8 +75,17 @@ export const getEffectiveScheduleId = (item: OrderWithSchedule | ReturnWithSched
   // Check if schedule_id_if_changed exists and contains a schedule_id
   if (item.schedule_id_if_changed) {
     // Handle both object format and direct number format
-    if (typeof item.schedule_id_if_changed === 'object' && item.schedule_id_if_changed.schedule_id) {
-      return item.schedule_id_if_changed.schedule_id;
+    if (typeof item.schedule_id_if_changed === 'object') {
+      if (Array.isArray(item.schedule_id_if_changed)) {
+        // Handle array format - take first valid number
+        for (const v of item.schedule_id_if_changed) {
+          if (typeof v === 'number' && !isNaN(v)) {
+            return v;
+          }
+        }
+      } else if ('schedule_id' in item.schedule_id_if_changed && typeof item.schedule_id_if_changed.schedule_id === 'number') {
+        return item.schedule_id_if_changed.schedule_id;
+      }
     } else if (typeof item.schedule_id_if_changed === 'number') {
       return item.schedule_id_if_changed;
     }
@@ -158,8 +171,17 @@ export const getOriginalScheduleId = (item: OrderWithSchedule | ReturnWithSchedu
  */
 export const getNewScheduleId = (item: OrderWithSchedule | ReturnWithSchedule): number | undefined => {
   if (isItemModified(item)) {
-    if (typeof item.schedule_id_if_changed === 'object' && item.schedule_id_if_changed.schedule_id) {
-      return item.schedule_id_if_changed.schedule_id;
+    if (typeof item.schedule_id_if_changed === 'object') {
+      if (Array.isArray(item.schedule_id_if_changed)) {
+        // Handle array format - take first valid number
+        for (const v of item.schedule_id_if_changed) {
+          if (typeof v === 'number' && !isNaN(v)) {
+            return v;
+          }
+        }
+      } else if (item.schedule_id_if_changed && 'schedule_id' in item.schedule_id_if_changed && typeof item.schedule_id_if_changed.schedule_id === 'number') {
+        return item.schedule_id_if_changed.schedule_id;
+      }
     } else if (typeof item.schedule_id_if_changed === 'number') {
       return item.schedule_id_if_changed;
     }
