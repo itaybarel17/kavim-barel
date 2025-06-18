@@ -1,222 +1,82 @@
 
-// Utility functions for handling schedule IDs with fallback logic
-
-interface OrderWithSchedule {
+export interface OrderWithSchedule {
   ordernumber: number;
   customername: string;
   address: string;
   city: string;
   totalorder: number;
-  icecream?: string;
+  schedule_id?: number;
   customernumber?: string;
   agentnumber?: string;
-  schedule_id?: number;
-  schedule_id_if_changed?: number | number[] | { schedule_id: number } | null;
-  alert_status?: boolean;
+  orderdate?: string;
+  invoicenumber?: number;
+  totalinvoice?: number;
+  hour?: string;
+  remark?: string;
+  done_mainorder?: string | null;
+  ordercancel?: string | null;
+  schedule_id_if_changed?: number | { schedule_id: number } | null;
 }
 
-interface ReturnWithSchedule {
+export interface ReturnWithSchedule {
   returnnumber: number;
   customername: string;
   address: string;
   city: string;
   totalreturn: number;
-  icecream?: string;
+  schedule_id?: number;
   customernumber?: string;
   agentnumber?: string;
-  schedule_id?: number;
-  schedule_id_if_changed?: number | number[] | { schedule_id: number } | null;
-  alert_status?: boolean;
+  returndate?: string;
+  hour?: string;
+  remark?: string;
+  done_return?: string | null;
+  returncancel?: string | null;
+  schedule_id_if_changed?: number | { schedule_id: number } | null;
 }
 
-/**
- * Gets all relevant schedule IDs for an order or return
- * Returns array of all schedule IDs where this item should appear
- * Now supports array/JSON structure (e.g., [92]) as well
- */
 export const getAllRelevantScheduleIds = (item: OrderWithSchedule | ReturnWithSchedule): number[] => {
   const scheduleIds: number[] = [];
-
-  // Add the main schedule_id if it exists and is a number
-  if (typeof item.schedule_id === 'number' && !isNaN(item.schedule_id)) {
+  
+  // Add main schedule ID
+  if (item.schedule_id) {
     scheduleIds.push(item.schedule_id);
   }
-
-  // Handle schedule_id_if_changed in all possible formats (number, object, array)
-  const changed = item.schedule_id_if_changed;
-  if (changed != null) {
-    if (Array.isArray(changed)) {
-      // Array format: e.g., [92] or similar
-      for (const v of changed) {
-        if (v != null && typeof v === 'number' && !isNaN(v)) {
-          scheduleIds.push(v);
-        } else if (v != null && typeof v === 'object' && 'schedule_id' in v && typeof v.schedule_id === 'number') {
-          scheduleIds.push(v.schedule_id);
-        }
-      }
-    } else if (typeof changed === 'object' && 'schedule_id' in changed && typeof changed.schedule_id === 'number') {
-      scheduleIds.push(changed.schedule_id);
-    } else if (typeof changed === 'number' && !isNaN(changed)) {
-      scheduleIds.push(changed);
-    }
-  }
-
-  // Remove duplicates and return
-  return [...new Set(scheduleIds)];
-};
-
-/**
- * Gets the effective schedule ID for an order or return (for backward compatibility)
- * Prioritizes schedule_id_if_changed if it exists and contains a valid schedule_id
- */
-export const getEffectiveScheduleId = (item: OrderWithSchedule | ReturnWithSchedule): number | undefined => {
-  // Check if schedule_id_if_changed exists and contains a schedule_id
+  
+  // Add schedule IDs from schedule_id_if_changed
   if (item.schedule_id_if_changed) {
-    // Handle both object format and direct number format
-    if (typeof item.schedule_id_if_changed === 'object' && !Array.isArray(item.schedule_id_if_changed) && 'schedule_id' in item.schedule_id_if_changed) {
-      return item.schedule_id_if_changed.schedule_id;
-    } else if (typeof item.schedule_id_if_changed === 'number') {
-      return item.schedule_id_if_changed;
+    if (typeof item.schedule_id_if_changed === 'number') {
+      scheduleIds.push(item.schedule_id_if_changed);
+    } else if (typeof item.schedule_id_if_changed === 'object' && item.schedule_id_if_changed.schedule_id) {
+      scheduleIds.push(item.schedule_id_if_changed.schedule_id);
     }
   }
   
-  // Fallback to regular schedule_id
-  return item.schedule_id;
+  return scheduleIds;
 };
 
-/**
- * Filters orders by schedule ID - checks if order belongs to the target schedule
- * An order belongs to a schedule if the schedule_id appears in any of its schedule fields, even if schedule_id is null.
- */
-export const getOrdersByScheduleId = (orders: OrderWithSchedule[], targetScheduleId: number): OrderWithSchedule[] => {
-  return orders.filter(order => {
-    const relevantScheduleIds = getAllRelevantScheduleIds(order);
-    return relevantScheduleIds.includes(targetScheduleId); // לא תלוי בזה שschedule_id יהיה שווה
-  });
-};
-
-/**
- * Filters returns by schedule ID - checks if return belongs to the target schedule
- */
-export const getReturnsByScheduleId = (returns: ReturnWithSchedule[], targetScheduleId: number): ReturnWithSchedule[] => {
-  return returns.filter(returnItem => {
-    const relevantScheduleIds = getAllRelevantScheduleIds(returnItem);
-    return relevantScheduleIds.includes(targetScheduleId);
-  });
-};
-
-/**
- * Filters orders by effective schedule ID (backward compatibility)
- */
-export const getOrdersByEffectiveScheduleId = (orders: OrderWithSchedule[], targetScheduleId: number): OrderWithSchedule[] => {
-  return getOrdersByScheduleId(orders, targetScheduleId);
-};
-
-/**
- * Filters returns by effective schedule ID (backward compatibility)
- */
-export const getReturnsByEffectiveScheduleId = (returns: ReturnWithSchedule[], targetScheduleId: number): ReturnWithSchedule[] => {
-  return getReturnsByScheduleId(returns, targetScheduleId);
-};
-
-/**
- * Gets all unique customer names for a specific schedule ID (considering both regular and changed schedule IDs)
- */
 export const getUniqueCustomersForSchedule = (
-  orders: OrderWithSchedule[], 
-  returns: ReturnWithSchedule[], 
+  orders: OrderWithSchedule[],
+  returns: ReturnWithSchedule[],
   scheduleId: number
 ): Set<string> => {
-  const scheduleOrders = getOrdersByScheduleId(orders, scheduleId);
-  const scheduleReturns = getReturnsByScheduleId(returns, scheduleId);
-  
-  const uniqueCustomers = new Set([
-    ...scheduleOrders.map(order => order.customername),
-    ...scheduleReturns.map(returnItem => returnItem.customername)
-  ]);
-  
+  const uniqueCustomers = new Set<string>();
+
+  // Process orders
+  orders.forEach(order => {
+    const relevantScheduleIds = getAllRelevantScheduleIds(order);
+    if (relevantScheduleIds.includes(scheduleId)) {
+      uniqueCustomers.add(`${order.customername}^^${order.city}`);
+    }
+  });
+
+  // Process returns
+  returns.forEach(returnItem => {
+    const relevantScheduleIds = getAllRelevantScheduleIds(returnItem);
+    if (relevantScheduleIds.includes(scheduleId)) {
+      uniqueCustomers.add(`${returnItem.customername}^^${returnItem.city}`);
+    }
+  });
+
   return uniqueCustomers;
 };
-
-/**
- * Checks if an item has been modified (has schedule_id_if_changed)
- */
-export const isItemModified = (item: OrderWithSchedule | ReturnWithSchedule): boolean => {
-  return item.schedule_id_if_changed != null;
-};
-
-/**
- * Gets the original schedule ID for a modified item
- */
-export const getOriginalScheduleId = (item: OrderWithSchedule | ReturnWithSchedule): number | undefined => {
-  if (isItemModified(item)) {
-    return item.schedule_id;
-  }
-  return undefined;
-};
-
-/**
- * Gets the new schedule ID for a modified item
- */
-export const getNewScheduleId = (item: OrderWithSchedule | ReturnWithSchedule): number | undefined => {
-  if (isItemModified(item)) {
-    if (typeof item.schedule_id_if_changed === 'object' && !Array.isArray(item.schedule_id_if_changed) && 'schedule_id' in item.schedule_id_if_changed) {
-      return item.schedule_id_if_changed.schedule_id;
-    } else if (typeof item.schedule_id_if_changed === 'number') {
-      return item.schedule_id_if_changed;
-    }
-  }
-  return undefined;
-};
-
-/**
- * Checks if an item has been transferred from another schedule to the current one
- */
-export const isTransferredItem = (item: OrderWithSchedule | ReturnWithSchedule, currentScheduleId: number): boolean => {
-  if (!isItemModified(item)) return false;
-  
-  const originalScheduleId = getOriginalScheduleId(item);
-  return originalScheduleId !== undefined && originalScheduleId !== currentScheduleId;
-};
-
-/**
- * Gets the original schedule ID that an item was transferred from
- */
-export const getTransferredFromScheduleId = (item: OrderWithSchedule | ReturnWithSchedule): number | undefined => {
-  if (!isItemModified(item)) return undefined;
-  return getOriginalScheduleId(item);
-};
-
-/**
- * Checks if a customer has ALL their items transferred (for strikethrough logic)
- */
-export const isCustomerCompletelyTransferred = (
-  customerName: string, 
-  customerCity: string, 
-  allOrders: OrderWithSchedule[], 
-  allReturns: ReturnWithSchedule[], 
-  currentScheduleId: number
-): boolean => {
-  // Get all orders and returns for this customer in this schedule
-  const customerOrders = allOrders.filter(order => 
-    order.customername === customerName && 
-    order.city === customerCity &&
-    getAllRelevantScheduleIds(order).includes(currentScheduleId)
-  );
-  
-  const customerReturns = allReturns.filter(returnItem => 
-    returnItem.customername === customerName && 
-    returnItem.city === customerCity &&
-    getAllRelevantScheduleIds(returnItem).includes(currentScheduleId)
-  );
-  
-  const allCustomerItems = [...customerOrders, ...customerReturns];
-  
-  // If no items, return false
-  if (allCustomerItems.length === 0) return false;
-  
-  // Check if ALL items are transferred FROM other schedules (not original to this schedule)
-  return allCustomerItems.every(item => isTransferredItem(item, currentScheduleId));
-};
-
-export type { OrderWithSchedule, ReturnWithSchedule };
