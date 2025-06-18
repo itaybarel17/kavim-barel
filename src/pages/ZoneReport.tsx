@@ -144,7 +144,7 @@ const ZoneReport = () => {
         />
       </div>
 
-      {/* Print styles - optimized for single page */}
+      {/* Print styles - more natural sizing */}
       <style>{`
         @media print {
           .no-print {
@@ -165,22 +165,7 @@ const ZoneReport = () => {
             margin: 0.5cm;
             size: A4;
           }
-          .page-break-before {
-            page-break-before: avoid;
-          }
-          .page-break-after {
-            page-break-after: avoid;
-          }
-          .page-break-inside {
-            page-break-inside: avoid;
-          }
-          /* Force everything to fit on one page */
-          * {
-            page-break-inside: avoid;
-            page-break-before: avoid;
-            page-break-after: avoid;
-          }
-          /* Reduce spacing even more for print */
+          /* Reduce spacing for print but allow natural sizing */
           .space-y-1 > * + * {
             margin-top: 0.125rem;
           }
