@@ -174,7 +174,7 @@ const ProductionSummary = () => {
 
   if (scheduleLoading) {
     return (
-      <div className="min-h-screen p-6 bg-background flex items-center justify-center">
+      <div className="p-6 bg-background flex items-center justify-center">
         <div className="flex items-center gap-2">
           <Loader2 className="h-6 w-6 animate-spin" />
           <span>טוען נתונים...</span>
@@ -185,7 +185,7 @@ const ProductionSummary = () => {
 
   if (!schedule) {
     return (
-      <div className="min-h-screen p-6 bg-background">
+      <div className="p-6 bg-background">
         <div className="text-center py-12">
           <h1 className="text-2xl font-bold text-gray-600">קו חלוקה לא נמצא</h1>
           <Button onClick={() => navigate('/calendar')} className="mt-4">
@@ -273,8 +273,8 @@ const ProductionSummary = () => {
   const isScheduleProduced = schedule?.done_schedule && schedule.done_schedule.trim() !== '';
 
   return (
-    <div className="min-h-screen p-2 bg-background">
-      <div className="max-w-full mx-auto">
+    <div className="p-2 bg-background">
+      <div className="w-full">
         {/* Header - hidden on print */}
         <div className="flex items-center justify-between mb-4 print:hidden">
           <div className="flex items-center gap-2">
@@ -317,7 +317,7 @@ const ProductionSummary = () => {
         {/* Customer Details Table */}
         <Card>
           <CardContent className="p-2">
-            <div className="overflow-x-auto">
+            <div className="w-full">
               <Table>
                 <TableHeader>
                   <TableRow className="text-xs">
