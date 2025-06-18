@@ -229,22 +229,6 @@ const Distribution = () => {
     }
   });
 
-  // Periodic refresh for horizontal kanban every minute
-  useEffect(() => {
-    const refreshInterval = setInterval(() => {
-      if (document.visibilityState === 'visible' && !isLoading) {
-        console.log('Refreshing horizontal kanban data...');
-        refetchOrders();
-        refetchReturns();
-        refetchSchedules();
-      }
-    }, 60000); // 1 minute
-
-    return () => {
-      clearInterval(refreshInterval);
-    };
-  }, [refetchOrders, refetchReturns, refetchSchedules, isLoading]);
-
   // Create map for customer supply lookup
   const customerSupplyMap = customerSupplyData.reduce((map, customer) => {
     map[customer.customernumber] = customer.supplydetails || '';
@@ -543,6 +527,23 @@ const Distribution = () => {
   console.log('Distribution groups:', distributionGroups.length);
   console.log('Active schedules:', distributionSchedules.length);
   const isLoading = ordersLoading || returnsLoading || groupsLoading || schedulesLoading || driversLoading || customerSupplyLoading;
+
+  // Periodic refresh for horizontal kanban every minute
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      if (document.visibilityState === 'visible' && !isLoading) {
+        console.log('Refreshing horizontal kanban data...');
+        refetchOrders();
+        refetchReturns();
+        refetchSchedules();
+      }
+    }, 60000); // 1 minute
+
+    return () => {
+      clearInterval(refreshInterval);
+    };
+  }, [refetchOrders, refetchReturns, refetchSchedules, isLoading]);
+
   if (isLoading) {
     return <div className="min-h-screen p-6 bg-background flex items-center justify-center">
         <div className="flex items-center gap-2">
