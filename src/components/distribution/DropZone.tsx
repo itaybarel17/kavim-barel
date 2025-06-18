@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { X, Printer } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderCard } from './OrderCard';
+import { ZoneAlertBanner } from './ZoneAlertBanner';
 import { pdf } from '@react-pdf/renderer';
 import { ZonePDFDocument } from './ZonePDFDocument';
 
@@ -153,6 +154,12 @@ export const DropZone: React.FC<DropZoneProps> = ({
   // Sort items with siren status at the top
   const sortedOrders = useMemo(() => sortBySirenStatus(assignedOrders), [assignedOrders]);
   const sortedReturns = useMemo(() => sortBySirenStatus(assignedReturns), [assignedReturns]);
+
+  // Check if any items in this zone have active sirens
+  const hasActiveSiren = useMemo(() => {
+    return assignedOrders.some(order => order.alert_status === true) || 
+           assignedReturns.some(returnItem => returnItem.alert_status === true);
+  }, [assignedOrders, assignedReturns]);
 
   // Calculate unique customer points (נקודות)
   const uniqueCustomerPoints = useMemo(() => {
@@ -337,69 +344,141 @@ export const DropZone: React.FC<DropZoneProps> = ({
   // Get the selected group name for display
   const selectedGroup = distributionGroups.find(group => group.groups_id === selectedGroupId);
   const selectedDriver = drivers.find(driver => driver.id === selectedDriverId);
-  return <Card ref={drop} className={`min-h-[300px] transition-colors relative ${isOver && currentZoneState.scheduleId ? 'border-primary bg-primary/5' : 'border-border'} ${!currentZoneState.scheduleId && isOver ? 'border-red-300 bg-red-50' : ''}`}>
+  return (
+    <Card ref={drop} className={`min-h-[300px] transition-colors relative ${isOver && currentZoneState.scheduleId ? 'border-primary bg-primary/5' : 'border-border'} ${!currentZoneState.scheduleId && isOver ? 'border-red-300 bg-red-50' : ''}`}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">אזור {zoneNumber}</CardTitle>
           <div className="flex gap-2">
-            {scheduleId && (assignedOrders.length > 0 || assignedReturns.length > 0) && <Button variant="ghost" size="icon" onClick={handlePrint} className="h-6 w-6 text-muted-foreground hover:text-blue-600" title="הדפס דוח">
+            {scheduleId && (assignedOrders.length > 0 || assignedReturns.length > 0) && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handlePrint}
+                className="h-6 w-6 text-muted-foreground hover:text-blue-600"
+                title="הדפס דוח"
+              >
                 <Printer className="h-4 w-4" />
-              </Button>}
-            {scheduleId && <Button variant="ghost" size="icon" onClick={handleDeleteSchedule} className="h-6 w-6 text-muted-foreground hover:text-destructive">
+              </Button>
+            )}
+            {scheduleId && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleDeleteSchedule}
+                className="h-6 w-6 text-muted-foreground hover:text-destructive"
+              >
                 <X className="h-4 w-4" />
-              </Button>}
+              </Button>
+            )}
           </div>
         </div>
+
+        <ZoneAlertBanner isVisible={hasActiveSiren} />
+
         <div className="space-y-2">
           <Select value={selectedGroupId?.toString() || ''} onValueChange={handleGroupSelection}>
             <SelectTrigger className="w-full h-10 bg-background border border-input">
               <SelectValue placeholder="בחר אזור הפצה" />
             </SelectTrigger>
             <SelectContent className="bg-popover border border-border shadow-md z-50 max-h-[200px] overflow-y-auto">
-              {distributionGroups.map(group => <SelectItem key={group.groups_id} value={group.groups_id.toString()} className="cursor-pointer hover:bg-accent focus:bg-accent">
+              {distributionGroups.map(group => (
+                <SelectItem
+                  key={group.groups_id}
+                  value={group.groups_id.toString()}
+                  className="cursor-pointer hover:bg-accent focus:bg-accent"
+                >
                   {group.separation}
-                </SelectItem>)}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
-          {selectedGroupId && <Select value={selectedDriverId?.toString() || ''} onValueChange={handleDriverSelection}>
+          {selectedGroupId && (
+            <Select value={selectedDriverId?.toString() || ''} onValueChange={handleDriverSelection}>
               <SelectTrigger className="w-full h-10 bg-background border border-input">
                 <SelectValue placeholder="בחר נהג" />
               </SelectTrigger>
               <SelectContent className="bg-popover border border-border shadow-md z-50 max-h-[200px] overflow-y-auto">
-                {drivers.map(driver => <SelectItem key={driver.id} value={driver.id.toString()} className="cursor-pointer hover:bg-accent focus:bg-accent">
+                {drivers.map(driver => (
+                  <SelectItem
+                    key={driver.id}
+                    value={driver.id.toString()}
+                    className="cursor-pointer hover:bg-accent focus:bg-accent"
+                  >
                     {driver.nahag}
-                  </SelectItem>)}
+                  </SelectItem>
+                ))}
               </SelectContent>
-            </Select>}
+            </Select>
+          )}
 
-          {scheduleId ? <div className="text-sm text-muted-foreground">
+          {scheduleId ? (
+            <div className="text-sm text-muted-foreground">
               מזהה לוח זמנים: {scheduleId}
-              {selectedGroup && <div className="font-medium text-primary">
+              {selectedGroup && (
+                <div className="font-medium text-primary">
                   אזור נבחר: {selectedGroup.separation}
-                </div>}
-              {selectedDriver && <div className="font-medium text-secondary-foreground">
+                </div>
+              )}
+              {selectedDriver && (
+                <div className="font-medium text-secondary-foreground">
                   נהג נבחר: {selectedDriver.nahag}
-                </div>}
-              {scheduleId && <div className="font-medium text-blue-600 mt-1">
+                </div>
+              )}
+              {scheduleId && (
+                <div className="font-medium text-blue-600 mt-1">
                   סה"כ נקודות: {uniqueCustomerPoints}
-                </div>}
-              {deliveryDate && <div className="font-medium text-green-600 mt-1">
+                </div>
+              )}
+              {deliveryDate && (
+                <div className="font-medium text-green-600 mt-1">
                   אספקה: {formatDeliveryDate(deliveryDate)}
-                </div>}
-            </div> : selectedGroupId ? <div className="text-sm text-muted-foreground">
+                </div>
+              )}
+            </div>
+          ) : selectedGroupId ? (
+            <div className="text-sm text-muted-foreground">
               יוצר מזהה לוח זמנים...
-            </div> : <div className="text-sm text-muted-foreground">
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">
               בחר אזור ליצירת מזהה
-            </div>}
+            </div>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-2 px-[4px]">
-        {sortedOrders.map(order => <OrderCard key={`order-${order.ordernumber}`} type="order" data={order} onDragStart={handleItemDragStart} multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} customerSupplyMap={customerSupplyMap} onSirenToggle={onSirenToggle} />)}
-        {sortedReturns.map(returnItem => <OrderCard key={`return-${returnItem.returnnumber}`} type="return" data={returnItem} onDragStart={handleItemDragStart} multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} customerSupplyMap={customerSupplyMap} onSirenToggle={onSirenToggle} />)}
-        {assignedOrders.length === 0 && assignedReturns.length === 0 && <div className="text-center text-muted-foreground text-sm py-8">
+        {sortedOrders.map(order => (
+          <OrderCard
+            key={`order-${order.ordernumber}`}
+            type="order"
+            data={order}
+            onDragStart={handleItemDragStart}
+            multiOrderActiveCustomerList={multiOrderActiveCustomerList}
+            dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
+            customerSupplyMap={customerSupplyMap}
+            onSirenToggle={onSirenToggle}
+          />
+        ))}
+        {sortedReturns.map(returnItem => (
+          <OrderCard
+            key={`return-${returnItem.returnnumber}`}
+            type="return"
+            data={returnItem}
+            onDragStart={handleItemDragStart}
+            multiOrderActiveCustomerList={multiOrderActiveCustomerList}
+            dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
+            customerSupplyMap={customerSupplyMap}
+            onSirenToggle={onSirenToggle}
+          />
+        ))}
+        {assignedOrders.length === 0 && assignedReturns.length === 0 && (
+          <div className="text-center text-muted-foreground text-sm py-8">
             {selectedGroupId ? 'גרור הזמנות או החזרות לכאן' : 'בחר אזור ליצירת מזהה'}
-          </div>}
+          </div>
+        )}
       </CardContent>
-    </Card>;
+    </Card>
+  );
 };
