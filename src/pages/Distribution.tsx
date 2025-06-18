@@ -544,39 +544,6 @@ const Distribution = () => {
     };
   }, [refetchOrders, refetchReturns, refetchSchedules, isLoading]);
 
-  // Full page refresh every 10 minutes at round times
-  useEffect(() => {
-    const now = new Date();
-    const currentMinutes = now.getMinutes();
-    const currentSeconds = now.getSeconds();
-    const currentMilliseconds = now.getMilliseconds();
-    
-    // Calculate minutes until the next 10-minute mark (0, 10, 20, 30, 40, 50)
-    const nextRefreshMinute = Math.ceil(currentMinutes / 10) * 10;
-    const minutesUntilRefresh = nextRefreshMinute - currentMinutes;
-    const totalSecondsUntilRefresh = (minutesUntilRefresh * 60) - currentSeconds;
-    const totalMillisecondsUntilRefresh = (totalSecondsUntilRefresh * 1000) - currentMilliseconds;
-    
-    console.log(`Next full page refresh in ${minutesUntilRefresh} minutes and ${60 - currentSeconds} seconds`);
-    
-    // Initial timeout to sync with the next 10-minute mark
-    const initialTimeout = setTimeout(() => {
-      console.log('Full page refresh - 10 minute interval');
-      window.location.reload();
-    }, totalMillisecondsUntilRefresh);
-    
-    // Set up interval for subsequent refreshes (this won't run if page reloads)
-    const refreshInterval = setInterval(() => {
-      console.log('Full page refresh - 10 minute interval');
-      window.location.reload();
-    }, 10 * 60 * 1000); // 10 minutes
-    
-    return () => {
-      clearTimeout(initialTimeout);
-      clearInterval(refreshInterval);
-    };
-  }, []); // Empty dependency array - runs once on mount
-
   if (isLoading) {
     return <div className="min-h-screen p-6 bg-background flex items-center justify-center">
         <div className="flex items-center gap-2">
