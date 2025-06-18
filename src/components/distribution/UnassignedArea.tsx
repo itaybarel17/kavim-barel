@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useDrop } from 'react-dnd';
 import { OrderCard } from './OrderCard';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
-import { ZoneAlertBanner } from './ZoneAlertBanner';
 import { X } from 'lucide-react';
 
 interface Order {
@@ -108,19 +107,11 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
     setDeleteDialogOpen(false);
     setItemToDelete(null);
   };
-  // Check if there are any items with active sirens in the unassigned area
-  const hasActiveSiren = [
-    ...unassignedOrders.filter(order => order.alert_status),
-    ...unassignedReturns.filter(returnItem => returnItem.alert_status)
-  ].length > 0;
 
   return (
     <div className="mb-8 bg-white">
       <div className="flex items-center justify-between mb-4 mx-[8px]">
         <h2 className="text-xl font-semibold">הזמנות והחזרות ללא שיוך</h2>
-        <div className="flex-shrink-0">
-          <ZoneAlertBanner isVisible={hasActiveSiren} />
-        </div>
       </div>
       <div ref={drop} className={`flex gap-4 overflow-x-auto pb-4 min-h-[120px] border-2 border-dashed rounded-lg p-4 transition-colors ${isOver ? 'border-primary bg-primary/5' : 'border-border'}`}>
         {unassignedOrders.map(order => (

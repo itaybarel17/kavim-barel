@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { CentralAlertBanner } from '@/components/distribution/CentralAlertBanner';
 
 interface Order {
   ordernumber: number;
@@ -574,6 +575,31 @@ const Distribution = () => {
   console.log('Active schedules:', distributionSchedules.length);
   const isLoading = ordersLoading || returnsLoading || groupsLoading || schedulesLoading || driversLoading || customerSupplyLoading;
 
+  // Check if there are any items with active sirens anywhere in the system
+  const hasGlobalActiveSiren = useMemo(() => {
+    // Check unassigned items
+    const unassignedHasSiren = [
+      ...unassignedOrders.filter(order => order.alert_status),
+      ...unassignedReturns.filter(returnItem => returnItem.alert_status)
+    ].length > 0;
+
+    // Check items in zones (assigned to active schedules)
+    const assignedHasSiren = [
+      ...orders.filter(order => 
+        order.schedule_id && 
+        distributionSchedules.some(schedule => schedule.schedule_id === order.schedule_id) &&
+        order.alert_status
+      ),
+      ...returns.filter(returnItem => 
+        returnItem.schedule_id && 
+        distributionSchedules.some(schedule => schedule.schedule_id === returnItem.schedule_id) &&
+        returnItem.alert_status
+      )
+    ].length > 0;
+
+    return unassignedHasSiren || assignedHasSiren;
+  }, [unassignedOrders, unassignedReturns, orders, returns, distributionSchedules]);
+
   // Periodic refresh for horizontal kanban every minute
   useEffect(() => {
     const refreshInterval = setInterval(() => {
@@ -603,21 +629,48 @@ const Distribution = () => {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-gray-700">ממשק הפצה</h1>
           <div className="flex gap-2">
-            
-            
+            <CentralAlertBanner isVisible={hasGlobalActiveSiren} />
           </div>
         </div>
         
-        {/* Unassigned items area with drop functionality and delete buttons */}
-        <UnassignedArea unassignedOrders={unassignedOrders} unassignedReturns={unassignedReturns} onDragStart={setDraggedItem} onDropToUnassigned={handleDropToUnassigned} onDeleteItem={handleDeleteItem} multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} customerSupplyMap={customerSupplyMap} onSirenToggle={handleSirenToggle} />
+        {/* Unassigned items area without alert banner */}
+        <UnassignedArea 
+          unassignedOrders={unassignedOrders} 
+          unassignedReturns={unassignedReturns} 
+          onDragStart={setDraggedItem} 
+          onDropToUnassigned={handleDropToUnassigned} 
+          onDeleteItem={handleDeleteItem} 
+          multiOrderActiveCustomerList={multiOrderActiveCustomerList} 
+          dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} 
+          customerSupplyMap={customerSupplyMap} 
+          onSirenToggle={handleSirenToggle} 
+        />
 
         {/* Mobile: single column, Tablet: 2 columns, Desktop: 4 columns */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {dropZones.map(zoneNumber => <DropZone key={zoneNumber} zoneNumber={zoneNumber} distributionGroups={distributionGroups} distributionSchedules={distributionSchedules} drivers={drivers} onDrop={handleDrop} orders={orders} returns={returns} onScheduleDeleted={handleScheduleDeleted} onScheduleCreated={handleScheduleCreated} onRemoveFromZone={handleRemoveFromZone} getZoneState={getZoneState}
-        // icons data
-        multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} customerSupplyMap={customerSupplyMap} onSirenToggle={handleSirenToggle} />)}
+          {dropZones.map(zoneNumber => 
+            <DropZone 
+              key={zoneNumber} 
+              zoneNumber={zoneNumber} 
+              distributionGroups={distributionGroups} 
+              distributionSchedules={distributionSchedules} 
+              drivers={drivers} 
+              onDrop={handleDrop} 
+              orders={orders} 
+              returns={returns} 
+              onScheduleDeleted={handleScheduleDeleted} 
+              onScheduleCreated={handleScheduleCreated} 
+              onRemoveFromZone={handleRemoveFromZone} 
+              getZoneState={getZoneState}
+              multiOrderActiveCustomerList={multiOrderActiveCustomerList} 
+              dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} 
+              customerSupplyMap={customerSupplyMap} 
+              onSirenToggle={handleSirenToggle} 
+            />
+          )}
         </div>
       </div>
     </DndProvider>;
 };
+
 export default Distribution;

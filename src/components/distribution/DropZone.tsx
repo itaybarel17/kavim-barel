@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { X, Printer } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderCard } from './OrderCard';
-import { ZoneAlertBanner } from './ZoneAlertBanner';
 import { pdf } from '@react-pdf/renderer';
 import { ZonePDFDocument } from './ZonePDFDocument';
 
@@ -110,10 +109,8 @@ export const DropZone: React.FC<DropZoneProps> = ({
   onScheduleCreated,
   onRemoveFromZone,
   getZoneState,
-  // existing props for icons
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
-  // new props for supply details - removed agentNameMap
   customerSupplyMap = {},
   onSirenToggle
 }) => {
@@ -149,7 +146,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
 
   // Get assigned items for this zone based on schedule_id - ONLY for ACTIVE schedules
   const assignedOrders = orders.filter(order => scheduleId && order.schedule_id === scheduleId && distributionSchedules.some(schedule => schedule.schedule_id === scheduleId));
-  const assignedReturns = returns.filter(returnItem => scheduleId && returnItem.schedule_id === scheduleId && distributionSchedules.some(schedule => schedule.schedule_id === returnItem.schedule_id));
+  const assignedReturns = returns.filter(returnItem => scheduleId && returnItem.schedule_id === scheduleId && distributionSchedules.some(schedule => schedule.schedule_id === scheduleId));
 
   // Sort items with siren status at the top
   const sortedOrders = useMemo(() => sortBySirenStatus(assignedOrders), [assignedOrders]);
@@ -373,8 +370,6 @@ export const DropZone: React.FC<DropZoneProps> = ({
             )}
           </div>
         </div>
-
-        <ZoneAlertBanner isVisible={hasActiveSiren} />
 
         <div className="space-y-2">
           <Select value={selectedGroupId?.toString() || ''} onValueChange={handleGroupSelection}>
