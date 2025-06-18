@@ -3,7 +3,6 @@ import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, ArrowRight } from 'lucide-react';
-import { SirenButton } from '../distribution/SirenButton';
 import { 
   getOrdersByScheduleId, 
   getReturnsByScheduleId, 
@@ -51,7 +50,6 @@ interface CalendarCardProps {
   multiOrderActiveCustomerList?: { name: string; city: string }[];
   dualActiveOrderReturnCustomers?: { name: string; city: string }[];
   currentUser?: { agentnumber: string; agentname: string };
-  onAlertStatusChange?: () => void;
 }
 
 export const CalendarCard: React.FC<CalendarCardProps> = ({
@@ -69,7 +67,6 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
   currentUser,
-  onAlertStatusChange,
 }) => {
   // Check if this schedule has produced based on done_schedule timestamp
   const isProduced = schedule?.done_schedule != null;
@@ -136,9 +133,6 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   
   // Check if user is admin (agent "4")
   const isAdmin = currentUser?.agentnumber === "4";
-
-  // Check if any items in this schedule have alert status
-  const hasAlertItems = [...scheduleOrders, ...scheduleReturns].some(item => item.alert_status);
   
   // Enhanced styling - all cards have normal visibility, only cursor changes based on permissions
   const cardClasses = isCalendarMode 
@@ -148,14 +142,14 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
           : canDrag 
             ? 'cursor-move border-blue-200'
             : 'cursor-default border-blue-200'
-      } ${hasAlertItems ? 'ring-2 ring-red-400 ring-opacity-50' : ''}`
+      }`
     : `min-w-[250px] max-w-[280px] ${
         isProduced 
           ? 'cursor-not-allowed border-4 border-green-500 bg-green-50 shadow-lg' 
           : canDrag 
             ? 'cursor-move border-blue-200'
             : 'cursor-default border-blue-200'
-      } ${hasAlertItems ? 'ring-2 ring-red-400 ring-opacity-50' : ''}`;
+      }`;
 
   const contentPadding = isCalendarMode ? "p-2" : "p-3";
   const titleSize = isCalendarMode ? "text-sm" : "text-base"; // Increased from text-xs to text-sm
@@ -175,28 +169,6 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
               {group?.separation || 'אזור לא מוגדר'}
             </h3>
             <div className="flex items-center gap-1">
-              {hasAlertItems && (
-                <div className="flex gap-1">
-                  {scheduleOrders.filter(order => order.alert_status).map(order => (
-                    <SirenButton
-                      key={`order-${order.ordernumber}`}
-                      type="order"
-                      itemId={order.ordernumber}
-                      alertStatus={order.alert_status}
-                      onStatusChange={onAlertStatusChange}
-                    />
-                  ))}
-                  {scheduleReturns.filter(returnItem => returnItem.alert_status).map(returnItem => (
-                    <SirenButton
-                      key={`return-${returnItem.returnnumber}`}
-                      type="return"
-                      itemId={returnItem.returnnumber}
-                      alertStatus={returnItem.alert_status}
-                      onStatusChange={onAlertStatusChange}
-                    />
-                  ))}
-                </div>
-              )}
               {isProduced && (
                 <Badge variant="secondary" className="text-[8px] px-1 py-0 bg-green-100 text-green-800 border border-green-300">
                   הופק #{schedule?.dis_number || 'לא ידוע'}

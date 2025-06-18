@@ -2,12 +2,10 @@ import React from 'react';
 import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { SirenButton } from './SirenButton';
 
 // Path for prominent customer blue/red icons
 import BlueCustomerIcon from '/blue-customer.svg';
 import RedCustomerIcon from '/red-customer.svg';
-
 interface Order {
   ordernumber: number;
   customername: string;
@@ -24,9 +22,7 @@ interface Order {
   ordercancel?: string | null;
   hour?: string;
   remark?: string;
-  alert_status?: boolean;
 }
-
 interface Return {
   returnnumber: number;
   customername: string;
@@ -41,9 +37,7 @@ interface Return {
   returncancel?: string | null;
   hour?: string;
   remark?: string;
-  alert_status?: boolean;
 }
-
 interface OrderCardProps {
   type: 'order' | 'return';
   data: Order | Return;
@@ -64,17 +58,14 @@ interface OrderCardProps {
 
   // new props for supply details - removed agentNameMap as we'll display agentnumber directly
   customerSupplyMap?: Record<string, string>;
-  onAlertStatusChange?: () => void;
 }
-
 export const OrderCard: React.FC<OrderCardProps> = ({
   type,
   data,
   onDragStart,
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
-  customerSupplyMap = {},
-  onAlertStatusChange
+  customerSupplyMap = {}
 }) => {
   const [{
     isDragging
@@ -125,7 +116,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     // Remove seconds from time string (e.g., "12:40:00" -> "12:40")
     return timeString.substring(0, 5);
   };
-
   return <Card ref={drag} className={`min-w-[250px] cursor-move ${isDragging ? 'opacity-50' : ''} ${isOrder ? 'border-blue-200 bg-blue-50' : 'border-red-200 bg-red-50'} ${hasInvoiceNumber ? 'ring-2 ring-green-300' : ''} ${isCandyPlus ? 'ring-2 ring-pink-300 border-pink-200' : ''}`}>
       <CardContent className="p-4 bg-[#e8f6fb]">
         {/* שורה ראשונה: מספר הזמנה/החזרה + תאריך + שעה */}
@@ -149,16 +139,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         {/* שורה שלישית: כתובת */}
         <p className="text-xs text-muted-foreground">{data.address}</p>
         
-        {/* שורה רביעית: עיר + כפתור סירנה */}
-        <div className="flex justify-between items-center mb-2">
-          <p className="text-xs text-muted-foreground">{data.city}</p>
-          <SirenButton
-            type={type}
-            itemId={number}
-            alertStatus={data.alert_status}
-            onStatusChange={onAlertStatusChange}
-          />
-        </div>
+        {/* שורה רביעית: עיר */}
+        <p className="text-xs text-muted-foreground mb-2">{data.city}</p>
         
         {/* שורה חמישית: הסכום */}
         <div className="mb-2">
