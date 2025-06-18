@@ -56,6 +56,7 @@ interface DistributionSchedule {
   groups_id: number;
   create_at_schedule: string;
   driver_id?: number;
+  distribution_date?: string;
 }
 interface Driver {
   id: number;
@@ -202,7 +203,7 @@ const Distribution = () => {
       const {
         data,
         error
-      } = await supabase.from('distribution_schedule').select('schedule_id, groups_id, create_at_schedule, driver_id').is('done_schedule', null); // Only get active schedules, not produced ones
+      } = await supabase.from('distribution_schedule').select('schedule_id, groups_id, create_at_schedule, driver_id, distribution_date').is('done_schedule', null); // Only get active schedules, not produced ones
 
       if (error) throw error;
       console.log('Active distribution schedules fetched:', data);

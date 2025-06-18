@@ -40,7 +40,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
           </div>
           <div className="text-green-800 p-2 border border-green-400 rounded">
             <div className="font-medium">סך הכל נטו:</div>
-            <div className="font-bold text-lg">₪{netTotal.toLocaleString('he-IL')}</div>
+            <div className="font-bold text-sm">₪{netTotal.toLocaleString('he-IL')}</div>
           </div>
         </div>
       </CardContent>

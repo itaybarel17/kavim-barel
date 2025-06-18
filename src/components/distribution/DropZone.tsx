@@ -45,6 +45,7 @@ interface DistributionSchedule {
   groups_id: number;
   create_at_schedule: string;
   driver_id?: number;
+  distribution_date?: string;
 }
 interface Driver {
   id: number;
@@ -148,6 +149,18 @@ export const DropZone: React.FC<DropZoneProps> = ({
     });
     return uniqueCustomers.size;
   }, [assignedOrders, assignedReturns]);
+
+  // Get delivery date for display
+  const currentSchedule = distributionSchedules.find(schedule => schedule.schedule_id === scheduleId);
+  const deliveryDate = currentSchedule?.distribution_date;
+  
+  // Format delivery date to DD/MM
+  const formatDeliveryDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    return `${day}/${month}`;
+  };
 
   // Update local state based on zone state from parent
   useEffect(() => {
@@ -342,6 +355,9 @@ export const DropZone: React.FC<DropZoneProps> = ({
                 </div>}
               {scheduleId && <div className="font-medium text-blue-600 mt-1">
                   סה"כ נקודות: {uniqueCustomerPoints}
+                </div>}
+              {deliveryDate && <div className="font-medium text-green-600 mt-1">
+                  אספקה: {formatDeliveryDate(deliveryDate)}
                 </div>}
             </div> : selectedGroupId ? <div className="text-sm text-muted-foreground">
               יוצר מזהה לוח זמנים...
