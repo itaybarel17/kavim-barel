@@ -7,6 +7,7 @@ import { UnassignedArea } from '@/components/distribution/UnassignedArea';
 import { HorizontalKanban } from '@/components/calendar/HorizontalKanban';
 import { useQuery } from '@tanstack/react-query';
 import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription';
+import { usePeriodicRefresh } from '@/hooks/usePeriodicRefresh';
 import { Loader2, Calendar, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -86,6 +87,13 @@ const Distribution = () => {
 
   // Set up realtime subscriptions
   useRealtimeSubscription();
+
+  // Set up periodic refresh - 30 seconds for unassigned data, 5 minutes for all data
+  usePeriodicRefresh({
+    refreshUnassignedInterval: 30000, // 30 seconds
+    refreshAllInterval: 300000, // 5 minutes
+    respectVisibility: true
+  });
 
   // Helper function to filter orders based on user permissions
   const filterOrdersByUser = (orders: Order[]) => {

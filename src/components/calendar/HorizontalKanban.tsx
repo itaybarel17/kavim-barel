@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { CalendarCard } from './CalendarCard';
 import { getUniqueCustomersForSchedule } from '@/utils/scheduleUtils';
 import type { OrderWithSchedule, ReturnWithSchedule } from '@/utils/scheduleUtils';
+
 interface DistributionGroup {
   groups_id: number;
   separation: string;
@@ -169,6 +170,12 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
   }), [isAdmin, onDropToKanban]);
   const schedulesWithItems = filteredSchedulesWithItems;
   const unscheduledSchedules = schedulesWithItems.filter(schedule => !schedule.distribution_date).sort((a, b) => a.schedule_id - b.schedule_id);
+
+  // Add console log to track when data refreshes
+  React.useEffect(() => {
+    console.log(`HorizontalKanban data refreshed - ${filteredSchedulesWithItems.length} schedules with items`);
+  }, [filteredSchedulesWithItems.length]);
+
   return (
     <div ref={drop} className={`mb-8 ${isOver ? 'bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg' : ''}`}>
       <h2 className="text-lg lg:text-xl font-semibold mb-4 text-gray-700 px-2 lg:px-0">
