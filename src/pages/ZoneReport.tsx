@@ -1,3 +1,4 @@
+
 import React, { useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import html2canvas from 'html2canvas';
@@ -27,7 +28,7 @@ const ZoneReport = () => {
 
   if (!reportData) {
     return (
-      <div className="min-h-screen p-6 bg-background flex items-center justify-center">
+      <div className="p-6 bg-background flex items-center justify-center">
         <div className="text-center">
           <p className="text-lg mb-4">לא נמצאו נתונים לדוח</p>
           <Button onClick={() => navigate('/distribution')}>
@@ -111,14 +112,14 @@ const ZoneReport = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background">
       <ActionButtons
         onNavigateBack={handleNavigateBack}
         onPrint={handlePrint}
         onExportToPDF={handleExportToPDF}
       />
 
-      {/* Report content - optimized for single page */}
+      {/* Report content - natural sizing */}
       <div ref={reportRef} className="p-3 max-w-4xl mx-auto bg-white text-xs">
         <ReportHeader
           zoneNumber={zoneNumber}
@@ -144,7 +145,7 @@ const ZoneReport = () => {
         />
       </div>
 
-      {/* Print styles - more natural sizing */}
+      {/* Print styles - natural sizing */}
       <style>{`
         @media print {
           .no-print {
@@ -165,7 +166,7 @@ const ZoneReport = () => {
             margin: 0.5cm;
             size: A4;
           }
-          /* Reduce spacing for print but allow natural sizing */
+          /* Natural spacing for print */
           .space-y-1 > * + * {
             margin-top: 0.125rem;
           }
