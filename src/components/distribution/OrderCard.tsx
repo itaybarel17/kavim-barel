@@ -1,7 +1,9 @@
+
 import React from 'react';
 import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { SirenButton } from './SirenButton';
 
 // Path for prominent customer blue/red icons
 import BlueCustomerIcon from '/blue-customer.svg';
@@ -22,6 +24,7 @@ interface Order {
   ordercancel?: string | null;
   hour?: string;
   remark?: string;
+  alert_status?: boolean;
 }
 interface Return {
   returnnumber: number;
@@ -37,6 +40,7 @@ interface Return {
   returncancel?: string | null;
   hour?: string;
   remark?: string;
+  alert_status?: boolean;
 }
 interface OrderCardProps {
   type: 'order' | 'return';
@@ -58,6 +62,9 @@ interface OrderCardProps {
 
   // new props for supply details - removed agentNameMap as we'll display agentnumber directly
   customerSupplyMap?: Record<string, string>;
+  
+  // new prop for siren functionality
+  onSirenToggle?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
 }
 export const OrderCard: React.FC<OrderCardProps> = ({
   type,
@@ -65,7 +72,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   onDragStart,
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
-  customerSupplyMap = {}
+  customerSupplyMap = {},
+  onSirenToggle
 }) => {
   const [{
     isDragging
@@ -116,7 +124,15 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     // Remove seconds from time string (e.g., "12:40:00" -> "12:40")
     return timeString.substring(0, 5);
   };
-  return <Card ref={drag} className={`min-w-[250px] cursor-move ${isDragging ? 'opacity-50' : ''} ${isOrder ? 'border-blue-200 bg-blue-50' : 'border-red-200 bg-red-50'} ${hasInvoiceNumber ? 'ring-2 ring-green-300' : ''} ${isCandyPlus ? 'ring-2 ring-pink-300 border-pink-200' : ''}`}>
+
+  // Handle siren toggle
+  const handleSirenToggle = () => {
+    if (onSirenToggle) {
+      onSirenToggle({ type, data });
+    }
+  };
+
+  return <Card ref={drag} className={`min-w-[250px] cursor-move ${isDragging ? 'opacity-50' : ''} ${isOrder ? 'border-blue-200 bg-blue-50' : 'border-red-200 bg-red-50'} ${hasInvoiceNumber ? 'ring-2 ring-green-300' : ''} ${isCandyPlus ? 'ring-2 ring-pink-300 border-pink-200' : ''} ${data.alert_status ? 'ring-2 ring-red-500 shadow-lg shadow-red-200' : ''}`}>
       <CardContent className="p-4 bg-[#e8f6fb]">
         {/* שורה ראשונה: מספר הזמנה/החזרה + תאריך + שעה */}
         <div className="flex justify-between items-start mb-2">
@@ -139,8 +155,16 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         {/* שורה שלישית: כתובת */}
         <p className="text-xs text-muted-foreground">{data.address}</p>
         
-        {/* שורה רביעית: עיר */}
-        <p className="text-xs text-muted-foreground mb-2">{data.city}</p>
+        {/* שורה רביעית: עיר + כפתור סירנה */}
+        <div className="flex justify-between items-center mb-2">
+          <p className="text-xs text-muted-foreground">{data.city}</p>
+          {onSirenToggle && (
+            <SirenButton 
+              isActive={data.alert_status || false} 
+              onToggle={handleSirenToggle} 
+            />
+          )}
+        </div>
         
         {/* שורה חמישית: הסכום */}
         <div className="mb-2">

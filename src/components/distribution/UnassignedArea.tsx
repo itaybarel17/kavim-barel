@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useDrop } from 'react-dnd';
 import { OrderCard } from './OrderCard';
@@ -15,6 +16,7 @@ interface Order {
   ordercancel?: string | null;
   hour?: string;
   remark?: string;
+  alert_status?: boolean;
 }
 interface Return {
   returnnumber: number;
@@ -28,6 +30,7 @@ interface Return {
   returncancel?: string | null;
   hour?: string;
   remark?: string;
+  alert_status?: boolean;
 }
 interface UnassignedAreaProps {
   unassignedOrders: Order[];
@@ -55,6 +58,8 @@ interface UnassignedAreaProps {
   }[];
   // new props for supply details - removed agentNameMap
   customerSupplyMap?: Record<string, string>;
+  // new prop for siren functionality
+  onSirenToggle?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
 }
 export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
   unassignedOrders,
@@ -64,7 +69,8 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
   onDeleteItem,
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
-  customerSupplyMap = {}
+  customerSupplyMap = {},
+  onSirenToggle
 }) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{
@@ -105,7 +111,7 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
       <h2 className="text-xl font-semibold mb-4 mx-[8px]">הזמנות והחזרות ללא שיוך</h2>
       <div ref={drop} className={`flex gap-4 overflow-x-auto pb-4 min-h-[120px] border-2 border-dashed rounded-lg p-4 transition-colors ${isOver ? 'border-primary bg-primary/5' : 'border-border'}`}>
         {unassignedOrders.map(order => <div key={`order-${order.ordernumber}`} className="relative group">
-            <OrderCard type="order" data={order} onDragStart={onDragStart} multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} customerSupplyMap={customerSupplyMap} />
+            <OrderCard type="order" data={order} onDragStart={onDragStart} multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} customerSupplyMap={customerSupplyMap} onSirenToggle={onSirenToggle} />
             {onDeleteItem && <button onClick={e => handleDeleteClick({
           type: 'order',
           data: order
@@ -114,7 +120,7 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
               </button>}
           </div>)}
         {unassignedReturns.map(returnItem => <div key={`return-${returnItem.returnnumber}`} className="relative group">
-            <OrderCard type="return" data={returnItem} onDragStart={onDragStart} multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} customerSupplyMap={customerSupplyMap} />
+            <OrderCard type="return" data={returnItem} onDragStart={onDragStart} multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} customerSupplyMap={customerSupplyMap} onSirenToggle={onSirenToggle} />
             {onDeleteItem && <button onClick={e => handleDeleteClick({
           type: 'return',
           data: returnItem
