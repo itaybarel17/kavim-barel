@@ -229,6 +229,22 @@ const Distribution = () => {
     }
   });
 
+  // Periodic refresh for horizontal kanban every minute
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      if (document.visibilityState === 'visible' && !isLoading) {
+        console.log('Refreshing horizontal kanban data...');
+        refetchOrders();
+        refetchReturns();
+        refetchSchedules();
+      }
+    }, 60000); // 1 minute
+
+    return () => {
+      clearInterval(refreshInterval);
+    };
+  }, [refetchOrders, refetchReturns, refetchSchedules, isLoading]);
+
   // Create map for customer supply lookup
   const customerSupplyMap = customerSupplyData.reduce((map, customer) => {
     map[customer.customernumber] = customer.supplydetails || '';
