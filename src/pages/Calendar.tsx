@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,7 +9,6 @@ import { usePeriodicRefresh } from '@/hooks/usePeriodicRefresh';
 import { useAuth } from '@/context/AuthContext';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getAllRelevantScheduleIds } from '@/utils/scheduleUtils';
 
 interface Order {
   ordernumber: number;
@@ -89,14 +87,13 @@ const Calendar = () => {
   useRealtimeSubscription();
 
   // Set up periodic refresh for calendar page too
-  const { refreshUnassignedData, refreshAllData } = usePeriodicRefresh({
+  usePeriodicRefresh({
     refreshUnassignedInterval: 30000,
     // 30 seconds
     refreshAllInterval: 300000,
     // 5 minutes
     respectVisibility: true
   });
-
   const {
     data: distributionGroups = [],
     isLoading: groupsLoading
@@ -184,13 +181,6 @@ const Calendar = () => {
       return data as Driver[];
     }
   });
-
-  const handleRefreshData = () => {
-    refetchSchedules();
-    refetchOrders();
-    refetchReturns();
-  };
-
   const handleUpdateDestinations = async scheduleId => {
     console.log('Updating destinations for schedule:', scheduleId);
     const schedule = distributionSchedules.find(s => s.schedule_id === scheduleId);
@@ -198,18 +188,8 @@ const Calendar = () => {
       console.warn(`Schedule with ID ${scheduleId} not found.`);
       return;
     }
-    
-    // Use scheduleUtils to properly handle schedule_id_if_changed
-    const ordersForSchedule = orders.filter(order => {
-      const relevantScheduleIds = getAllRelevantScheduleIds(order);
-      return relevantScheduleIds.includes(scheduleId);
-    });
-    
-    const returnsForSchedule = returns.filter(ret => {
-      const relevantScheduleIds = getAllRelevantScheduleIds(ret);
-      return relevantScheduleIds.includes(scheduleId);
-    });
-    
+    const ordersForSchedule = orders.filter(order => order.schedule_id === scheduleId || order.schedule_id_if_changed === scheduleId || Array.isArray(order.schedule_id_if_changed) && order.schedule_id_if_changed.includes(scheduleId) || typeof order.schedule_id_if_changed === 'object' && order.schedule_id_if_changed !== null && order.schedule_id_if_changed.schedule_id === scheduleId);
+    const returnsForSchedule = returns.filter(ret => ret.schedule_id === scheduleId || ret.schedule_id_if_changed === scheduleId || Array.isArray(ret.schedule_id_if_changed) && ret.schedule_id_if_changed.includes(scheduleId) || typeof ret.schedule_id_if_changed === 'object' && ret.schedule_id_if_changed !== null && ret.schedule_id_if_changed.schedule_id === scheduleId);
     const uniqueCustomers = new Set();
     ordersForSchedule.forEach(order => uniqueCustomers.add(`${order.customername}-${order.city}`));
     returnsForSchedule.forEach(ret => uniqueCustomers.add(`${ret.customername}-${ret.city}`));
@@ -291,31 +271,8 @@ const Calendar = () => {
   return <div className="min-h-screen p-6 bg-[#f1f5f9]">
       <h1 className="text-3xl font-bold text-gray-700 mb-6">לוח שנה</h1>
       <HorizontalKanban distributionSchedules={distributionSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={orders} returns={returns} onUpdateDestinations={handleUpdateDestinations} onDropToKanban={handleDropToKanban} currentUser={currentUser} />
-      <CalendarGrid 
-        currentWeekStart={new Date()}
-        distributionSchedules={distributionSchedules} 
-        distributionGroups={distributionGroups} 
-        drivers={drivers} 
-        orders={orders} 
-        returns={returns} 
-        onDropToDate={() => {}}
-        currentUser={currentUser}
-        onRefreshData={handleRefreshData}
-      />
-      {selectedScheduleId && (
-        <ProductionDialog 
-          isOpen={true}
-          onClose={() => setSelectedScheduleId(null)}
-          selectedDate={new Date()}
-          distributionSchedules={distributionSchedules}
-          distributionGroups={distributionGroups}
-          drivers={drivers}
-          orders={orders}
-          returns={returns}
-          onProduced={handleRefreshData}
-          currentUser={currentUser}
-        />
-      )}
+      <CalendarGrid distributionSchedules={distributionSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={orders} returns={returns} onUpdateDestinations={handleUpdateDestinations} onScheduleSelect={setSelectedScheduleId} currentUser={currentUser} />
+      {selectedScheduleId && <ProductionDialog scheduleId={selectedScheduleId} onClose={() => setSelectedScheduleId(null)} refetchSchedules={refetchSchedules} refetchOrders={refetchOrders} refetchReturns={refetchReturns} />}
     </div>;
 };
 export default Calendar;
