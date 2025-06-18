@@ -30,6 +30,7 @@ interface Order {
   remark?: string;
   done_mainorder?: string | null;
   ordercancel?: string | null;
+  alert_status?: boolean;
 }
 interface Return {
   returnnumber: number;
@@ -46,6 +47,7 @@ interface Return {
   remark?: string;
   done_return?: string | null;
   returncancel?: string | null;
+  alert_status?: boolean;
 }
 interface DistributionGroup {
   groups_id: number;
@@ -119,7 +121,7 @@ const Distribution = () => {
       const {
         data,
         error
-      } = await supabase.from('mainorder').select('ordernumber, customername, address, city, totalorder, schedule_id, icecream, customernumber, agentnumber, orderdate, invoicenumber, totalinvoice, hour, remark').or('icecream.is.null,icecream.eq.').is('done_mainorder', null).is('ordercancel', null) // Exclude deleted orders
+      } = await supabase.from('mainorder').select('ordernumber, customername, address, city, totalorder, schedule_id, icecream, customernumber, agentnumber, orderdate, invoicenumber, totalinvoice, hour, remark, alert_status').or('icecream.is.null,icecream.eq.').is('done_mainorder', null).is('ordercancel', null) // Exclude deleted orders
       .order('ordernumber', {
         ascending: false
       }).limit(50);
@@ -141,7 +143,7 @@ const Distribution = () => {
       const {
         data,
         error
-      } = await supabase.from('mainreturns').select('returnnumber, customername, address, city, totalreturn, schedule_id, icecream, customernumber, agentnumber, returndate, hour, remark').or('icecream.is.null,icecream.eq.').is('done_return', null).is('returncancel', null) // Exclude deleted returns
+      } = await supabase.from('mainreturns').select('returnnumber, customername, address, city, totalreturn, schedule_id, icecream, customernumber, agentnumber, returndate, hour, remark, alert_status').or('icecream.is.null,icecream.eq.').is('done_return', null).is('returncancel', null) // Exclude deleted returns
       .order('returnnumber', {
         ascending: false
       }).limit(50);
@@ -482,6 +484,11 @@ const Distribution = () => {
     }
   };
 
+  const handleAlertStatusChange = () => {
+    refetchOrders();
+    refetchReturns();
+  };
+
   // Updated helper function to get the current state of a zone using stable mapping
   const getZoneState = (zoneNumber: number) => {
     console.log('getZoneState called for zone:', zoneNumber);
@@ -563,15 +570,16 @@ const Distribution = () => {
         </div>
         
         {/* Unassigned items area with drop functionality and delete buttons */}
-        <UnassignedArea unassignedOrders={unassignedOrders} unassignedReturns={unassignedReturns} onDragStart={setDraggedItem} onDropToUnassigned={handleDropToUnassigned} onDeleteItem={handleDeleteItem} multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} customerSupplyMap={customerSupplyMap} />
+        <UnassignedArea unassignedOrders={unassignedOrders} unassignedReturns={unassignedReturns} onDragStart={setDraggedItem} onDropToUnassigned={handleDropToUnassigned} onDeleteItem={handleDeleteItem} multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} customerSupplyMap={customerSupplyMap} onAlertStatusChange={handleAlertStatusChange} />
 
         {/* Mobile: single column, Tablet: 2 columns, Desktop: 4 columns */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {dropZones.map(zoneNumber => <DropZone key={zoneNumber} zoneNumber={zoneNumber} distributionGroups={distributionGroups} distributionSchedules={distributionSchedules} drivers={drivers} onDrop={handleDrop} orders={orders} returns={returns} onScheduleDeleted={handleScheduleDeleted} onScheduleCreated={handleScheduleCreated} onRemoveFromZone={handleRemoveFromZone} getZoneState={getZoneState}
         // icons data
-        multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} customerSupplyMap={customerSupplyMap} />)}
+        multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} customerSupplyMap={customerSupplyMap} onAlertStatusChange={handleAlertStatusChange} />)}
         </div>
       </div>
     </DndProvider>;
 };
+
 export default Distribution;
