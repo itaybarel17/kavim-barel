@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { OrderCard } from './OrderCard';
 import { pdf } from '@react-pdf/renderer';
 import { ZonePDFDocument } from './ZonePDFDocument';
+
 interface Order {
   ordernumber: number;
   customername: string;
@@ -22,7 +23,9 @@ interface Order {
   invoicenumber?: number;
   hour?: string;
   remark?: string;
+  alert_status?: boolean;
 }
+
 interface Return {
   returnnumber: number;
   customername: string;
@@ -35,7 +38,9 @@ interface Return {
   returndate?: string;
   hour?: string;
   remark?: string;
+  alert_status?: boolean;
 }
+
 interface DistributionGroup {
   groups_id: number;
   separation: string;
@@ -51,6 +56,7 @@ interface Driver {
   id: number;
   nahag: string;
 }
+
 interface DropZoneProps {
   zoneNumber: number;
   distributionGroups: DistributionGroup[];
@@ -80,6 +86,17 @@ interface DropZoneProps {
   // new prop for siren functionality
   onSirenToggle?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
 }
+
+/**
+ * Sorts items with active sirens (alert_status: true) to the top
+ * while preserving the original order within each group
+ */
+const sortBySirenStatus = <T extends { alert_status?: boolean }>(items: T[]): T[] => {
+  const withSiren = items.filter(item => item.alert_status === true);
+  const withoutSiren = items.filter(item => item.alert_status !== true);
+  return [...withSiren, ...withoutSiren];
+};
+
 export const DropZone: React.FC<DropZoneProps> = ({
   zoneNumber,
   distributionGroups,
@@ -132,6 +149,10 @@ export const DropZone: React.FC<DropZoneProps> = ({
   // Get assigned items for this zone based on schedule_id - ONLY for ACTIVE schedules
   const assignedOrders = orders.filter(order => scheduleId && order.schedule_id === scheduleId && distributionSchedules.some(schedule => schedule.schedule_id === scheduleId));
   const assignedReturns = returns.filter(returnItem => scheduleId && returnItem.schedule_id === scheduleId && distributionSchedules.some(schedule => schedule.schedule_id === returnItem.schedule_id));
+
+  // Sort items with siren status at the top
+  const sortedOrders = useMemo(() => sortBySirenStatus(assignedOrders), [assignedOrders]);
+  const sortedReturns = useMemo(() => sortBySirenStatus(assignedReturns), [assignedReturns]);
 
   // Calculate unique customer points (נקודות)
   const uniqueCustomerPoints = useMemo(() => {
@@ -203,6 +224,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
       state: reportData
     });
   };
+
   const handleGroupSelection = async (value: string) => {
     const groupId = value ? parseInt(value) : null;
     console.log('Group selected for zone', zoneNumber, ':', groupId);
@@ -233,6 +255,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
       console.error('Error in group selection:', error);
     }
   };
+
   const handleDriverSelection = async (value: string) => {
     const driverId = value ? parseInt(value) : null;
     console.log('Driver selected for zone', zoneNumber, ':', driverId);
@@ -256,6 +279,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
       console.error('Error in driver selection:', error);
     }
   };
+
   const handleDeleteSchedule = async () => {
     if (!scheduleId) return;
     try {
@@ -302,6 +326,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
       console.error('Error deleting schedule:', error);
     }
   };
+
   const handleItemDragStart = (item: {
     type: 'order' | 'return';
     data: Order | Return;
@@ -370,8 +395,8 @@ export const DropZone: React.FC<DropZoneProps> = ({
         </div>
       </CardHeader>
       <CardContent className="space-y-2 px-[4px]">
-        {assignedOrders.map(order => <OrderCard key={`order-${order.ordernumber}`} type="order" data={order} onDragStart={handleItemDragStart} multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} customerSupplyMap={customerSupplyMap} onSirenToggle={onSirenToggle} />)}
-        {assignedReturns.map(returnItem => <OrderCard key={`return-${returnItem.returnnumber}`} type="return" data={returnItem} onDragStart={handleItemDragStart} multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} customerSupplyMap={customerSupplyMap} onSirenToggle={onSirenToggle} />)}
+        {sortedOrders.map(order => <OrderCard key={`order-${order.ordernumber}`} type="order" data={order} onDragStart={handleItemDragStart} multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} customerSupplyMap={customerSupplyMap} onSirenToggle={onSirenToggle} />)}
+        {sortedReturns.map(returnItem => <OrderCard key={`return-${returnItem.returnnumber}`} type="return" data={returnItem} onDragStart={handleItemDragStart} multiOrderActiveCustomerList={multiOrderActiveCustomerList} dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} customerSupplyMap={customerSupplyMap} onSirenToggle={onSirenToggle} />)}
         {assignedOrders.length === 0 && assignedReturns.length === 0 && <div className="text-center text-muted-foreground text-sm py-8">
             {selectedGroupId ? 'גרור הזמנות או החזרות לכאן' : 'בחר אזור ליצירת מזהה'}
           </div>}
