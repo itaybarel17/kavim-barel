@@ -2,8 +2,9 @@ import React from 'react';
 import { useDrop } from 'react-dnd';
 import { Card } from '@/components/ui/card';
 import { CalendarCard } from './CalendarCard';
-import { getUniqueCustomersForSchedule } from '@/utils/scheduleUtils';
+import { getUniqueCustomersForSchedule, getAllRelevantScheduleIds } from '@/utils/scheduleUtils';
 import type { OrderWithSchedule, ReturnWithSchedule } from '@/utils/scheduleUtils';
+
 interface DistributionGroup {
   groups_id: number;
   separation: string;
@@ -71,35 +72,11 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
       const agent99ScheduleIds = new Set<number>();
       distributionSchedules.forEach(schedule => {
         const hasAgent99Orders = orders.some(order => {
-          const relevantScheduleIds = [];
-          if (typeof order.schedule_id === 'number') relevantScheduleIds.push(order.schedule_id);
-          if (order.schedule_id_if_changed) {
-            if (typeof order.schedule_id_if_changed === 'number') {
-              relevantScheduleIds.push(order.schedule_id_if_changed);
-            } else if (Array.isArray(order.schedule_id_if_changed)) {
-              order.schedule_id_if_changed.forEach(sid => {
-                if (typeof sid === 'number') relevantScheduleIds.push(sid);
-              });
-            } else if (typeof order.schedule_id_if_changed === 'object' && order.schedule_id_if_changed.schedule_id) {
-              relevantScheduleIds.push(order.schedule_id_if_changed.schedule_id);
-            }
-          }
+          const relevantScheduleIds = getAllRelevantScheduleIds(order);
           return relevantScheduleIds.includes(schedule.schedule_id) && order.agentnumber === '99';
         });
         const hasAgent99Returns = returns.some(returnItem => {
-          const relevantScheduleIds = [];
-          if (typeof returnItem.schedule_id === 'number') relevantScheduleIds.push(returnItem.schedule_id);
-          if (returnItem.schedule_id_if_changed) {
-            if (typeof returnItem.schedule_id_if_changed === 'number') {
-              relevantScheduleIds.push(returnItem.schedule_id_if_changed);
-            } else if (Array.isArray(returnItem.schedule_id_if_changed)) {
-              returnItem.schedule_id_if_changed.forEach(sid => {
-                if (typeof sid === 'number') relevantScheduleIds.push(sid);
-              });
-            } else if (typeof returnItem.schedule_id_if_changed === 'object' && returnItem.schedule_id_if_changed.schedule_id) {
-              relevantScheduleIds.push(returnItem.schedule_id_if_changed.schedule_id);
-            }
-          }
+          const relevantScheduleIds = getAllRelevantScheduleIds(returnItem);
           return relevantScheduleIds.includes(schedule.schedule_id) && returnItem.agentnumber === '99';
         });
         if (hasAgent99Orders || hasAgent99Returns) {
