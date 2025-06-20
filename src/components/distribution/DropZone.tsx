@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Toggle } from '@/components/ui/toggle';
-import { X, Printer, Pin } from 'lucide-react';
+import { X, Printer } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderCard } from './OrderCard';
 import { pdf } from '@react-pdf/renderer';
@@ -357,10 +357,10 @@ export const DropZone: React.FC<DropZoneProps> = ({
                 pressed={currentZoneState.isPinned}
                 onPressedChange={() => onTogglePin(zoneNumber)}
                 size="sm"
-                className="h-6 w-6 data-[state=on]:bg-blue-500 data-[state=on]:text-white"
+                className="h-6 w-6 rounded-full data-[state=on]:bg-blue-500 data-[state=on]:text-white data-[state=off]:bg-gray-200 relative"
                 title={currentZoneState.isPinned ? "בטל צימוד" : "צמד לראש"}
               >
-                <Pin className="h-3 w-3" />
+                <div className={`w-3 h-3 bg-white rounded-full transition-transform ${currentZoneState.isPinned ? 'translate-x-1' : '-translate-x-1'}`} />
               </Toggle>
             )}
             {scheduleId && (assignedOrders.length > 0 || assignedReturns.length > 0) && (
