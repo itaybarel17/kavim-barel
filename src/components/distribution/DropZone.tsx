@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { X, Printer } from 'lucide-react';
+import { Toggle } from '@/components/ui/toggle';
+import { X, Printer, Pin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderCard } from './OrderCard';
 import { pdf } from '@react-pdf/renderer';
@@ -77,6 +78,7 @@ interface DropZoneProps {
   getZoneState: (zoneNumber: number) => {
     selectedGroupId: number | null;
     scheduleId: number | null;
+    isPinned: boolean;
   };
   // existing props for icons
   multiOrderActiveCustomerList?: any[];
@@ -85,6 +87,8 @@ interface DropZoneProps {
   customerSupplyMap?: Record<string, string>;
   // new prop for siren functionality
   onSirenToggle?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
+  // new prop for pin toggle functionality
+  onTogglePin?: (zoneNumber: number) => void;
 }
 
 /**
@@ -112,7 +116,8 @@ export const DropZone: React.FC<DropZoneProps> = ({
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
   customerSupplyMap = {},
-  onSirenToggle
+  onSirenToggle,
+  onTogglePin
 }) => {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [scheduleId, setScheduleId] = useState<number | null>(null);
@@ -347,6 +352,17 @@ export const DropZone: React.FC<DropZoneProps> = ({
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">אזור {zoneNumber}</CardTitle>
           <div className="flex gap-2">
+            {scheduleId && onTogglePin && (
+              <Toggle
+                pressed={currentZoneState.isPinned}
+                onPressedChange={() => onTogglePin(zoneNumber)}
+                size="sm"
+                className="h-6 w-6 data-[state=on]:bg-blue-500 data-[state=on]:text-white"
+                title={currentZoneState.isPinned ? "בטל צימוד" : "צמד לראש"}
+              >
+                <Pin className="h-3 w-3" />
+              </Toggle>
+            )}
             {scheduleId && (assignedOrders.length > 0 || assignedReturns.length > 0) && (
               <Button
                 variant="ghost"

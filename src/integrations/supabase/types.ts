@@ -127,6 +127,7 @@ export type Database = {
           driver_id: number | null
           europallet_return: number | null
           groups_id: number | null
+          isPinned: boolean | null
           nahag_name: string | null
           note: string | null
           schedule_id: number
@@ -141,6 +142,7 @@ export type Database = {
           driver_id?: number | null
           europallet_return?: number | null
           groups_id?: number | null
+          isPinned?: boolean | null
           nahag_name?: string | null
           note?: string | null
           schedule_id?: number
@@ -155,6 +157,7 @@ export type Database = {
           driver_id?: number | null
           europallet_return?: number | null
           groups_id?: number | null
+          isPinned?: boolean | null
           nahag_name?: string | null
           note?: string | null
           schedule_id?: number

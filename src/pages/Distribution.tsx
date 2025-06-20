@@ -61,6 +61,7 @@ interface DistributionSchedule {
   create_at_schedule: string;
   driver_id?: number;
   distribution_date?: string;
+  isPinned?: boolean;
 }
 interface Driver {
   id: number;
@@ -208,7 +209,7 @@ const Distribution = () => {
     }
   });
 
-  // Fetch ONLY ACTIVE distribution schedules - filter out produced ones (done_schedule IS NOT NULL)
+  // Fetch ONLY ACTIVE distribution schedules with isPinned - filter out produced ones (done_schedule IS NOT NULL)
   const {
     data: distributionSchedules = [],
     refetch: refetchSchedules,
@@ -220,7 +221,7 @@ const Distribution = () => {
       const {
         data,
         error
-      } = await supabase.from('distribution_schedule').select('schedule_id, groups_id, create_at_schedule, driver_id, distribution_date').is('done_schedule', null); // Only get active schedules, not produced ones
+      } = await supabase.from('distribution_schedule').select('schedule_id, groups_id, create_at_schedule, driver_id, distribution_date, isPinned').is('done_schedule', null); // Only get active schedules, not produced ones
 
       if (error) throw error;
       console.log('Active distribution schedules fetched:', data);
@@ -510,7 +511,8 @@ const Distribution = () => {
       console.log(`Zone ${zoneNumber} has no schedule - completely empty`);
       return {
         selectedGroupId: null,
-        scheduleId: null
+        scheduleId: null,
+        isPinned: false
       };
     }
 
@@ -520,15 +522,53 @@ const Distribution = () => {
       console.log(`Schedule ${scheduleId} not found for zone ${zoneNumber}`);
       return {
         selectedGroupId: null,
-        scheduleId: null
+        scheduleId: null,
+        isPinned: false
       };
     }
 
     console.log(`Zone ${zoneNumber} mapped to schedule:`, schedule);
     return {
       selectedGroupId: schedule.groups_id,
-      scheduleId: schedule.schedule_id
+      scheduleId: schedule.schedule_id,
+      isPinned: schedule.isPinned || false
     };
+  };
+
+  // Add toggle pin handler
+  const handleTogglePin = async (zoneNumber: number) => {
+    const scheduleId = zoneScheduleMapping[zoneNumber];
+    if (!scheduleId) {
+      console.log('No schedule ID found for zone, cannot toggle pin');
+      return;
+    }
+
+    try {
+      const currentSchedule = distributionSchedules.find(s => s.schedule_id === scheduleId);
+      const newPinnedStatus = !(currentSchedule?.isPinned || false);
+      
+      console.log(`Toggling pin for zone ${zoneNumber}, schedule ${scheduleId}:`, newPinnedStatus);
+      
+      const { error } = await supabase
+        .from('distribution_schedule')
+        .update({ isPinned: newPinnedStatus })
+        .eq('schedule_id', scheduleId);
+      
+      if (error) {
+        console.error('Error updating pin status:', error);
+        throw error;
+      }
+      
+      console.log('Pin status updated successfully');
+      refetchSchedules();
+    } catch (error) {
+      console.error('Error toggling pin:', error);
+      toast({
+        title: "שגיאה",
+        description: "אירעה שגיאה בעדכון הצימוד",
+        variant: "destructive"
+      });
+    }
   };
 
   // Add siren toggle handler
@@ -579,14 +619,30 @@ const Distribution = () => {
   const unassignedOrders = orders.filter(order => !order.schedule_id || !distributionSchedules.some(schedule => schedule.schedule_id === order.schedule_id));
   const unassignedReturns = returns.filter(returnItem => !returnItem.schedule_id || !distributionSchedules.some(schedule => schedule.schedule_id === returnItem.schedule_id));
 
-  // Create 12 drop zones (3 rows x 4 columns)
-  const dropZones = Array.from({
-    length: 12
-  }, (_, index) => index + 1);
+  // Create sorted drop zones (pinned first, then regular order)
+  const dropZones = useMemo(() => {
+    const allZones = Array.from({ length: 12 }, (_, index) => index + 1);
+    
+    return allZones.sort((a, b) => {
+      const zoneStateA = getZoneState(a);
+      const zoneStateB = getZoneState(b);
+      const pinnedA = zoneStateA.isPinned;
+      const pinnedB = zoneStateB.isPinned;
+      
+      // If one is pinned and the other isn't, pinned comes first
+      if (pinnedA && !pinnedB) return -1;
+      if (!pinnedA && pinnedB) return 1;
+      
+      // If both have the same pinned status, maintain numerical order
+      return a - b;
+    });
+  }, [distributionSchedules, zoneScheduleMapping]);
+
   console.log('Unassigned orders:', unassignedOrders.length);
   console.log('Unassigned returns:', unassignedReturns.length);
   console.log('Distribution groups:', distributionGroups.length);
   console.log('Active schedules:', distributionSchedules.length);
+  console.log('Sorted drop zones:', dropZones);
   const isLoading = ordersLoading || returnsLoading || groupsLoading || schedulesLoading || driversLoading || customerSupplyLoading;
 
   // Check if there are any items with active sirens anywhere in the system
@@ -679,7 +735,8 @@ const Distribution = () => {
               multiOrderActiveCustomerList={multiOrderActiveCustomerList} 
               dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} 
               customerSupplyMap={customerSupplyMap} 
-              onSirenToggle={handleSirenToggle} 
+              onSirenToggle={handleSirenToggle}
+              onTogglePin={handleTogglePin}
             />
           )}
         </div>
