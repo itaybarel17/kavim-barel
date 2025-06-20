@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { CentralAlertBanner } from '@/components/distribution/CentralAlertBanner';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Order {
   ordernumber: number;
@@ -86,9 +87,22 @@ const Distribution = () => {
   const {
     user: currentUser
   } = useAuth();
+  
+  const isMobile = useIsMobile();
 
   // Set up realtime subscriptions
   useRealtimeSubscription();
+
+  // Add simple page refresh every 10 minutes for desktop only
+  useEffect(() => {
+    if (!isMobile) {
+      const interval = setInterval(() => {
+        window.location.reload();
+      }, 10 * 60 * 1000); // 10 minutes
+
+      return () => clearInterval(interval);
+    }
+  }, [isMobile]);
 
   // Helper function to filter orders based on user permissions
   const filterOrdersByUser = (orders: Order[]) => {

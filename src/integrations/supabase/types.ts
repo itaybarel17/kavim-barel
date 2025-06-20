@@ -520,21 +520,6 @@ export type Database = {
           },
         ]
       }
-      ordershour: {
-        Row: {
-          hour: string | null
-          ordernumber: number
-        }
-        Insert: {
-          hour?: string | null
-          ordernumber: number
-        }
-        Update: {
-          hour?: string | null
-          ordernumber?: number
-        }
-        Relationships: []
-      }
       ordersITEMS: {
         Row: {
           "1=גלידה": string | null
