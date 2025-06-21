@@ -91,7 +91,7 @@ export const MessageForm: React.FC = () => {
           subject: data.subject,
           content: data.content,
           agentnumber: user?.agentnumber,
-          tagagent: data.tagagent || null,
+          tagagent: data.tagagent === "none" ? null : data.tagagent || null,
           correctcustomer: data.correctcustomer || null,
           ordernumber: data.ordernumber || null,
           returnnumber: data.returnnumber || null,
@@ -184,7 +184,7 @@ export const MessageForm: React.FC = () => {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="">ללא תיוג</SelectItem>
+                    <SelectItem value="none">ללא תיוג</SelectItem>
                     {agents?.map((agent) => (
                       <SelectItem key={agent.agentnumber} value={agent.agentnumber}>
                         {agent.agentname} ({agent.agentnumber})
