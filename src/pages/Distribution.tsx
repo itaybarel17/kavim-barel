@@ -18,12 +18,8 @@ export default function Distribution() {
   const queryClient = useQueryClient();
   const [alertStates, setAlertStates] = useState<Record<number, boolean>>({});
 
-  // Listen for real-time updates
-  useRealtimeSubscription(['mainorder', 'mainreturns', 'distribution_schedule'], () => {
-    queryClient.invalidateQueries({ queryKey: ['unassigned-orders'] });
-    queryClient.invalidateQueries({ queryKey: ['schedules'] });
-    queryClient.invalidateQueries({ queryKey: ['warehouse-messages'] });
-  });
+  // Listen for real-time updates - no parameters needed
+  useRealtimeSubscription();
 
   const isAdmin = user?.agentnumber === "4";
 
@@ -127,10 +123,18 @@ export default function Distribution() {
     }
   });
 
-  const handleToggleAlert = useCallback((orderId: number, currentStatus: boolean) => {
+  // Updated handleToggleAlert to match the expected signature
+  const handleToggleAlert = useCallback((item: { type: 'order' | 'return'; data: any }) => {
+    const id = item.type === 'order' ? item.data.ordernumber : item.data.returnnumber;
+    const currentStatus = item.data.alert_status || false;
     const newStatus = !currentStatus;
-    setAlertStates(prev => ({ ...prev, [orderId]: newStatus }));
-    toggleAlertMutation.mutate({ orderId, isAlert: newStatus });
+    
+    setAlertStates(prev => ({ ...prev, [id]: newStatus }));
+    
+    if (item.type === 'order') {
+      toggleAlertMutation.mutate({ orderId: id, isAlert: newStatus });
+    }
+    // Handle returns if needed in the future
   }, [toggleAlertMutation]);
 
   const hasAlerts = schedules?.some(schedule => 
