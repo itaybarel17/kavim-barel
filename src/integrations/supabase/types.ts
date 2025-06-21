@@ -539,6 +539,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_messages_schedule_id"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "distribution_schedule"
+            referencedColumns: ["schedule_id"]
+          },
+          {
             foreignKeyName: "messages_agentnumber_fkey"
             columns: ["agentnumber"]
             isOneToOne: false
@@ -1126,7 +1133,13 @@ export type Database = {
         | "חדרה 2"
         | "חדרה 3"
         | "חדרה 4"
-      subject_message: "לבטל" | "לדחות" | "הנחות" | "אספקה" | "לקוח אחר"
+      subject_message:
+        | "לבטל"
+        | "לדחות"
+        | "הנחות"
+        | "אספקה"
+        | "לקוח אחר"
+        | "קו הפצה"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1310,7 +1323,14 @@ export const Constants = {
         "חדרה 3",
         "חדרה 4",
       ],
-      subject_message: ["לבטל", "לדחות", "הנחות", "אספקה", "לקוח אחר"],
+      subject_message: [
+        "לבטל",
+        "לדחות",
+        "הנחות",
+        "אספקה",
+        "לקוח אחר",
+        "קו הפצה",
+      ],
     },
   },
 } as const

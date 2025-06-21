@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { MessageForm } from "@/components/messages/MessageForm";
 import { MessageList } from "@/components/messages/MessageList";
 import { MessageFilters } from "@/components/messages/MessageFilters";
@@ -25,7 +24,7 @@ export default function Messages() {
 
   const isAdmin = user?.agentnumber === "4";
 
-  // Fetch messages with filters
+  // Fetch messages with filters, including distribution_schedule relation
   const { data: messages, isLoading } = useQuery({
     queryKey: ['messages', filters],
     queryFn: async () => {
@@ -36,7 +35,8 @@ export default function Messages() {
           agents!messages_agentnumber_fkey(agentname),
           tag_agent:agents!messages_tagagent_fkey(agentname),
           mainorder(customername, ordernumber),
-          mainreturns(customername, returnnumber)
+          mainreturns(customername, returnnumber),
+          distribution_schedule(schedule_id, distribution_date, nahag_name, dis_number)
         `)
         .order('created_at', { ascending: false });
 

@@ -14,10 +14,17 @@ type Message = {
   correctcustomer: string | null;
   ordernumber: number | null;
   returnnumber: number | null;
+  schedule_id: number | null;
   agents?: { agentname: string };
   tag_agent?: { agentname: string };
   mainorder?: { customername: string; ordernumber: number };
   mainreturns?: { customername: string; returnnumber: number };
+  distribution_schedule?: { 
+    schedule_id: number; 
+    distribution_date: string | null;
+    nahag_name: string | null;
+    dis_number: number | null;
+  };
 };
 
 type MessageListProps = {
