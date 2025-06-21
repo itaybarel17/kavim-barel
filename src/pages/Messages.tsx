@@ -24,23 +24,13 @@ export default function Messages() {
 
   const isAdmin = user?.agentnumber === "4";
 
-  // Type guard function for schedule data
-  const isValidScheduleData = (data: any): data is { 
-    schedule_id: number; 
-    distribution_date: string | null;
-    nahag_name: string | null;
-    dis_number: number | null;
-  } => {
-    return data !== null && 
-           typeof data === 'object' && 
-           !('error' in data) &&
-           typeof data.schedule_id === 'number';
-  };
-
-  // Fetch messages with filters, including distribution_schedule relation
+  // Fetch messages with a simplified query first
   const { data: messages, isLoading } = useQuery({
     queryKey: ['messages', filters],
     queryFn: async () => {
+      console.log('Fetching messages with filters:', filters);
+      
+      // Start with a simpler query without the problematic distribution_schedule join
       let query = supabase
         .from('messages')
         .select(`
@@ -48,8 +38,7 @@ export default function Messages() {
           agents!messages_agentnumber_fkey(agentname),
           tag_agent:agents!messages_tagagent_fkey(agentname),
           mainorder(customername, ordernumber),
-          mainreturns(customername, returnnumber),
-          distribution_schedule!left(schedule_id, distribution_date, nahag_name, dis_number)
+          mainreturns(customername, returnnumber)
         `)
         .order('created_at', { ascending: false });
 
@@ -74,22 +63,16 @@ export default function Messages() {
       }
 
       const { data, error } = await query;
+      
       if (error) {
         console.error('Query error:', error);
         throw error;
       }
       
-      // Filter and clean the data to ensure proper typing
-      const cleanedData = data?.map(message => {
-        return {
-          ...message,
-          distribution_schedule: isValidScheduleData(message.distribution_schedule) 
-            ? message.distribution_schedule 
-            : null
-        };
-      }) || [];
+      console.log('Fetched messages:', data?.length || 0, 'messages');
       
-      return cleanedData;
+      // Return the data as-is for now, without the problematic distribution_schedule
+      return data || [];
     }
   });
 

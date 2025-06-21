@@ -18,6 +18,7 @@ type Message = {
   correctcustomer: string | null;
   ordernumber: number | null;
   returnnumber: number | null;
+  schedule_id: number | null;
   agents?: { agentname: string };
   tag_agent?: { agentname: string };
   mainorder?: { customername: string; ordernumber: number };
@@ -120,6 +121,13 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                 <span className="text-gray-600"> - {message.mainreturns.customername}</span>
               </span>
             )}
+          </div>
+        )}
+
+        {message.schedule_id && (
+          <div className="flex items-center gap-2 text-sm bg-orange-50 p-2 rounded">
+            <Tag className="w-4 h-4 text-orange-600" />
+            <span className="font-medium">מזהה לוח זמנים: {message.schedule_id}</span>
           </div>
         )}
 
