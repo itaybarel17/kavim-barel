@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,14 +15,16 @@ const SUBJECT_OPTIONS = [
   { value: "הנחות", label: "הנחות" },
   { value: "אספקה", label: "אספקה" },
   { value: "לקוח אחר", label: "לקוח אחר" },
-  { value: "קו הפצה", label: "קו הפצה" }
+  { value: "קו הפצה", label: "קו הפצה" },
+  { value: "מחסן", label: "מחסן" }
 ] as const;
 
 // Add warehouse option only for admin
 const getSubjectOptions = (isAdmin: boolean) => {
   const options = [...SUBJECT_OPTIONS];
-  if (isAdmin) {
-    options.push({ value: "מחסן", label: "מחסן" });
+  if (!isAdmin) {
+    // Remove warehouse option for non-admin users
+    return options.filter(option => option.value !== "מחסן");
   }
   return options;
 };
