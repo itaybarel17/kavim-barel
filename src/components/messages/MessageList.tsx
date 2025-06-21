@@ -24,7 +24,7 @@ type Message = {
     distribution_date: string | null;
     nahag_name: string | null;
     dis_number: number | null;
-  };
+  } | null;
 };
 
 type MessageListProps = {
