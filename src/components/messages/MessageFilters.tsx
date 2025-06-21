@@ -24,7 +24,8 @@ const SUBJECT_OPTIONS = [
   { value: "לדחות", label: "לדחות" },
   { value: "הנחות", label: "הנחות" },
   { value: "אספקה", label: "אספקה" },
-  { value: "לקוח אחר", label: "לקוח אחר" }
+  { value: "לקוח אחר", label: "לקוח אחר" },
+  { value: "מחסן", label: "מחסן" }
 ];
 
 export const MessageFilters: React.FC<MessageFiltersProps> = ({

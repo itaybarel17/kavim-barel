@@ -5,7 +5,7 @@ import { he } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Check, X, User, Tag, FileText, RotateCcw, Trash2 } from "lucide-react";
+import { Check, X, User, Tag, FileText, RotateCcw, Trash2, Warehouse } from "lucide-react";
 import { DeleteMessageDialog } from "./DeleteMessageDialog";
 
 type Message = {
@@ -42,6 +42,7 @@ const getSubjectColor = (subject: string | null) => {
     case "הנחות": return "bg-green-100 text-green-800";
     case "אספקה": return "bg-blue-100 text-blue-800";
     case "לקוח אחר": return "bg-purple-100 text-purple-800";
+    case "מחסן": return "bg-orange-100 text-orange-800";
     default: return "bg-gray-100 text-gray-800";
   }
 };
@@ -83,14 +84,17 @@ export const MessageCard: React.FC<MessageCardProps> = ({
     setShowDeleteDialog(false);
   };
 
+  const isWarehouseMessage = message.subject === "מחסן";
+
   return (
     <>
-      <Card className={`${message.is_handled ? 'bg-gray-50 border-gray-200' : 'bg-white border-l-4 border-l-blue-500'}`}>
+      <Card className={`${message.is_handled ? 'bg-gray-50 border-gray-200' : 'bg-white border-l-4 border-l-blue-500'} ${isWarehouseMessage ? 'border-orange-200' : ''}`}>
         <CardHeader className="pb-3">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-2">
               {message.subject && (
                 <Badge className={getSubjectColor(message.subject)}>
+                  {isWarehouseMessage && <Warehouse className="w-3 h-3 mr-1" />}
                   {message.subject}
                 </Badge>
               )}
@@ -98,6 +102,11 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                 <Badge variant="secondary" className="bg-green-100 text-green-800">
                   <Check className="w-3 h-3 mr-1" />
                   טופל
+                </Badge>
+              )}
+              {isWarehouseMessage && (
+                <Badge variant="outline" className="border-orange-300 text-orange-700">
+                  הודעה פנימית
                 </Badge>
               )}
             </div>
@@ -138,7 +147,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
             </div>
           )}
 
-          {(message.mainorder || message.mainreturns) && (
+          {!isWarehouseMessage && (message.mainorder || message.mainreturns) && (
             <div className="flex items-center gap-2 text-sm bg-blue-50 p-2 rounded">
               <FileText className="w-4 h-4 text-blue-600" />
               {message.mainorder && (
@@ -156,7 +165,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
             </div>
           )}
 
-          {message.schedule_id && (
+          {!isWarehouseMessage && message.schedule_id && (
             <div className="flex items-center gap-2 text-sm bg-orange-50 p-2 rounded">
               <Tag className="w-4 h-4 text-orange-600" />
               <span className="font-medium">מזהה לוח זמנים: {message.schedule_id}</span>

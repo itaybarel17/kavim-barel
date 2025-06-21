@@ -64,6 +64,18 @@ export const useRealtimeSubscription = () => {
           queryClient.invalidateQueries({ queryKey: ['calendar-distribution-groups'] });
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages'
+        },
+        (payload) => {
+          console.log('messages changed:', payload);
+          queryClient.invalidateQueries({ queryKey: ['messages'] });
+        }
+      )
       .subscribe();
 
     return () => {
