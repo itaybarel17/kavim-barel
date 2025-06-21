@@ -497,6 +497,84 @@ export type Database = {
         }
         Relationships: []
       }
+      messages: {
+        Row: {
+          agentnumber: string | null
+          content: string | null
+          correctcustomer: string | null
+          created_at: string
+          is_handled: boolean | null
+          messages_id: number
+          ordernumber: number | null
+          returnnumber: number | null
+          schedule_id: number | null
+          subject: Database["public"]["Enums"]["subject_message"] | null
+          tagagent: string | null
+        }
+        Insert: {
+          agentnumber?: string | null
+          content?: string | null
+          correctcustomer?: string | null
+          created_at?: string
+          is_handled?: boolean | null
+          messages_id?: number
+          ordernumber?: number | null
+          returnnumber?: number | null
+          schedule_id?: number | null
+          subject?: Database["public"]["Enums"]["subject_message"] | null
+          tagagent?: string | null
+        }
+        Update: {
+          agentnumber?: string | null
+          content?: string | null
+          correctcustomer?: string | null
+          created_at?: string
+          is_handled?: boolean | null
+          messages_id?: number
+          ordernumber?: number | null
+          returnnumber?: number | null
+          schedule_id?: number | null
+          subject?: Database["public"]["Enums"]["subject_message"] | null
+          tagagent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_agentnumber_fkey"
+            columns: ["agentnumber"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["agentnumber"]
+          },
+          {
+            foreignKeyName: "messages_ordernumber_fkey"
+            columns: ["ordernumber"]
+            isOneToOne: false
+            referencedRelation: "mainorder"
+            referencedColumns: ["ordernumber"]
+          },
+          {
+            foreignKeyName: "messages_returnnumber_fkey"
+            columns: ["returnnumber"]
+            isOneToOne: false
+            referencedRelation: "mainreturns"
+            referencedColumns: ["returnnumber"]
+          },
+          {
+            foreignKeyName: "messages_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "distribution_schedule"
+            referencedColumns: ["schedule_id"]
+          },
+          {
+            foreignKeyName: "messages_tagagent_fkey"
+            columns: ["tagagent"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["agentnumber"]
+          },
+        ]
+      }
       nahagim: {
         Row: {
           id: number
@@ -1048,6 +1126,7 @@ export type Database = {
         | "חדרה 2"
         | "חדרה 3"
         | "חדרה 4"
+      subject_message: "לבטל" | "לדחות" | "הנחות" | "אספקה" | "לקוח אחר"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1231,6 +1310,7 @@ export const Constants = {
         "חדרה 3",
         "חדרה 4",
       ],
+      subject_message: ["לבטל", "לדחות", "הנחות", "אספקה", "לקוח אחר"],
     },
   },
 } as const
