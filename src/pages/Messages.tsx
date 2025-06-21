@@ -36,7 +36,7 @@ export default function Messages() {
           tag_agent:agents!messages_tagagent_fkey(agentname),
           mainorder(customername, ordernumber),
           mainreturns(customername, returnnumber),
-          distribution_schedule(schedule_id, distribution_date, nahag_name, dis_number)
+          distribution_schedule!left(schedule_id, distribution_date, nahag_name, dis_number)
         `)
         .order('created_at', { ascending: false });
 
@@ -61,7 +61,10 @@ export default function Messages() {
       }
 
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        console.error('Query error:', error);
+        throw error;
+      }
       return data;
     }
   });
