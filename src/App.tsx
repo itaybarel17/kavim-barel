@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -10,6 +11,7 @@ import Index from "./pages/Index";
 import Distribution from "./pages/Distribution";
 import Calendar from "./pages/Calendar";
 import Archive from "./pages/Archive";
+import Messages from "./pages/Messages";
 import ZoneReport from "./pages/ZoneReport";
 import ProductionSummary from "./pages/ProductionSummary";
 import NotFound from "./pages/NotFound";
@@ -81,6 +83,9 @@ function App() {
                       </ProtectedRoute>} />
                     <Route path="/archive" element={<ProtectedRoute adminOnly>
                         <Archive />
+                      </ProtectedRoute>} />
+                    <Route path="/messages" element={<ProtectedRoute adminOnly>
+                        <Messages />
                       </ProtectedRoute>} />
                     <Route path="/zone-report/:zoneNumber" element={<ProtectedRoute>
                         <ZoneReport />

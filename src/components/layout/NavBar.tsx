@@ -19,7 +19,8 @@ export const NavBar: React.FC = () => {
     { path: "/calendar", label: "לוח שנה", color: "green" },
     ...(isAdmin ? [
       { path: "/distribution", label: "הפצה", color: "orange" },
-      { path: "/archive", label: "ארכיון", color: "red" }
+      { path: "/archive", label: "ארכיון", color: "red" },
+      { path: "/messages", label: "הודעות", color: "purple" }
     ] : [])
   ];
 
