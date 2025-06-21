@@ -1,202 +1,747 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { supabase } from '@/integrations/supabase/client';
+import { DropZone } from '@/components/distribution/DropZone';
+import { UnassignedArea } from '@/components/distribution/UnassignedArea';
+import { HorizontalKanban } from '@/components/calendar/HorizontalKanban';
+import { useQuery } from '@tanstack/react-query';
+import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription';
+import { Loader2, Calendar, Archive } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
+import { CentralAlertBanner } from '@/components/distribution/CentralAlertBanner';
+import { useIsMobile } from '@/hooks/use-mobile';
 
-import React, { useState, useCallback } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@/context/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CentralAlertBanner } from "@/components/distribution/CentralAlertBanner";
-import { WarehouseMessageBanner } from "@/components/distribution/WarehouseMessageBanner";
-import { ZoneAlertBanner } from "@/components/distribution/ZoneAlertBanner";
-import { UnassignedArea } from "@/components/distribution/UnassignedArea";
-import { DropZone } from "@/components/distribution/DropZone";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
+interface Order {
+  ordernumber: number;
+  customername: string;
+  address: string;
+  city: string;
+  totalorder: number;
+  schedule_id?: number;
+  icecream?: string;
+  customernumber?: string;
+  agentnumber?: string;
+  orderdate?: string;
+  invoicenumber?: number;
+  totalinvoice?: number;
+  hour?: string;
+  remark?: string;
+  done_mainorder?: string | null;
+  ordercancel?: string | null;
+  alert_status?: boolean;
+}
+interface Return {
+  returnnumber: number;
+  customername: string;
+  address: string;
+  city: string;
+  totalreturn: number;
+  schedule_id?: number;
+  icecream?: string;
+  customernumber?: string;
+  agentnumber?: string;
+  returndate?: string;
+  hour?: string;
+  remark?: string;
+  done_return?: string | null;
+  returncancel?: string | null;
+  alert_status?: boolean;
+}
+interface DistributionGroup {
+  groups_id: number;
+  separation: string;
+}
+interface DistributionSchedule {
+  schedule_id: number;
+  groups_id: number;
+  create_at_schedule: string;
+  driver_id?: number;
+  distribution_date?: string;
+  isPinned?: boolean;
+}
+interface Driver {
+  id: number;
+  nahag: string;
+}
+interface CustomerSupply {
+  customernumber: string;
+  supplydetails?: string;
+}
 
-export default function Distribution() {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [alertStates, setAlertStates] = useState<Record<number, boolean>>({});
+const Distribution = () => {
+  const [draggedItem, setDraggedItem] = useState<{
+    type: 'order' | 'return';
+    data: Order | Return;
+  } | null>(null);
+  
+  // Add state for zone-schedule mapping
+  const [zoneScheduleMapping, setZoneScheduleMapping] = useState<Record<number, number | null>>({});
+  
+  const navigate = useNavigate();
+  const {
+    toast
+  } = useToast();
+  const {
+    user: currentUser
+  } = useAuth();
+  
+  const isMobile = useIsMobile();
 
-  // Listen for real-time updates
+  // Set up realtime subscriptions
   useRealtimeSubscription();
 
-  const isAdmin = user?.agentnumber === "4";
+  // Add simple page refresh every 10 minutes for desktop only
+  useEffect(() => {
+    if (!isMobile) {
+      const interval = setInterval(() => {
+        window.location.reload();
+      }, 10 * 60 * 1000); // 10 minutes
 
-  // Fetch unassigned orders and returns
-  const { data: unassignedItems, isLoading: isLoadingUnassigned } = useQuery({
-    queryKey: ['unassigned-orders', user?.agentnumber],
+      return () => clearInterval(interval);
+    }
+  }, [isMobile]);
+
+  // Helper function to filter orders based on user permissions
+  const filterOrdersByUser = (orders: Order[]) => {
+    // Agent 99 can only see their own orders
+    if (currentUser?.agentnumber === '99') {
+      return orders.filter(order => order.agentnumber === '99');
+    }
+    // All other agents can see everything
+    return orders;
+  };
+
+  // Helper function to filter returns based on user permissions
+  const filterReturnsByUser = (returns: Return[]) => {
+    // Agent 99 can only see their own returns
+    if (currentUser?.agentnumber === '99') {
+      return returns.filter(returnItem => returnItem.agentnumber === '99');
+    }
+    // All other agents can see everything
+    return returns;
+  };
+
+  // Fetch orders (exclude produced orders: done_mainorder IS NOT NULL and deleted orders: ordercancel IS NOT NULL)
+  const {
+    data: allOrders = [],
+    refetch: refetchOrders,
+    isLoading: ordersLoading
+  } = useQuery({
+    queryKey: ['orders'],
     queryFn: async () => {
-      console.log('Fetching unassigned items for agent:', user?.agentnumber);
-      
-      let ordersQuery = supabase
-        .from('mainorder')
-        .select('*')
-        .is('schedule_id', null)
-        .is('done_mainorder', null)
-        .is('ordercancel', null);
-
-      let returnsQuery = supabase
-        .from('mainreturns')
-        .select('*')
-        .is('schedule_id', null)
-        .is('done_return', null)
-        .is('returncancel', null);
-
-      // Filter by agent unless admin
-      if (!isAdmin && user?.agentnumber) {
-        ordersQuery = ordersQuery.eq('agentnumber', user.agentnumber);
-        returnsQuery = returnsQuery.eq('agentnumber', user.agentnumber);
-      }
-
-      const [ordersResult, returnsResult] = await Promise.all([
-        ordersQuery,
-        returnsQuery
-      ]);
-
-      if (ordersResult.error) throw ordersResult.error;
-      if (returnsResult.error) throw returnsResult.error;
-
-      const orders = ordersResult.data || [];
-      const returns = returnsResult.data || [];
-
-      console.log('Fetched unassigned orders:', orders.length, 'returns:', returns.length);
-
-      return { orders, returns };
+      console.log('Fetching orders...');
+      const {
+        data,
+        error
+      } = await supabase.from('mainorder').select('ordernumber, customername, address, city, totalorder, schedule_id, icecream, customernumber, agentnumber, orderdate, invoicenumber, totalinvoice, hour, remark, alert_status').or('icecream.is.null,icecream.eq.').is('done_mainorder', null).is('ordercancel', null) // Exclude deleted orders
+      .order('ordernumber', {
+        ascending: false
+      }).limit(50);
+      if (error) throw error;
+      console.log('Orders fetched:', data);
+      return data as Order[];
     }
   });
 
-  // Fetch distribution schedules
-  const { data: schedules, isLoading: isLoadingSchedules } = useQuery({
-    queryKey: ['schedules', user?.agentnumber],
+  // Fetch returns (exclude produced returns: done_return IS NOT NULL and deleted returns: returncancel IS NOT NULL)
+  const {
+    data: allReturns = [],
+    refetch: refetchReturns,
+    isLoading: returnsLoading
+  } = useQuery({
+    queryKey: ['returns'],
     queryFn: async () => {
-      console.log('Fetching schedules for agent:', user?.agentnumber);
-
-      const { data, error } = await supabase
-        .from('distribution_schedule')
-        .select(`
-          *,
-          mainorder!mainorder_schedule_id_fkey(*),
-          mainreturns!mainreturns_schedule_id_fkey(*)
-        `)
-        .is('done_schedule', null)
-        .order('distribution_date', { ascending: true });
-
+      console.log('Fetching returns...');
+      const {
+        data,
+        error
+      } = await supabase.from('mainreturns').select('returnnumber, customername, address, city, totalreturn, schedule_id, icecream, customernumber, agentnumber, returndate, hour, remark, alert_status').or('icecream.is.null,icecream.eq.').is('done_return', null).is('returncancel', null) // Exclude deleted returns
+      .order('returnnumber', {
+        ascending: false
+      }).limit(50);
       if (error) throw error;
-
-      // Filter schedules by agent unless admin
-      let filteredSchedules = data || [];
-      if (!isAdmin && user?.agentnumber) {
-        filteredSchedules = filteredSchedules.filter(schedule => {
-          const hasUserOrders = schedule.mainorder?.some((order: any) => order.agentnumber === user.agentnumber);
-          const hasUserReturns = schedule.mainreturns?.some((returnItem: any) => returnItem.agentnumber === user.agentnumber);
-          return hasUserOrders || hasUserReturns;
-        });
-      }
-
-      console.log('Fetched schedules:', filteredSchedules.length);
-      return filteredSchedules;
+      console.log('Returns fetched:', data);
+      return data as Return[];
     }
   });
 
-  // Toggle alert mutation
-  const toggleAlertMutation = useMutation({
-    mutationFn: async ({ orderId, isAlert }: { orderId: number; isAlert: boolean }) => {
-      const { error } = await supabase
-        .from('mainorder')
-        .update({ alert_status: isAlert })
-        .eq('ordernumber', orderId);
-      
+  // Apply user permissions filtering
+  const orders = filterOrdersByUser(allOrders);
+  const returns = filterReturnsByUser(allReturns);
+
+  // Fetch customer supply details
+  const {
+    data: customerSupplyData = [],
+    isLoading: customerSupplyLoading
+  } = useQuery({
+    queryKey: ['customer-supply'],
+    queryFn: async () => {
+      console.log('Fetching customer supply details...');
+      const {
+        data,
+        error
+      } = await supabase.from('customerlist').select('customernumber, supplydetails');
       if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['unassigned-orders'] });
-      queryClient.invalidateQueries({ queryKey: ['schedules'] });
-    },
-    onError: (error) => {
-      console.error('Error toggling alert:', error);
-      toast({
-        title: "שגיאה",
-        description: "לא ניתן לעדכן את סטטוס האזעקה",
-        variant: "destructive",
+      console.log('Customer supply data fetched:', data);
+      return data as CustomerSupply[];
+    }
+  });
+
+  // Fetch distribution groups
+  const {
+    data: distributionGroups = [],
+    isLoading: groupsLoading
+  } = useQuery({
+    queryKey: ['distribution-groups'],
+    queryFn: async () => {
+      console.log('Fetching distribution groups...');
+      const {
+        data,
+        error
+      } = await supabase.from('distribution_groups').select('groups_id, separation');
+      if (error) throw error;
+      console.log('Distribution groups fetched:', data);
+      return data as DistributionGroup[];
+    }
+  });
+
+  // Fetch ONLY ACTIVE distribution schedules with isPinned - filter out produced ones (done_schedule IS NOT NULL)
+  const {
+    data: distributionSchedules = [],
+    refetch: refetchSchedules,
+    isLoading: schedulesLoading
+  } = useQuery({
+    queryKey: ['distribution-schedules'],
+    queryFn: async () => {
+      console.log('Fetching active distribution schedules...');
+      const {
+        data,
+        error
+      } = await supabase.from('distribution_schedule').select('schedule_id, groups_id, create_at_schedule, driver_id, distribution_date, isPinned').is('done_schedule', null); // Only get active schedules, not produced ones
+
+      if (error) throw error;
+      console.log('Active distribution schedules fetched:', data);
+      return data as DistributionSchedule[];
+    }
+  });
+
+  // Fetch drivers
+  const {
+    data: drivers = [],
+    isLoading: driversLoading
+  } = useQuery({
+    queryKey: ['drivers'],
+    queryFn: async () => {
+      console.log('Fetching drivers...');
+      const {
+        data,
+        error
+      } = await supabase.from('nahagim').select('id, nahag').order('nahag');
+      if (error) throw error;
+      console.log('Drivers fetched:', data);
+      return data as Driver[];
+    }
+  });
+
+  // Create map for customer supply lookup
+  const customerSupplyMap = customerSupplyData.reduce((map, customer) => {
+    map[customer.customernumber] = customer.supplydetails || '';
+    return map;
+  }, {} as Record<string, string>);
+
+  // --- BEGIN CUSTOMER STATUS LOGIC FOR ICONS ---
+  // ACTIVE order: done_mainorder == null && ordercancel == null
+  // ACTIVE return: done_return == null && returncancel == null
+  function isOrderActive(order: Order) {
+    return !order.done_mainorder && !order.ordercancel;
+  }
+  function isReturnActive(ret: Return) {
+    return !ret.done_return && !ret.returncancel;
+  }
+
+  // 1. multi-active-order customers (blue icon)
+  const activeOrders = orders.filter(isOrderActive);
+  const customerMap: Record<string, Order[]> = {};
+  activeOrders.forEach(order => {
+    const key = `${order.customername}^^${order.city}`;
+    if (!customerMap[key]) customerMap[key] = [];
+    customerMap[key].push(order);
+  });
+  const multiOrderActiveCustomerList = Object.entries(customerMap).filter(([_, arr]) => arr.length >= 2).map(([key]) => {
+    const [name, city] = key.split('^^');
+    return {
+      name,
+      city
+    };
+  });
+
+  // 2. customers with BOTH active order and active return (red icon)
+  const activeReturns = returns.filter(isReturnActive);
+  const orderKeys = new Set(activeOrders.map(o => `${o.customername}^^${o.city}`));
+  const returnKeys = new Set(activeReturns.map(r => `${r.customername}^^${r.city}`));
+  const dualActiveOrderReturnCustomers: {
+    name: string;
+    city: string;
+  }[] = [];
+  orderKeys.forEach(k => {
+    if (returnKeys.has(k)) {
+      const [name, city] = k.split('^^');
+      dualActiveOrderReturnCustomers.push({
+        name,
+        city
       });
     }
   });
 
-  const handleToggleAlert = useCallback((orderId: number, currentStatus: boolean) => {
-    const newStatus = !currentStatus;
-    setAlertStates(prev => ({ ...prev, [orderId]: newStatus }));
-    toggleAlertMutation.mutate({ orderId, isAlert: newStatus });
-  }, [toggleAlertMutation]);
+  // Update zone-schedule mapping when schedules change
+  useEffect(() => {
+    console.log('Updating zone-schedule mapping based on schedules:', distributionSchedules);
+    
+    const newMapping: Record<number, number | null> = {};
+    
+    // First, preserve existing mappings that still have valid schedules
+    Object.entries(zoneScheduleMapping).forEach(([zoneStr, scheduleId]) => {
+      const zoneNumber = parseInt(zoneStr);
+      if (scheduleId && distributionSchedules.some(s => s.schedule_id === scheduleId)) {
+        newMapping[zoneNumber] = scheduleId;
+      }
+    });
+    
+    // Then assign unassigned schedules to zones without schedules
+    const assignedScheduleIds = new Set(Object.values(newMapping).filter(Boolean));
+    const unassignedSchedules = distributionSchedules
+      .filter(schedule => !assignedScheduleIds.has(schedule.schedule_id))
+      .sort((a, b) => a.schedule_id - b.schedule_id);
+    
+    // Find zones without schedules and assign them
+    for (let zone = 1; zone <= 12; zone++) {
+      if (!newMapping[zone] && unassignedSchedules.length > 0) {
+        const schedule = unassignedSchedules.shift();
+        if (schedule) {
+          newMapping[zone] = schedule.schedule_id;
+        }
+      }
+    }
+    
+    // Ensure all zones exist in mapping (even if null)
+    for (let zone = 1; zone <= 12; zone++) {
+      if (!(zone in newMapping)) {
+        newMapping[zone] = null;
+      }
+    }
+    
+    console.log('New zone-schedule mapping:', newMapping);
+    setZoneScheduleMapping(newMapping);
+  }, [distributionSchedules]);
 
-  const hasAlerts = schedules?.some(schedule => 
-    schedule.mainorder?.some((order: any) => order.alert_status) ||
-    schedule.mainreturns?.some((returnItem: any) => returnItem.alert_status)
-  ) || unassignedItems?.orders?.some(order => order.alert_status);
+  const handleDrop = async (zoneNumber: number, item: {
+    type: 'order' | 'return';
+    data: Order | Return;
+  }) => {
+    try {
+      console.log('handleDrop called with zoneNumber:', zoneNumber, 'item:', item);
 
-  const isLoading = isLoadingUnassigned || isLoadingSchedules;
+      // Get the schedule ID for this zone from our mapping
+      const scheduleId = zoneScheduleMapping[zoneNumber];
+      if (!scheduleId) {
+        console.log('No schedule ID found for zone, cannot drop item');
+        return;
+      }
+      
+      console.log('Using schedule ID from mapping:', scheduleId);
+      
+      if (item.type === 'order') {
+        console.log('Updating order', (item.data as Order).ordernumber, 'with schedule_id:', scheduleId);
+        const {
+          error
+        } = await supabase.from('mainorder').update({
+          schedule_id: scheduleId
+        }).eq('ordernumber', (item.data as Order).ordernumber);
+        if (error) {
+          console.error('Error updating order:', error);
+          throw error;
+        }
+        console.log('Order updated successfully');
+        refetchOrders();
+      } else {
+        console.log('Updating return', (item.data as Return).returnnumber, 'with schedule_id:', scheduleId);
+        const {
+          error
+        } = await supabase.from('mainreturns').update({
+          schedule_id: scheduleId
+        }).eq('returnnumber', (item.data as Return).returnnumber);
+        if (error) {
+          console.error('Error updating return:', error);
+          throw error;
+        }
+        console.log('Return updated successfully');
+        refetchReturns();
+      }
+
+      // Refresh schedules after assignment
+      refetchSchedules();
+    } catch (error) {
+      console.error('Error updating distribution:', error);
+    }
+  };
+  const handleDropToUnassigned = async (item: {
+    type: 'order' | 'return';
+    data: Order | Return;
+  }) => {
+    try {
+      console.log('Removing item from assignment:', item);
+      if (item.type === 'order') {
+        const {
+          error
+        } = await supabase.from('mainorder').update({
+          schedule_id: null
+        }).eq('ordernumber', (item.data as Order).ordernumber);
+        if (error) {
+          console.error('Error removing order assignment:', error);
+          throw error;
+        }
+        console.log('Order assignment removed successfully');
+        refetchOrders();
+      } else {
+        const {
+          error
+        } = await supabase.from('mainreturns').update({
+          schedule_id: null
+        }).eq('returnnumber', (item.data as Return).returnnumber);
+        if (error) {
+          console.error('Error removing return assignment:', error);
+          throw error;
+        }
+        console.log('Return assignment removed successfully');
+        refetchReturns();
+      }
+
+      // Refresh schedules after removal
+      refetchSchedules();
+    } catch (error) {
+      console.error('Error removing assignment:', error);
+    }
+  };
+  const handleScheduleDeleted = () => {
+    console.log('Schedule deleted, refreshing all data...');
+    refetchOrders();
+    refetchReturns();
+    refetchSchedules();
+  };
+
+  const handleScheduleCreated = (zoneNumber: number, newScheduleId: number) => {
+    console.log('Schedule created for zone', zoneNumber, 'with ID:', newScheduleId);
+    
+    // Update the zone-schedule mapping immediately
+    setZoneScheduleMapping(prev => ({
+      ...prev,
+      [zoneNumber]: newScheduleId
+    }));
+    
+    refetchSchedules();
+  };
+
+  const handleRemoveFromZone = async (item: {
+    type: 'order' | 'return';
+    data: Order | Return;
+  }) => {
+    await handleDropToUnassigned(item);
+  };
+  const handleDeleteItem = async (item: {
+    type: 'order' | 'return';
+    data: Order | Return;
+  }) => {
+    try {
+      console.log('Deleting item:', item);
+      if (item.type === 'order') {
+        const {
+          error
+        } = await supabase.from('mainorder').update({
+          ordercancel: new Date().toISOString()
+        }).eq('ordernumber', (item.data as Order).ordernumber);
+        if (error) {
+          console.error('Error deleting order:', error);
+          throw error;
+        }
+        console.log('Order deleted successfully');
+        toast({
+          title: "הזמנה נמחקה",
+          description: `הזמנה #${(item.data as Order).ordernumber} הועברה לארכיון`
+        });
+        refetchOrders();
+      } else {
+        const {
+          error
+        } = await supabase.from('mainreturns').update({
+          returncancel: new Date().toISOString()
+        }).eq('returnnumber', (item.data as Return).returnnumber);
+        if (error) {
+          console.error('Error deleting return:', error);
+          throw error;
+        }
+        console.log('Return deleted successfully');
+        toast({
+          title: "החזרה נמחקה",
+          description: `החזרה #${(item.data as Return).returnnumber} הועברה לארכיון`
+        });
+        refetchReturns();
+      }
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      toast({
+        title: "שגיאה",
+        description: "אירעה שגיאה במחיקת הפריט",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Updated helper function to get the current state of a zone using stable mapping
+  const getZoneState = (zoneNumber: number) => {
+    console.log('getZoneState called for zone:', zoneNumber);
+    console.log('Current zone-schedule mapping:', zoneScheduleMapping);
+
+    const scheduleId = zoneScheduleMapping[zoneNumber];
+    
+    if (!scheduleId) {
+      console.log(`Zone ${zoneNumber} has no schedule - completely empty`);
+      return {
+        selectedGroupId: null,
+        scheduleId: null,
+        isPinned: false
+      };
+    }
+
+    // Find the schedule details
+    const schedule = distributionSchedules.find(s => s.schedule_id === scheduleId);
+    if (!schedule) {
+      console.log(`Schedule ${scheduleId} not found for zone ${zoneNumber}`);
+      return {
+        selectedGroupId: null,
+        scheduleId: null,
+        isPinned: false
+      };
+    }
+
+    console.log(`Zone ${zoneNumber} mapped to schedule:`, schedule);
+    return {
+      selectedGroupId: schedule.groups_id,
+      scheduleId: schedule.schedule_id,
+      isPinned: schedule.isPinned || false
+    };
+  };
+
+  // Add toggle pin handler
+  const handleTogglePin = async (zoneNumber: number) => {
+    const scheduleId = zoneScheduleMapping[zoneNumber];
+    if (!scheduleId) {
+      console.log('No schedule ID found for zone, cannot toggle pin');
+      return;
+    }
+
+    try {
+      const currentSchedule = distributionSchedules.find(s => s.schedule_id === scheduleId);
+      const newPinnedStatus = !(currentSchedule?.isPinned || false);
+      
+      console.log(`Toggling pin for zone ${zoneNumber}, schedule ${scheduleId}:`, newPinnedStatus);
+      
+      const { error } = await supabase
+        .from('distribution_schedule')
+        .update({ isPinned: newPinnedStatus })
+        .eq('schedule_id', scheduleId);
+      
+      if (error) {
+        console.error('Error updating pin status:', error);
+        throw error;
+      }
+      
+      console.log('Pin status updated successfully');
+      refetchSchedules();
+    } catch (error) {
+      console.error('Error toggling pin:', error);
+      toast({
+        title: "שגיאה",
+        description: "אירעה שגיאה בעדכון הצימוד",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Add siren toggle handler
+  const handleSirenToggle = async (item: {
+    type: 'order' | 'return';
+    data: Order | Return;
+  }) => {
+    try {
+      const newAlertStatus = !item.data.alert_status;
+      console.log(`Toggling siren for ${item.type}:`, item.data, 'New status:', newAlertStatus);
+      
+      if (item.type === 'order') {
+        const { error } = await supabase
+          .from('mainorder')
+          .update({ alert_status: newAlertStatus })
+          .eq('ordernumber', (item.data as Order).ordernumber);
+        
+        if (error) {
+          console.error('Error updating order alert status:', error);
+          throw error;
+        }
+        console.log('Order alert status updated successfully');
+        refetchOrders();
+      } else {
+        const { error } = await supabase
+          .from('mainreturns')
+          .update({ alert_status: newAlertStatus })
+          .eq('returnnumber', (item.data as Return).returnnumber);
+        
+        if (error) {
+          console.error('Error updating return alert status:', error);
+          throw error;
+        }
+        console.log('Return alert status updated successfully');
+        refetchReturns();
+      }
+    } catch (error) {
+      console.error('Error toggling siren:', error);
+      toast({
+        title: "שגיאה",
+        description: "אירעה שגיאה בעדכון ההתראה",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Filter unassigned items (those without schedule_id or with schedule_id pointing to produced schedules)
+  const unassignedOrders = orders.filter(order => !order.schedule_id || !distributionSchedules.some(schedule => schedule.schedule_id === order.schedule_id));
+  const unassignedReturns = returns.filter(returnItem => !returnItem.schedule_id || !distributionSchedules.some(schedule => schedule.schedule_id === returnItem.schedule_id));
+
+  // Create sorted drop zones (pinned first, then regular order)
+  const dropZones = useMemo(() => {
+    const allZones = Array.from({ length: 12 }, (_, index) => index + 1);
+    
+    return allZones.sort((a, b) => {
+      const zoneStateA = getZoneState(a);
+      const zoneStateB = getZoneState(b);
+      const pinnedA = zoneStateA.isPinned;
+      const pinnedB = zoneStateB.isPinned;
+      
+      // If one is pinned and the other isn't, pinned comes first
+      if (pinnedA && !pinnedB) return -1;
+      if (!pinnedA && pinnedB) return 1;
+      
+      // If both have the same pinned status, maintain numerical order
+      return a - b;
+    });
+  }, [distributionSchedules, zoneScheduleMapping]);
+
+  console.log('Unassigned orders:', unassignedOrders.length);
+  console.log('Unassigned returns:', unassignedReturns.length);
+  console.log('Distribution groups:', distributionGroups.length);
+  console.log('Active schedules:', distributionSchedules.length);
+  console.log('Sorted drop zones:', dropZones);
+  const isLoading = ordersLoading || returnsLoading || groupsLoading || schedulesLoading || driversLoading || customerSupplyLoading;
+
+  // Check if there are any items with active sirens anywhere in the system
+  const hasGlobalActiveSiren = useMemo(() => {
+    // Check unassigned items
+    const unassignedHasSiren = [
+      ...unassignedOrders.filter(order => order.alert_status),
+      ...unassignedReturns.filter(returnItem => returnItem.alert_status)
+    ].length > 0;
+
+    // Check items in zones (assigned to active schedules)
+    const assignedHasSiren = [
+      ...orders.filter(order => 
+        order.schedule_id && 
+        distributionSchedules.some(schedule => schedule.schedule_id === order.schedule_id) &&
+        order.alert_status
+      ),
+      ...returns.filter(returnItem => 
+        returnItem.schedule_id && 
+        distributionSchedules.some(schedule => schedule.schedule_id === returnItem.schedule_id) &&
+        returnItem.alert_status
+      )
+    ].length > 0;
+
+    return unassignedHasSiren || assignedHasSiren;
+  }, [unassignedOrders, unassignedReturns, orders, returns, distributionSchedules]);
+
+  // Periodic refresh for horizontal kanban every minute
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      if (document.visibilityState === 'visible' && !isLoading) {
+        console.log('Refreshing horizontal kanban data...');
+        refetchOrders();
+        refetchReturns();
+        refetchSchedules();
+      }
+    }, 60000); // 1 minute
+
+    return () => {
+      clearInterval(refreshInterval);
+    };
+  }, [refetchOrders, refetchReturns, refetchSchedules, isLoading]);
 
   if (isLoading) {
-    return (
-      <div className="container mx-auto p-6">
-        <div className="flex justify-center items-center h-64">
-          <div className="text-lg">טוען נתונים...</div>
+    return <div className="min-h-screen p-6 bg-background flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>טוען נתונים...</span>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">מסך הפצה</h1>
-        <div className="text-sm text-gray-600">
-          {user?.agentname} ({user?.agentnumber})
-        </div>
-      </div>
-
-      {/* Warehouse Messages Banner - Only for admin */}
-      <WarehouseMessageBanner />
-
-      {/* Central Alert Banner */}
-      <CentralAlertBanner isVisible={hasAlerts || false} />
-
-      {/* Zone Alert Banners */}
-      {schedules?.map(schedule => (
-        <ZoneAlertBanner
-          key={schedule.schedule_id}
-          isVisible={schedule.mainorder?.some((order: any) => order.alert_status) || 
-                     schedule.mainreturns?.some((returnItem: any) => returnItem.alert_status) || false}
-        />
-      ))}
-
-      {/* Main Distribution Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Unassigned Orders */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle>הזמנות לא משויכות</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <UnassignedArea
-              unassignedOrders={unassignedItems?.orders || []}
-              unassignedReturns={unassignedItems?.returns || []}
-              onDragStart={() => {}}
-              onDropToUnassigned={() => {}}
-              onSirenToggle={handleToggleAlert}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Distribution Zones - Simplified for now */}
-        <div className="lg:col-span-2">
-          <div className="grid gap-4">
-            <div className="text-center text-gray-500 py-8">
-              אזורי הפצה יוגדרו בקרוב
-            </div>
+  return <DndProvider backend={HTML5Backend}>
+      <div className="min-h-screen p-6 bg-[#52a0e4]/15">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold text-gray-700">ממשק הפצה</h1>
+          <div className="flex gap-2">
+            <CentralAlertBanner isVisible={hasGlobalActiveSiren} />
           </div>
         </div>
+        
+        {/* Unassigned items area without alert banner */}
+        <UnassignedArea 
+          unassignedOrders={unassignedOrders} 
+          unassignedReturns={unassignedReturns} 
+          onDragStart={setDraggedItem} 
+          onDropToUnassigned={handleDropToUnassigned} 
+          onDeleteItem={handleDeleteItem} 
+          multiOrderActiveCustomerList={multiOrderActiveCustomerList} 
+          dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} 
+          customerSupplyMap={customerSupplyMap} 
+          onSirenToggle={handleSirenToggle} 
+        />
+
+        {/* Mobile: single column, Tablet: 2 columns, Desktop: 4 columns */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {dropZones.map(zoneNumber => 
+            <DropZone 
+              key={zoneNumber} 
+              zoneNumber={zoneNumber} 
+              distributionGroups={distributionGroups} 
+              distributionSchedules={distributionSchedules} 
+              drivers={drivers} 
+              onDrop={handleDrop} 
+              orders={orders} 
+              returns={returns} 
+              onScheduleDeleted={handleScheduleDeleted} 
+              onScheduleCreated={handleScheduleCreated} 
+              onRemoveFromZone={handleRemoveFromZone} 
+              getZoneState={getZoneState}
+              multiOrderActiveCustomerList={multiOrderActiveCustomerList} 
+              dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} 
+              customerSupplyMap={customerSupplyMap} 
+              onSirenToggle={handleSirenToggle}
+              onTogglePin={handleTogglePin}
+            />
+          )}
+        </div>
       </div>
-    </div>
-  );
-}
+    </DndProvider>;
+};
+
+export default Distribution;

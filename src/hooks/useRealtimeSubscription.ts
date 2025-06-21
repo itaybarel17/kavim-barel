@@ -23,7 +23,6 @@ export const useRealtimeSubscription = () => {
           console.log('mainorder changed:', payload);
           queryClient.invalidateQueries({ queryKey: ['orders'] });
           queryClient.invalidateQueries({ queryKey: ['calendar-orders'] });
-          queryClient.invalidateQueries({ queryKey: ['unassigned-orders'] });
         }
       )
       .on(
@@ -37,7 +36,6 @@ export const useRealtimeSubscription = () => {
           console.log('mainreturns changed:', payload);
           queryClient.invalidateQueries({ queryKey: ['returns'] });
           queryClient.invalidateQueries({ queryKey: ['calendar-returns'] });
-          queryClient.invalidateQueries({ queryKey: ['unassigned-orders'] });
         }
       )
       .on(
@@ -51,7 +49,6 @@ export const useRealtimeSubscription = () => {
           console.log('distribution_schedule changed:', payload);
           queryClient.invalidateQueries({ queryKey: ['distribution-schedules'] });
           queryClient.invalidateQueries({ queryKey: ['calendar-distribution-schedules'] });
-          queryClient.invalidateQueries({ queryKey: ['schedules'] });
         }
       )
       .on(

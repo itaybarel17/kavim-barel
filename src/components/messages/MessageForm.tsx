@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,21 +22,11 @@ const SUBJECT_OPTIONS = [
   { value: "הנחות", label: "הנחות" },
   { value: "אספקה", label: "אספקה" },
   { value: "לקוח אחר", label: "לקוח אחר" },
-  { value: "קו הפצה", label: "קו הפצה" },
-  { value: "מחסן", label: "מחסן" }
+  { value: "קו הפצה", label: "קו הפצה" }
 ] as const;
 
-// Add warehouse option only for admin
-const getSubjectOptions = (isAdmin: boolean) => {
-  const options = [...SUBJECT_OPTIONS];
-  if (!isAdmin) {
-    return options.filter(option => option.value !== "מחסן");
-  }
-  return options;
-};
-
 type MessageFormData = {
-  subject?: "לבטל הזמנה" | "לדחות" | "שינוי מוצרים" | "הנחות" | "אספקה" | "לקוח אחר" | "קו הפצה" | "מחסן";
+  subject?: "לבטל הזמנה" | "לדחות" | "שינוי מוצרים" | "הנחות" | "אספקה" | "לקוח אחר" | "קו הפצה";
   content: string;
   tagagent?: string;
   correctcustomer?: string;
@@ -58,16 +49,12 @@ export const MessageForm: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
   const [associationError, setAssociationError] = useState<string>("");
 
-  const isAdmin = user?.agentnumber === "4";
-
   const form = useForm<MessageFormData>({
     defaultValues: {
       content: "",
       correctcustomer: ""
     }
   });
-
-  const watchedSubject = form.watch("subject");
 
   // Fetch agents for tagging
   const { data: agents } = useQuery({
@@ -84,14 +71,9 @@ export const MessageForm: React.FC = () => {
 
   const createMessageMutation = useMutation({
     mutationFn: async (data: MessageFormData) => {
-      // Special validation for warehouse messages (no association required)
-      if (data.subject === "מחסן") {
-        // Warehouse messages don't need association
-      } else {
-        // All other messages require association
-        if (!selectedItem) {
-          throw new Error("חובה לשייך הזמנה, החזרה או קו הפצה להודעה");
-        }
+      // Validate that an association is required for ALL users including admin
+      if (!selectedItem) {
+        throw new Error("חובה לשייך הזמנה, החזרה או קו הפצה להודעה");
       }
 
       const messageData: any = {
@@ -113,7 +95,6 @@ export const MessageForm: React.FC = () => {
       setSelectedItem(null);
       setAssociationError("");
       queryClient.invalidateQueries({ queryKey: ['messages'] });
-      queryClient.invalidateQueries({ queryKey: ['warehouse-messages'] });
       toast({
         title: "הודעה נשלחה",
         description: "ההודעה נשלחה בהצלחה למערכת"
@@ -135,7 +116,7 @@ export const MessageForm: React.FC = () => {
 
   const handleSearchSelect = (item: SelectedItem) => {
     setSelectedItem(item);
-    setAssociationError("");
+    setAssociationError(""); // Clear error when item is selected
     
     // Clear previous selections
     form.setValue("ordernumber", undefined);
@@ -160,10 +141,11 @@ export const MessageForm: React.FC = () => {
   };
 
   const onSubmit = (data: MessageFormData) => {
+    // Clear previous association error
     setAssociationError("");
     
-    // Validate association is present (except for warehouse messages)
-    if (data.subject !== "מחסן" && !selectedItem) {
+    // Validate association is present
+    if (!selectedItem) {
       setAssociationError("חובה לשייך הזמנה, החזרה או קו הפצה להודעה");
       return;
     }
@@ -177,34 +159,20 @@ export const MessageForm: React.FC = () => {
   };
 
   // Check if subject should be required
-  const isSubjectRequired = selectedItem?.type !== "schedules" && watchedSubject !== "מחסן";
-  const isWarehouseMessage = watchedSubject === "מחסן";
-  const needsAssociation = !isWarehouseMessage;
+  const isSubjectRequired = selectedItem?.type !== "schedules";
 
   return (
     <div className="space-y-6">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           
-          {/* Association requirement alert - only show if not warehouse message */}
-          {needsAssociation && (
-            <Alert className="border-orange-200 bg-orange-50">
-              <AlertCircle className="h-4 w-4 text-orange-600" />
-              <AlertDescription className="text-orange-800">
-                <strong>חובה:</strong> יש לשייך הזמנה, החזרה או קו הפצה לכל הודעה.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Warehouse message alert */}
-          {isWarehouseMessage && (
-            <Alert className="border-blue-200 bg-blue-50">
-              <AlertCircle className="h-4 w-4 text-blue-600" />
-              <AlertDescription className="text-blue-800">
-                <strong>הודעת מחסן:</strong> הודעה זו תוצג במסך ההפצה למחסן. אין צורך בשיוך להזמנה.
-              </AlertDescription>
-            </Alert>
-          )}
+          {/* Association requirement alert */}
+          <Alert className="border-orange-200 bg-orange-50">
+            <AlertCircle className="h-4 w-4 text-orange-600" />
+            <AlertDescription className="text-orange-800">
+              <strong>חובה:</strong> יש לשייך הזמנה, החזרה או קו הפצה לכל הודעה. חל על כל הסוכנים.
+            </AlertDescription>
+          </Alert>
 
           {/* 1. נושא ההודעה */}
           <FormField
@@ -217,14 +185,14 @@ export const MessageForm: React.FC = () => {
                   נושא ההודעה
                   {!isSubjectRequired && <span className="text-gray-500"> (אופציונלי עבור קווי הפצה)</span>}
                 </FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select onValueChange={field.onChange} value={field.value} disabled={!isSubjectRequired}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder={isSubjectRequired ? "בחר נושא" : "לא נדרש עבור קווי הפצה"} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {getSubjectOptions(isAdmin).map((option) => (
+                    {SUBJECT_OPTIONS.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
                       </SelectItem>
@@ -236,76 +204,70 @@ export const MessageForm: React.FC = () => {
             )}
           />
 
-          {/* 2. הודעה לגבי הזמנה/החזרה/קו הפצה - CONDITIONAL */}
-          {needsAssociation && (
-            <Card className={associationError ? "border-red-300 bg-red-50" : ""}>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <span className="text-red-500">*</span>
-                  הודעה לגבי הזמנה/החזרה/קו הפצה
-                  <span className="text-sm font-normal text-red-600">(חובה)</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <SearchComponent
-                  onSelect={handleSearchSelect}
-                  selectedItem={selectedItem}
-                  onClear={handleSearchClear}
-                />
-                {associationError && (
-                  <div className="mt-2 text-sm text-red-600 font-medium">
-                    {associationError}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+          {/* 2. הודעה לגבי הזמנה/החזרה/קו הפצה - MANDATORY */}
+          <Card className={associationError ? "border-red-300 bg-red-50" : ""}>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <span className="text-red-500">*</span>
+                הודעה לגבי הזמנה/החזרה/קו הפצה
+                <span className="text-sm font-normal text-red-600">(חובה)</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SearchComponent
+                onSelect={handleSearchSelect}
+                selectedItem={selectedItem}
+                onClear={handleSearchClear}
+              />
+              {associationError && (
+                <div className="mt-2 text-sm text-red-600 font-medium">
+                  {associationError}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-          {/* 3. לקוח נכון (אם שודר על לקוח אחר) - hide for warehouse */}
-          {!isWarehouseMessage && (
-            <FormField
-              control={form.control}
-              name="correctcustomer"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>לקוח נכון (אם שודר על לקוח אחר)</FormLabel>
+          {/* 3. לקוח נכון (אם שודר על לקוח אחר) */}
+          <FormField
+            control={form.control}
+            name="correctcustomer"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>לקוח נכון (אם שודר על לקוח אחר)</FormLabel>
+                <FormControl>
+                  <Input placeholder="שם הלקוח הנכון..." {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* 4. תייג סוכן */}
+          <FormField
+            control={form.control}
+            name="tagagent"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>תייג סוכן (אופציונלי)</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
-                    <Input placeholder="שם הלקוח הנכון..." {...field} />
+                    <SelectTrigger>
+                      <SelectValue placeholder="בחר סוכן לתיוג" />
+                    </SelectTrigger>
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
-
-          {/* 4. תייג סוכן - hide for warehouse */}
-          {!isWarehouseMessage && (
-            <FormField
-              control={form.control}
-              name="tagagent"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>תייג סוכן (אופציונלי)</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="בחר סוכן לתיוג" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="none">ללא תיוג</SelectItem>
-                      {agents?.map((agent) => (
-                        <SelectItem key={agent.agentnumber} value={agent.agentnumber}>
-                          {agent.agentname} ({agent.agentnumber})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
+                  <SelectContent>
+                    <SelectItem value="none">ללא תיוג</SelectItem>
+                    {agents?.map((agent) => (
+                      <SelectItem key={agent.agentnumber} value={agent.agentnumber}>
+                        {agent.agentname} ({agent.agentnumber})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           {/* 5. תוכן ההודעה */}
           <FormField
@@ -317,7 +279,7 @@ export const MessageForm: React.FC = () => {
                 <FormLabel>תוכן ההודעה</FormLabel>
                 <FormControl>
                   <Textarea 
-                    placeholder={isWarehouseMessage ? "כתוב כאן הודעה למחסן..." : "כתוב כאן את תוכן ההודעה..."} 
+                    placeholder="כתוב כאן את תוכן ההודעה..." 
                     className="min-h-[100px]" 
                     {...field} 
                   />
