@@ -19,7 +19,7 @@ type MessageFiltersProps = {
 };
 
 const SUBJECT_OPTIONS = [
-  { value: "", label: "כל הנושאים" },
+  { value: "all", label: "כל הנושאים" },
   { value: "לבטל", label: "לבטל" },
   { value: "לדחות", label: "לדחות" },
   { value: "הנחות", label: "הנחות" },
@@ -31,7 +31,7 @@ export const MessageFilters: React.FC<MessageFiltersProps> = ({
   filters,
   onFiltersChange
 }) => {
-  const hasActiveFilters = Object.values(filters).some(value => value !== "");
+  const hasActiveFilters = Object.values(filters).some(value => value !== "" && value !== "all");
 
   const clearFilters = () => {
     onFiltersChange({
@@ -77,8 +77,8 @@ export const MessageFilters: React.FC<MessageFiltersProps> = ({
 
         {/* Subject Filter */}
         <Select 
-          value={filters.subject} 
-          onValueChange={(value) => onFiltersChange({ ...filters, subject: value })}
+          value={filters.subject || "all"} 
+          onValueChange={(value) => onFiltersChange({ ...filters, subject: value === "all" ? "" : value })}
         >
           <SelectTrigger>
             <SelectValue placeholder="נושא ההודעה" />
@@ -94,14 +94,14 @@ export const MessageFilters: React.FC<MessageFiltersProps> = ({
 
         {/* Handled Status Filter */}
         <Select 
-          value={filters.isHandled} 
-          onValueChange={(value) => onFiltersChange({ ...filters, isHandled: value })}
+          value={filters.isHandled || "all"} 
+          onValueChange={(value) => onFiltersChange({ ...filters, isHandled: value === "all" ? "" : value })}
         >
           <SelectTrigger>
             <SelectValue placeholder="מצב טיפול" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">כל ההודעות</SelectItem>
+            <SelectItem value="all">כל ההודעות</SelectItem>
             <SelectItem value="false">לא טופל</SelectItem>
             <SelectItem value="true">טופל</SelectItem>
           </SelectContent>
