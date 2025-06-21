@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
@@ -137,6 +136,13 @@ export default function Distribution() {
     // Handle returns if needed in the future
   }, [toggleAlertMutation]);
 
+  // Simple function for ZoneAlertBanner that matches its expected signature
+  const handleZoneToggleAlert = useCallback((orderId: number, currentStatus: boolean) => {
+    const newStatus = !currentStatus;
+    setAlertStates(prev => ({ ...prev, [orderId]: newStatus }));
+    toggleAlertMutation.mutate({ orderId, isAlert: newStatus });
+  }, [toggleAlertMutation]);
+
   const hasAlerts = schedules?.some(schedule => 
     schedule.mainorder?.some((order: any) => order.alert_status) ||
     schedule.mainreturns?.some((returnItem: any) => returnItem.alert_status)
@@ -174,7 +180,7 @@ export default function Distribution() {
         <ZoneAlertBanner
           key={schedule.schedule_id}
           schedule={schedule}
-          onToggleAlert={handleToggleAlert}
+          onToggleAlert={handleZoneToggleAlert}
         />
       ))}
 
@@ -206,7 +212,6 @@ export default function Distribution() {
             {schedules?.map(schedule => (
               <DropZone
                 key={schedule.schedule_id}
-                scheduleId={schedule.schedule_id}
                 distributionDate={schedule.distribution_date}
                 isProduced={!!schedule.done_schedule}
                 onDrop={() => {}}
