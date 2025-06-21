@@ -14,11 +14,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SearchComponent } from "./SearchComponent";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Database } from "@/integrations/supabase/types";
 
-type SubjectMessage = Database["public"]["Enums"]["subject_message"];
-
-const SUBJECT_OPTIONS: Array<{ value: SubjectMessage; label: string }> = [
+const SUBJECT_OPTIONS = [
   { value: "לבטל הזמנה", label: "לבטל הזמנה" },
   { value: "לדחות", label: "לדחות" },
   { value: "שינוי מוצרים", label: "שינוי מוצרים" },
@@ -26,10 +23,10 @@ const SUBJECT_OPTIONS: Array<{ value: SubjectMessage; label: string }> = [
   { value: "אספקה", label: "אספקה" },
   { value: "לקוח אחר", label: "לקוח אחר" },
   { value: "קו הפצה", label: "קו הפצה" }
-];
+] as const;
 
 // Add warehouse option only for admin
-const getSubjectOptions = (isAdmin: boolean): Array<{ value: SubjectMessage; label: string }> => {
+const getSubjectOptions = (isAdmin: boolean) => {
   const options = [...SUBJECT_OPTIONS];
   if (isAdmin) {
     options.push({ value: "מחסן", label: "מחסן" });
@@ -38,7 +35,7 @@ const getSubjectOptions = (isAdmin: boolean): Array<{ value: SubjectMessage; lab
 };
 
 type MessageFormData = {
-  subject?: SubjectMessage;
+  subject?: "לבטל הזמנה" | "לדחות" | "שינוי מוצרים" | "הנחות" | "אספקה" | "לקוח אחר" | "קו הפצה" | "מחסן";
   content: string;
   tagagent?: string;
   correctcustomer?: string;
