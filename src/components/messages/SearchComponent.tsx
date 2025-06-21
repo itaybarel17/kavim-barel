@@ -154,15 +154,6 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
     }
   };
 
-  const getTypeLabel = () => {
-    switch (searchType) {
-      case "orders": return "הזמנות";
-      case "returns": return "החזרות";
-      case "schedules": return "קווי הפצה";
-      default: return "";
-    }
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex gap-2">

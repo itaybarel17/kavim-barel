@@ -19,26 +19,26 @@ type Message = {
   tag_agent?: { agentname: string };
   mainorder?: { customername: string; ordernumber: number };
   mainreturns?: { customername: string; returnnumber: number };
-  distribution_schedule?: { 
-    schedule_id: number; 
-    distribution_date: string | null;
-    nahag_name: string | null;
-    dis_number: number | null;
-  } | null;
 };
 
 type MessageListProps = {
   messages: Message[];
   isLoading: boolean;
+  currentUserNumber: string;
   isAdmin: boolean;
   onMarkAsHandled: (messageId: number, isHandled: boolean) => void;
+  onDeleteMessage: (messageId: number) => void;
+  deletingMessageId?: number;
 };
 
 export const MessageList: React.FC<MessageListProps> = ({
   messages,
   isLoading,
+  currentUserNumber,
   isAdmin,
-  onMarkAsHandled
+  onMarkAsHandled,
+  onDeleteMessage,
+  deletingMessageId
 }) => {
   if (isLoading) {
     return (
@@ -68,8 +68,11 @@ export const MessageList: React.FC<MessageListProps> = ({
         <MessageCard
           key={message.messages_id}
           message={message}
+          currentUserNumber={currentUserNumber}
           isAdmin={isAdmin}
           onMarkAsHandled={onMarkAsHandled}
+          onDeleteMessage={onDeleteMessage}
+          isDeleting={deletingMessageId === message.messages_id}
         />
       ))}
     </div>

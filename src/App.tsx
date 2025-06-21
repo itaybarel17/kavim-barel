@@ -18,6 +18,7 @@ import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { NavBar } from "@/components/layout/NavBar";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -26,6 +27,7 @@ const queryClient = new QueryClient({
     }
   }
 });
+
 function ProtectedRoute({
   children,
   adminOnly = false
@@ -59,6 +61,7 @@ function ProtectedRoute({
   }
   return <>{children}</>;
 }
+
 function App() {
   return <AuthProvider>
       <QueryClientProvider client={queryClient}>
@@ -84,7 +87,7 @@ function App() {
                     <Route path="/archive" element={<ProtectedRoute adminOnly>
                         <Archive />
                       </ProtectedRoute>} />
-                    <Route path="/messages" element={<ProtectedRoute adminOnly>
+                    <Route path="/messages" element={<ProtectedRoute>
                         <Messages />
                       </ProtectedRoute>} />
                     <Route path="/zone-report/:zoneNumber" element={<ProtectedRoute>
@@ -103,4 +106,5 @@ function App() {
       </QueryClientProvider>
     </AuthProvider>;
 }
+
 export default App;

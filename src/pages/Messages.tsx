@@ -21,6 +21,7 @@ export default function Messages() {
     dateTo: "",
     searchTerm: ""
   });
+  const [deletingMessageId, setDeletingMessageId] = useState<number | null>(null);
 
   const isAdmin = user?.agentnumber === "4";
 
@@ -30,7 +31,6 @@ export default function Messages() {
     queryFn: async () => {
       console.log('Fetching messages with filters:', filters);
       
-      // Start with a simpler query without the problematic distribution_schedule join
       let query = supabase
         .from('messages')
         .select(`
@@ -71,12 +71,11 @@ export default function Messages() {
       
       console.log('Fetched messages:', data?.length || 0, 'messages');
       
-      // Return the data as-is for now, without the problematic distribution_schedule
       return data || [];
     }
   });
 
-  // Mark message as handled (admin only)
+  // Mark message as handled
   const markAsHandledMutation = useMutation({
     mutationFn: async ({ messageId, isHandled }: { messageId: number; isHandled: boolean }) => {
       const { error } = await supabase
@@ -103,8 +102,42 @@ export default function Messages() {
     }
   });
 
+  // Delete message mutation
+  const deleteMessageMutation = useMutation({
+    mutationFn: async (messageId: number) => {
+      const { error } = await supabase
+        .from('messages')
+        .delete()
+        .eq('messages_id', messageId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['messages'] });
+      toast({
+        title: "הודעה נמחקה",
+        description: "ההודעה נמחקה בהצלחה",
+      });
+      setDeletingMessageId(null);
+    },
+    onError: (error) => {
+      console.error('Error deleting message:', error);
+      toast({
+        title: "שגיאה",
+        description: "לא ניתן למחוק את ההודעה",
+        variant: "destructive",
+      });
+      setDeletingMessageId(null);
+    }
+  });
+
   const handleMarkAsHandled = (messageId: number, isHandled: boolean) => {
     markAsHandledMutation.mutate({ messageId, isHandled });
+  };
+
+  const handleDeleteMessage = (messageId: number) => {
+    setDeletingMessageId(messageId);
+    deleteMessageMutation.mutate(messageId);
   };
 
   return (
@@ -151,8 +184,11 @@ export default function Messages() {
               <MessageList 
                 messages={messages || []} 
                 isLoading={isLoading}
+                currentUserNumber={user?.agentnumber || ""}
                 isAdmin={isAdmin}
                 onMarkAsHandled={handleMarkAsHandled}
+                onDeleteMessage={handleDeleteMessage}
+                deletingMessageId={deletingMessageId}
               />
             </CardContent>
           </Card>

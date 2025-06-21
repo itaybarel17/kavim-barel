@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -17,10 +16,10 @@ export const NavBar: React.FC = () => {
 
   const navItems = [
     { path: "/calendar", label: "לוח שנה", color: "green" },
+    { path: "/messages", label: "הודעות", color: "purple" },
     ...(isAdmin ? [
       { path: "/distribution", label: "הפצה", color: "orange" },
-      { path: "/archive", label: "ארכיון", color: "red" },
-      { path: "/messages", label: "הודעות", color: "purple" }
+      { path: "/archive", label: "ארכיון", color: "red" }
     ] : [])
   ];
 
