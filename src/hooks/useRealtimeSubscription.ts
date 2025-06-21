@@ -74,6 +74,7 @@ export const useRealtimeSubscription = () => {
         (payload) => {
           console.log('messages changed:', payload);
           queryClient.invalidateQueries({ queryKey: ['messages'] });
+          queryClient.invalidateQueries({ queryKey: ['warehouse-messages'] });
         }
       )
       .subscribe();

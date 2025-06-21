@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { CentralAlertBanner } from '@/components/distribution/CentralAlertBanner';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { WarehouseMessageBanner } from '@/components/distribution/WarehouseMessageBanner';
 
 interface Order {
   ordernumber: number;
@@ -295,6 +296,28 @@ const Distribution = () => {
         city
       });
     }
+  });
+
+  // Add query for warehouse messages (only for user 4)
+  const { data: warehouseMessages = [] } = useQuery({
+    queryKey: ['warehouse-messages'],
+    queryFn: async () => {
+      if (currentUser?.agentnumber !== "4") {
+        return [];
+      }
+      
+      console.log('Fetching warehouse messages...');
+      const { data, error } = await supabase
+        .from('messages')
+        .select('messages_id, content, is_handled, created_at')
+        .eq('subject', 'מחסן')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      console.log('Warehouse messages fetched:', data);
+      return data;
+    },
+    enabled: currentUser?.agentnumber === "4"
   });
 
   // Update zone-schedule mapping when schedules change
@@ -702,6 +725,11 @@ const Distribution = () => {
             <CentralAlertBanner isVisible={hasGlobalActiveSiren} />
           </div>
         </div>
+        
+        {/* Warehouse message banner - only for user 4 */}
+        {currentUser?.agentnumber === "4" && (
+          <WarehouseMessageBanner messages={warehouseMessages} />
+        )}
         
         {/* Unassigned items area without alert banner */}
         <UnassignedArea 
