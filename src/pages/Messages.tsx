@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
@@ -43,7 +42,7 @@ export default function Messages() {
         .order('created_at', { ascending: false });
 
       if (filters.subject) {
-        query = query.eq('subject', filters.subject as "לבטל" | "לדחות" | "הנחות" | "אספקה" | "לקוח אחר");
+        query = query.eq('subject', filters.subject as "לבטל הזמנה" | "לדחות" | "שינוי מוצרים" | "הנחות" | "אספקה" | "לקוח אחר" | "קו הפצה");
       }
       
       if (filters.isHandled !== "") {
