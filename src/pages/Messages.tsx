@@ -41,7 +41,7 @@ export default function Messages() {
         .order('created_at', { ascending: false });
 
       if (filters.subject) {
-        query = query.eq('subject', filters.subject);
+        query = query.eq('subject', filters.subject as "לבטל" | "לדחות" | "הנחות" | "אספקה" | "לקוח אחר");
       }
       
       if (filters.isHandled !== "") {

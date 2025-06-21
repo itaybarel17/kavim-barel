@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -19,10 +18,10 @@ const SUBJECT_OPTIONS = [
   { value: "הנחות", label: "הנחות" },
   { value: "אספקה", label: "אספקה" },
   { value: "לקוח אחר", label: "לקוח אחר" }
-];
+] as const;
 
 type MessageFormData = {
-  subject: string;
+  subject: "לבטל" | "לדחות" | "הנחות" | "אספקה" | "לקוח אחר";
   content: string;
   tagagent?: string;
   correctcustomer?: string;
@@ -39,9 +38,7 @@ export const MessageForm: React.FC = () => {
 
   const form = useForm<MessageFormData>({
     defaultValues: {
-      subject: "",
       content: "",
-      tagagent: "",
       correctcustomer: "",
     }
   });
@@ -90,7 +87,7 @@ export const MessageForm: React.FC = () => {
     mutationFn: async (data: MessageFormData) => {
       const { error } = await supabase
         .from('messages')
-        .insert([{
+        .insert({
           subject: data.subject,
           content: data.content,
           agentnumber: user?.agentnumber,
@@ -98,7 +95,7 @@ export const MessageForm: React.FC = () => {
           correctcustomer: data.correctcustomer || null,
           ordernumber: data.ordernumber || null,
           returnnumber: data.returnnumber || null,
-        }]);
+        });
       
       if (error) throw error;
     },
