@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
@@ -50,11 +51,13 @@ export default function Messages() {
           // Regular agents see messages they created or are tagged in
           query = query.or(`agentnumber.eq.${user?.agentnumber},tagagent.eq.${user?.agentnumber}`);
         }
+        // Hide warehouse messages from non-admin users
+        query = query.neq('subject', 'מחסן');
       }
-      // Admin (agent 4) sees all messages - no additional filtering
+      // Admin (agent 4) sees all messages including warehouse messages
 
       if (filters.subject) {
-        query = query.eq('subject', filters.subject as "לבטל הזמנה" | "לדחות" | "שינוי מוצרים" | "הנחות" | "אספקה" | "לקוח אחר" | "קו הפצה");
+        query = query.eq('subject', filters.subject as "לבטל הזמנה" | "לדחות" | "שינוי מוצרים" | "הנחות" | "אספקה" | "לקוח אחר" | "קו הפצה" | "מחסן");
       }
       
       if (filters.isHandled !== "") {
@@ -98,6 +101,7 @@ export default function Messages() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouse-messages'] });
       toast({
         title: "הודעה עודכנה",
         description: "מצב הטיפול בהודעה עודכן בהצלחה",
@@ -125,6 +129,7 @@ export default function Messages() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouse-messages'] });
       toast({
         title: "הודעה נמחקה",
         description: "ההודעה נמחקה בהצלחה",
@@ -191,6 +196,7 @@ export default function Messages() {
               <MessageFilters 
                 filters={filters} 
                 onFiltersChange={setFilters}
+                isAdmin={isAdmin}
               />
               <MessageList 
                 messages={messages || []} 
