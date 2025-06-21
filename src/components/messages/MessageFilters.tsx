@@ -8,8 +8,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, X } from "lucide-react";
 import { format } from "date-fns";
 import { he } from "date-fns/locale";
+import { Database } from "@/integrations/supabase/types";
 
-const SUBJECT_OPTIONS = [
+type SubjectMessage = Database["public"]["Enums"]["subject_message"];
+
+const SUBJECT_OPTIONS: Array<{ value: SubjectMessage; label: string }> = [
   { value: "לבטל הזמנה", label: "לבטל הזמנה" },
   { value: "לדחות", label: "לדחות" },
   { value: "שינוי מוצרים", label: "שינוי מוצרים" },
@@ -17,10 +20,10 @@ const SUBJECT_OPTIONS = [
   { value: "אספקה", label: "אספקה" },
   { value: "לקוח אחר", label: "לקוח אחר" },
   { value: "קו הפצה", label: "קו הפצה" }
-] as const;
+];
 
 // Add warehouse option only for admin
-const getSubjectOptions = (isAdmin: boolean) => {
+const getSubjectOptions = (isAdmin: boolean): Array<{ value: SubjectMessage; label: string }> => {
   const options = [...SUBJECT_OPTIONS];
   if (isAdmin) {
     options.push({ value: "מחסן", label: "מחסן" });

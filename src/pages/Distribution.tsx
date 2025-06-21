@@ -183,11 +183,15 @@ export default function Distribution() {
           </CardHeader>
           <CardContent>
             <UnassignedArea
-              orders={unassignedItems?.orders || []}
-              returns={unassignedItems?.returns || []}
-              isAdmin={isAdmin}
-              onToggleAlert={handleToggleAlert}
-              alertStates={alertStates}
+              unassignedOrders={unassignedItems?.orders || []}
+              unassignedReturns={unassignedItems?.returns || []}
+              onDragStart={() => {}}
+              onDropToUnassigned={() => {}}
+              onDeleteItem={() => {}}
+              multiOrderActiveCustomerList={[]}
+              dualActiveOrderReturnCustomers={[]}
+              customerSupplyMap={{}}
+              onSirenToggle={handleToggleAlert}
             />
           </CardContent>
         </Card>
@@ -198,10 +202,27 @@ export default function Distribution() {
             {schedules?.map(schedule => (
               <DropZone
                 key={schedule.schedule_id}
-                schedule={schedule}
-                isAdmin={isAdmin}
-                onToggleAlert={handleToggleAlert}
-                alertStates={alertStates}
+                scheduleId={schedule.schedule_id}
+                distributionDate={schedule.distribution_date}
+                isProduced={!!schedule.done_schedule}
+                onDrop={() => {}}
+                onRemove={() => {}}
+                onToggleProduction={() => {}}
+                onDeleteSchedule={() => {}}
+                onUpdateSchedule={() => {}}
+                orders={schedule.mainorder || []}
+                returns={schedule.mainreturns || []}
+                nahag_name={schedule.nahag_name}
+                destinations={schedule.destinations}
+                note={schedule.note}
+                isPinned={!!schedule.isPinned}
+                onTogglePin={() => {}}
+                dis_number={schedule.dis_number}
+                multiOrderActiveCustomerList={[]}
+                dualActiveOrderReturnCustomers={[]}
+                customerSupplyMap={{}}
+                agentNameMap={{}}
+                onSirenToggle={handleToggleAlert}
               />
             ))}
           </div>
