@@ -40,7 +40,7 @@ export const WarehouseMessageBanner: React.FC<WarehouseMessageBannerProps> = ({
           `}>
           <Warehouse className="w-4 h-4 flex-shrink-0" />
           <span className="font-semibold text-2xl">מחסן:</span>
-          <span className="flex-1 text-2xl">{message.content || 'הודעת מחסן'}</span>
+          <span className="flex-1 text-2xl text-right">{message.content || 'הודעת מחסן'}</span>
         </div>)}
     </div>;
 };
