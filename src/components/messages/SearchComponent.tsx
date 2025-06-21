@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,6 +43,8 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const isAdmin = user?.agentnumber === "4";
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -56,20 +57,27 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Search query with autocomplete
+  // Search query with agent-based filtering
   const { data: searchResults, isLoading } = useQuery({
-    queryKey: ['autocomplete-search', searchType, searchTerm],
+    queryKey: ['autocomplete-search', searchType, searchTerm, user?.agentnumber],
     queryFn: async (): Promise<SearchResult[]> => {
       if (!searchTerm || searchTerm.length < 1) return [];
       
       const results: SearchResult[] = [];
       
       if (searchType === "orders") {
-        const { data, error } = await supabase
+        let query = supabase
           .from('mainorder')
-          .select('ordernumber, customername, customernumber, orderdate')
+          .select('ordernumber, customername, customernumber, orderdate, agentnumber')
           .or(`customername.ilike.%${searchTerm}%,customernumber.ilike.%${searchTerm}%,ordernumber.eq.${parseInt(searchTerm) || 0}`)
           .limit(8);
+
+        // Filter by agent unless admin
+        if (!isAdmin && user?.agentnumber) {
+          query = query.eq('agentnumber', user.agentnumber);
+        }
+        
+        const { data, error } = await query;
         
         if (error) throw error;
         
@@ -79,15 +87,22 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
             type: "orders",
             title: `הזמנה #${item.ordernumber}`,
             subtitle: `${item.customername} (${item.customernumber})`,
-            details: item.orderdate || ""
+            details: `${item.orderdate || ""} | סוכן: ${item.agentnumber || 'לא זוהה'}`
           });
         });
       } else if (searchType === "returns") {
-        const { data, error } = await supabase
+        let query = supabase
           .from('mainreturns')
-          .select('returnnumber, customername, customernumber, returndate')
+          .select('returnnumber, customername, customernumber, returndate, agentnumber')
           .or(`customername.ilike.%${searchTerm}%,customernumber.ilike.%${searchTerm}%,returnnumber.eq.${parseInt(searchTerm) || 0}`)
           .limit(8);
+
+        // Filter by agent unless admin
+        if (!isAdmin && user?.agentnumber) {
+          query = query.eq('agentnumber', user.agentnumber);
+        }
+        
+        const { data, error } = await query;
         
         if (error) throw error;
         
@@ -97,7 +112,7 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
             type: "returns",
             title: `החזרה #${item.returnnumber}`,
             subtitle: `${item.customername} (${item.customernumber})`,
-            details: item.returndate || ""
+            details: `${item.returndate || ""} | סוכן: ${item.agentnumber || 'לא זוהה'}`
           });
         });
       } else if (searchType === "schedules") {
@@ -190,6 +205,10 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
               <CardContent className="p-2">
                 {isLoading ? (
                   <div className="p-2 text-center text-gray-500">חיפוש...</div>
+                ) : searchResults?.length === 0 ? (
+                  <div className="p-2 text-center text-gray-500">
+                    {!isAdmin ? "לא נמצאו תוצאות מהסוכן שלך" : "לא נמצאו תוצאות"}
+                  </div>
                 ) : (
                   <div className="space-y-1">
                     {searchResults?.map((result) => (

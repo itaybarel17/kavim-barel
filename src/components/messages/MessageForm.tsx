@@ -12,17 +12,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SearchComponent } from "./SearchComponent";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const SUBJECT_OPTIONS = [
-  { value: "לבטל", label: "לבטל" },
+  { value: "לבטל הזמנה", label: "לבטל הזמנה" },
   { value: "לדחות", label: "לדחות" },
+  { value: "שינוי מוצרים", label: "שינוי מוצרים" },
   { value: "הנחות", label: "הנחות" },
   { value: "אספקה", label: "אספקה" },
-  { value: "לקוח אחר", label: "לקוח אחר" }
+  { value: "לקוח אחר", label: "לקוח אחר" },
+  { value: "קו הפצה", label: "קו הפצה" }
 ] as const;
 
 type MessageFormData = {
-  subject?: "לבטל" | "לדחות" | "הנחות" | "אספקה" | "לקוח אחר";
+  subject?: "לבטל הזמנה" | "לדחות" | "שינוי מוצרים" | "הנחות" | "אספקה" | "לקוח אחר" | "קו הפצה";
   content: string;
   tagagent?: string;
   correctcustomer?: string;
@@ -43,6 +47,7 @@ export const MessageForm: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
+  const [associationError, setAssociationError] = useState<string>("");
 
   const form = useForm<MessageFormData>({
     defaultValues: {
@@ -66,6 +71,11 @@ export const MessageForm: React.FC = () => {
 
   const createMessageMutation = useMutation({
     mutationFn: async (data: MessageFormData) => {
+      // Validate that an association is required for ALL users including admin
+      if (!selectedItem) {
+        throw new Error("חובה לשייך הזמנה, החזרה או קו הפצה להודעה");
+      }
+
       const messageData: any = {
         subject: data.subject || null,
         content: data.content,
@@ -83,6 +93,7 @@ export const MessageForm: React.FC = () => {
     onSuccess: () => {
       form.reset();
       setSelectedItem(null);
+      setAssociationError("");
       queryClient.invalidateQueries({ queryKey: ['messages'] });
       toast({
         title: "הודעה נשלחה",
@@ -91,16 +102,21 @@ export const MessageForm: React.FC = () => {
     },
     onError: (error) => {
       console.error('Error creating message:', error);
-      toast({
-        title: "שגיאה",
-        description: "לא ניתן לשלוח את ההודעה",
-        variant: "destructive"
-      });
+      if (error.message.includes("חובה לשייך")) {
+        setAssociationError(error.message);
+      } else {
+        toast({
+          title: "שגיאה",
+          description: "לא ניתן לשלוח את ההודעה",
+          variant: "destructive"
+        });
+      }
     }
   });
 
   const handleSearchSelect = (item: SelectedItem) => {
     setSelectedItem(item);
+    setAssociationError(""); // Clear error when item is selected
     
     // Clear previous selections
     form.setValue("ordernumber", undefined);
@@ -125,6 +141,15 @@ export const MessageForm: React.FC = () => {
   };
 
   const onSubmit = (data: MessageFormData) => {
+    // Clear previous association error
+    setAssociationError("");
+    
+    // Validate association is present
+    if (!selectedItem) {
+      setAssociationError("חובה לשייך הזמנה, החזרה או קו הפצה להודעה");
+      return;
+    }
+    
     // For distribution line messages, subject is optional
     if (selectedItem?.type === "schedules") {
       data.subject = undefined;
@@ -141,6 +166,14 @@ export const MessageForm: React.FC = () => {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           
+          {/* Association requirement alert */}
+          <Alert className="border-orange-200 bg-orange-50">
+            <AlertCircle className="h-4 w-4 text-orange-600" />
+            <AlertDescription className="text-orange-800">
+              <strong>חובה:</strong> יש לשייך הזמנה, החזרה או קו הפצה לכל הודעה. חל על כל הסוכנים.
+            </AlertDescription>
+          </Alert>
+
           {/* 1. נושא ההודעה */}
           <FormField
             control={form.control}
@@ -171,10 +204,14 @@ export const MessageForm: React.FC = () => {
             )}
           />
 
-          {/* 2. הודעה לגבי הזמנה/החזרה/קו הפצה */}
-          <Card>
+          {/* 2. הודעה לגבי הזמנה/החזרה/קו הפצה - MANDATORY */}
+          <Card className={associationError ? "border-red-300 bg-red-50" : ""}>
             <CardHeader>
-              <CardTitle className="text-lg">הודעה לגבי הזמנה/החזרה/קו הפצה</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <span className="text-red-500">*</span>
+                הודעה לגבי הזמנה/החזרה/קו הפצה
+                <span className="text-sm font-normal text-red-600">(חובה)</span>
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <SearchComponent
@@ -182,6 +219,11 @@ export const MessageForm: React.FC = () => {
                 selectedItem={selectedItem}
                 onClear={handleSearchClear}
               />
+              {associationError && (
+                <div className="mt-2 text-sm text-red-600 font-medium">
+                  {associationError}
+                </div>
+              )}
             </CardContent>
           </Card>
 

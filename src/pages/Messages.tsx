@@ -24,11 +24,11 @@ export default function Messages() {
 
   const isAdmin = user?.agentnumber === "4";
 
-  // Fetch messages with a simplified query first
+  // Fetch messages with agent-based filtering
   const { data: messages, isLoading } = useQuery({
-    queryKey: ['messages', filters],
+    queryKey: ['messages', filters, user?.agentnumber],
     queryFn: async () => {
-      console.log('Fetching messages with filters:', filters);
+      console.log('Fetching messages with filters:', filters, 'for agent:', user?.agentnumber);
       
       let query = supabase
         .from('messages')
@@ -40,6 +40,18 @@ export default function Messages() {
           mainreturns(customername, returnnumber)
         `)
         .order('created_at', { ascending: false });
+
+      // Apply agent-based filtering
+      if (!isAdmin) {
+        if (user?.agentnumber === "99") {
+          // Agent 99 sees only messages where they are tagged
+          query = query.eq('tagagent', user.agentnumber);
+        } else {
+          // Regular agents see messages they created or are tagged in
+          query = query.or(`agentnumber.eq.${user?.agentnumber},tagagent.eq.${user?.agentnumber}`);
+        }
+      }
+      // Admin (agent 4) sees all messages - no additional filtering
 
       if (filters.subject) {
         query = query.eq('subject', filters.subject as "לבטל הזמנה" | "לדחות" | "שינוי מוצרים" | "הנחות" | "אספקה" | "לקוח אחר" | "קו הפצה");
@@ -68,7 +80,7 @@ export default function Messages() {
         throw error;
       }
       
-      console.log('Fetched messages:', data?.length || 0, 'messages');
+      console.log('Fetched messages:', data?.length || 0, 'messages for agent', user?.agentnumber);
       
       return data || [];
     }
