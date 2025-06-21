@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
@@ -16,11 +17,54 @@ export default function Distribution() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [alertStates, setAlertStates] = useState<Record<number, boolean>>({});
+  const [zoneStates, setZoneStates] = useState<Record<number, { selectedGroupId: number | null; scheduleId: number | null; isPinned: boolean }>>({});
 
   // Listen for real-time updates - no parameters needed
   useRealtimeSubscription();
 
   const isAdmin = user?.agentnumber === "4";
+
+  // Fetch distribution groups
+  const { data: distributionGroups = [] } = useQuery({
+    queryKey: ['distribution-groups'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('distribution_groups')
+        .select('*')
+        .order('groups_id');
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  // Fetch drivers
+  const { data: drivers = [] } = useQuery({
+    queryKey: ['drivers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('nahagim')
+        .select('*')
+        .order('nahag');
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  // Fetch distribution schedules
+  const { data: distributionSchedules = [] } = useQuery({
+    queryKey: ['distribution-schedules'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('distribution_schedule')
+        .select('*')
+        .order('create_at_schedule', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
 
   // Fetch unassigned orders and returns
   const { data: unassignedItems, isLoading: isLoadingUnassigned } = useQuery({
@@ -65,36 +109,22 @@ export default function Distribution() {
     }
   });
 
-  // Fetch distribution schedules
-  const { data: schedules, isLoading: isLoadingSchedules } = useQuery({
-    queryKey: ['schedules', user?.agentnumber],
+  // Fetch assigned orders and returns
+  const { data: assignedData } = useQuery({
+    queryKey: ['assigned-items'],
     queryFn: async () => {
-      console.log('Fetching schedules for agent:', user?.agentnumber);
+      const [ordersResult, returnsResult] = await Promise.all([
+        supabase.from('mainorder').select('*').not('schedule_id', 'is', null),
+        supabase.from('mainreturns').select('*').not('schedule_id', 'is', null)
+      ]);
 
-      const { data, error } = await supabase
-        .from('distribution_schedule')
-        .select(`
-          *,
-          mainorder!mainorder_schedule_id_fkey(*),
-          mainreturns!mainreturns_schedule_id_fkey(*)
-        `)
-        .is('done_schedule', null)
-        .order('distribution_date', { ascending: true });
+      if (ordersResult.error) throw ordersResult.error;
+      if (returnsResult.error) throw returnsResult.error;
 
-      if (error) throw error;
-
-      // Filter schedules by agent unless admin
-      let filteredSchedules = data || [];
-      if (!isAdmin && user?.agentnumber) {
-        filteredSchedules = filteredSchedules.filter(schedule => {
-          const hasUserOrders = schedule.mainorder?.some((order: any) => order.agentnumber === user.agentnumber);
-          const hasUserReturns = schedule.mainreturns?.some((returnItem: any) => returnItem.agentnumber === user.agentnumber);
-          return hasUserOrders || hasUserReturns;
-        });
-      }
-
-      console.log('Fetched schedules:', filteredSchedules.length);
-      return filteredSchedules;
+      return {
+        orders: ordersResult.data || [],
+        returns: returnsResult.data || []
+      };
     }
   });
 
@@ -110,7 +140,7 @@ export default function Distribution() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['unassigned-orders'] });
-      queryClient.invalidateQueries({ queryKey: ['schedules'] });
+      queryClient.invalidateQueries({ queryKey: ['assigned-items'] });
     },
     onError: (error) => {
       console.error('Error toggling alert:', error);
@@ -121,6 +151,77 @@ export default function Distribution() {
       });
     }
   });
+
+  // Handle drop function
+  const handleDrop = useCallback((zoneNumber: number, item: { type: 'order' | 'return'; data: any }) => {
+    const zoneState = zoneStates[zoneNumber];
+    if (!zoneState?.scheduleId) {
+      console.log('Cannot drop - no schedule for zone', zoneNumber);
+      return;
+    }
+
+    const table = item.type === 'order' ? 'mainorder' : 'mainreturns';
+    const idField = item.type === 'order' ? 'ordernumber' : 'returnnumber';
+    
+    supabase
+      .from(table)
+      .update({ schedule_id: zoneState.scheduleId })
+      .eq(idField, item.data[idField])
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ['unassigned-orders'] });
+        queryClient.invalidateQueries({ queryKey: ['assigned-items'] });
+      });
+  }, [zoneStates, queryClient]);
+
+  // Handle remove from zone
+  const handleRemoveFromZone = useCallback((item: { type: 'order' | 'return'; data: any }) => {
+    const table = item.type === 'order' ? 'mainorder' : 'mainreturns';
+    const idField = item.type === 'order' ? 'ordernumber' : 'returnnumber';
+    
+    supabase
+      .from(table)
+      .update({ schedule_id: null })
+      .eq(idField, item.data[idField])
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ['unassigned-orders'] });
+        queryClient.invalidateQueries({ queryKey: ['assigned-items'] });
+      });
+  }, [queryClient]);
+
+  // Get zone state function
+  const getZoneState = useCallback((zoneNumber: number) => {
+    return zoneStates[zoneNumber] || { selectedGroupId: null, scheduleId: null, isPinned: false };
+  }, [zoneStates]);
+
+  // Handle schedule created
+  const handleScheduleCreated = useCallback((zoneNumber: number, newScheduleId: number) => {
+    setZoneStates(prev => ({
+      ...prev,
+      [zoneNumber]: {
+        ...prev[zoneNumber],
+        scheduleId: newScheduleId
+      }
+    }));
+    queryClient.invalidateQueries({ queryKey: ['distribution-schedules'] });
+  }, [queryClient]);
+
+  // Handle schedule deleted
+  const handleScheduleDeleted = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['distribution-schedules'] });
+    queryClient.invalidateQueries({ queryKey: ['unassigned-orders'] });
+    queryClient.invalidateQueries({ queryKey: ['assigned-items'] });
+  }, [queryClient]);
+
+  // Handle toggle pin
+  const handleTogglePin = useCallback((zoneNumber: number) => {
+    setZoneStates(prev => ({
+      ...prev,
+      [zoneNumber]: {
+        ...prev[zoneNumber],
+        isPinned: !prev[zoneNumber]?.isPinned
+      }
+    }));
+  }, []);
 
   // Updated handleToggleAlert to match the expected signature
   const handleToggleAlert = useCallback((item: { type: 'order' | 'return'; data: any }) => {
@@ -143,12 +244,11 @@ export default function Distribution() {
     toggleAlertMutation.mutate({ orderId, isAlert: newStatus });
   }, [toggleAlertMutation]);
 
-  const hasAlerts = schedules?.some(schedule => 
-    schedule.mainorder?.some((order: any) => order.alert_status) ||
-    schedule.mainreturns?.some((returnItem: any) => returnItem.alert_status)
-  ) || unassignedItems?.orders?.some(order => order.alert_status);
+  const hasAlerts = assignedData?.orders?.some(order => order.alert_status) ||
+                   assignedData?.returns?.some(returnItem => returnItem.alert_status) ||
+                   unassignedItems?.orders?.some(order => order.alert_status);
 
-  const isLoading = isLoadingUnassigned || isLoadingSchedules;
+  const isLoading = isLoadingUnassigned;
 
   if (isLoading) {
     return (
@@ -176,7 +276,7 @@ export default function Distribution() {
       <CentralAlertBanner isVisible={hasAlerts || false} />
 
       {/* Zone Alert Banners */}
-      {schedules?.map(schedule => (
+      {distributionSchedules?.map(schedule => (
         <ZoneAlertBanner
           key={schedule.schedule_id}
           schedule={schedule}
@@ -209,29 +309,25 @@ export default function Distribution() {
         {/* Distribution Zones */}
         <div className="lg:col-span-2">
           <div className="grid gap-4">
-            {schedules?.map(schedule => (
+            {[1, 2, 3, 4, 5].map(zoneNumber => (
               <DropZone
-                key={schedule.schedule_id}
-                distributionDate={schedule.distribution_date}
-                isProduced={!!schedule.done_schedule}
-                onDrop={() => {}}
-                onRemove={() => {}}
-                onToggleProduction={() => {}}
-                onDeleteSchedule={() => {}}
-                onUpdateSchedule={() => {}}
-                orders={schedule.mainorder || []}
-                returns={schedule.mainreturns || []}
-                nahag_name={schedule.nahag_name}
-                destinations={schedule.destinations}
-                note={schedule.note}
-                isPinned={!!schedule.isPinned}
-                onTogglePin={() => {}}
-                dis_number={schedule.dis_number}
+                key={zoneNumber}
+                zoneNumber={zoneNumber}
+                distributionGroups={distributionGroups}
+                distributionSchedules={distributionSchedules}
+                drivers={drivers}
+                onDrop={handleDrop}
+                orders={assignedData?.orders || []}
+                returns={assignedData?.returns || []}
+                onScheduleDeleted={handleScheduleDeleted}
+                onScheduleCreated={handleScheduleCreated}
+                onRemoveFromZone={handleRemoveFromZone}
+                getZoneState={getZoneState}
                 multiOrderActiveCustomerList={[]}
                 dualActiveOrderReturnCustomers={[]}
                 customerSupplyMap={{}}
-                agentNameMap={{}}
                 onSirenToggle={handleToggleAlert}
+                onTogglePin={handleTogglePin}
               />
             ))}
           </div>
