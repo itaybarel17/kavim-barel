@@ -65,7 +65,18 @@ export default function Messages() {
         console.error('Query error:', error);
         throw error;
       }
-      return data;
+      
+      // Filter and clean the data to ensure proper typing
+      const cleanedData = data?.map(message => ({
+        ...message,
+        distribution_schedule: message.distribution_schedule && 
+          typeof message.distribution_schedule === 'object' && 
+          !('error' in message.distribution_schedule) 
+            ? message.distribution_schedule 
+            : null
+      })) || [];
+      
+      return cleanedData;
     }
   });
 
