@@ -24,6 +24,19 @@ export default function Messages() {
 
   const isAdmin = user?.agentnumber === "4";
 
+  // Type guard function for schedule data
+  const isValidScheduleData = (data: any): data is { 
+    schedule_id: number; 
+    distribution_date: string | null;
+    nahag_name: string | null;
+    dis_number: number | null;
+  } => {
+    return data !== null && 
+           typeof data === 'object' && 
+           !('error' in data) &&
+           typeof data.schedule_id === 'number';
+  };
+
   // Fetch messages with filters, including distribution_schedule relation
   const { data: messages, isLoading } = useQuery({
     queryKey: ['messages', filters],
@@ -68,15 +81,11 @@ export default function Messages() {
       
       // Filter and clean the data to ensure proper typing
       const cleanedData = data?.map(message => {
-        // Use explicit null check that TypeScript understands
-        const scheduleData = message.distribution_schedule;
-        const isValidSchedule = scheduleData !== null && 
-          typeof scheduleData === 'object' && 
-          !('error' in scheduleData);
-        
         return {
           ...message,
-          distribution_schedule: isValidSchedule ? scheduleData : null
+          distribution_schedule: isValidScheduleData(message.distribution_schedule) 
+            ? message.distribution_schedule 
+            : null
         };
       }) || [];
       
