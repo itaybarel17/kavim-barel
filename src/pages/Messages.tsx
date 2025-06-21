@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
@@ -66,14 +67,18 @@ export default function Messages() {
       }
       
       // Filter and clean the data to ensure proper typing
-      const cleanedData = data?.map(message => ({
-        ...message,
-        distribution_schedule: (message.distribution_schedule && 
-          typeof message.distribution_schedule === 'object' && 
-          !('error' in message.distribution_schedule)) 
-            ? message.distribution_schedule 
-            : null
-      })) || [];
+      const cleanedData = data?.map(message => {
+        // Use explicit null check that TypeScript understands
+        const scheduleData = message.distribution_schedule;
+        const isValidSchedule = scheduleData !== null && 
+          typeof scheduleData === 'object' && 
+          !('error' in scheduleData);
+        
+        return {
+          ...message,
+          distribution_schedule: isValidSchedule ? scheduleData : null
+        };
+      }) || [];
       
       return cleanedData;
     }
