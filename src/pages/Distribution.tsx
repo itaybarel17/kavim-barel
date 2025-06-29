@@ -488,47 +488,10 @@ const Distribution = () => {
   const getZoneState = (zoneNumber: number) => {
     console.log('getZoneState called for zone:', zoneNumber);
 
-    // First, try to find a schedule that already has items assigned to it for this zone
-    // We'll look through all schedules and find which one has orders/returns that would logically belong to this zone
-    let zoneSchedule = null;
-    
-    // Strategy 1: Find schedule with items that are already assigned and should be in this zone
-    for (const schedule of distributionSchedules) {
-      const scheduleOrders = orders.filter(order => order.schedule_id === schedule.schedule_id);
-      const scheduleReturns = returns.filter(returnItem => returnItem.schedule_id === schedule.schedule_id);
-      
-      if (scheduleOrders.length > 0 || scheduleReturns.length > 0) {
-        // This schedule has items - we need to determine which zone it belongs to
-        // For now, we'll use a simple mapping based on schedule creation order and available zones
-        const scheduleIndex = distributionSchedules.findIndex(s => s.schedule_id === schedule.schedule_id);
-        const targetZone = (scheduleIndex % 12) + 1; // Distribute across 12 zones
-        
-        if (targetZone === zoneNumber) {
-          zoneSchedule = schedule;
-          break;
-        }
-      }
-    }
-    
-    // Strategy 2: If no schedule found with items, look for pinned schedules first
-    if (!zoneSchedule) {
-      const pinnedSchedules = distributionSchedules.filter(s => s.isPinned);
-      if (pinnedSchedules.length > 0) {
-        const pinnedIndex = Math.min(zoneNumber - 1, pinnedSchedules.length - 1);
-        if (pinnedSchedules[pinnedIndex]) {
-          zoneSchedule = pinnedSchedules[pinnedIndex];
-        }
-      }
-    }
-    
-    // Strategy 3: If still no schedule, use simple index-based assignment for remaining schedules
-    if (!zoneSchedule) {
-      const availableSchedules = [...distributionSchedules].sort((a, b) => a.schedule_id - b.schedule_id);
-      const scheduleIndex = zoneNumber - 1;
-      if (availableSchedules[scheduleIndex]) {
-        zoneSchedule = availableSchedules[scheduleIndex];
-      }
-    }
+    // Find a schedule that has items assigned to it for this zone
+    // We'll use a simple approach: each zone gets one active schedule in order
+    const availableSchedules = [...distributionSchedules].sort((a, b) => a.schedule_id - b.schedule_id);
+    const zoneSchedule = availableSchedules[zoneNumber - 1];
     
     if (!zoneSchedule) {
       console.log(`No schedule available for zone ${zoneNumber}`);
