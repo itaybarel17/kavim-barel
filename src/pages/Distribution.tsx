@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -78,9 +79,6 @@ const Distribution = () => {
     type: 'order' | 'return';
     data: Order | Return;
   } | null>(null);
-  
-  // Add state for zone-schedule mapping
-  const [zoneScheduleMapping, setZoneScheduleMapping] = useState<Record<number, number | null>>({});
   
   const navigate = useNavigate();
   const {
@@ -320,47 +318,6 @@ const Distribution = () => {
     enabled: currentUser?.agentnumber === "4"
   });
 
-  // Update zone-schedule mapping when schedules change
-  useEffect(() => {
-    console.log('Updating zone-schedule mapping based on schedules:', distributionSchedules);
-    
-    const newMapping: Record<number, number | null> = {};
-    
-    // First, preserve existing mappings that still have valid schedules
-    Object.entries(zoneScheduleMapping).forEach(([zoneStr, scheduleId]) => {
-      const zoneNumber = parseInt(zoneStr);
-      if (scheduleId && distributionSchedules.some(s => s.schedule_id === scheduleId)) {
-        newMapping[zoneNumber] = scheduleId;
-      }
-    });
-    
-    // Then assign unassigned schedules to zones without schedules
-    const assignedScheduleIds = new Set(Object.values(newMapping).filter(Boolean));
-    const unassignedSchedules = distributionSchedules
-      .filter(schedule => !assignedScheduleIds.has(schedule.schedule_id))
-      .sort((a, b) => a.schedule_id - b.schedule_id);
-    
-    // Find zones without schedules and assign them
-    for (let zone = 1; zone <= 12; zone++) {
-      if (!newMapping[zone] && unassignedSchedules.length > 0) {
-        const schedule = unassignedSchedules.shift();
-        if (schedule) {
-          newMapping[zone] = schedule.schedule_id;
-        }
-      }
-    }
-    
-    // Ensure all zones exist in mapping (even if null)
-    for (let zone = 1; zone <= 12; zone++) {
-      if (!(zone in newMapping)) {
-        newMapping[zone] = null;
-      }
-    }
-    
-    console.log('New zone-schedule mapping:', newMapping);
-    setZoneScheduleMapping(newMapping);
-  }, [distributionSchedules]);
-
   const handleDrop = async (zoneNumber: number, item: {
     type: 'order' | 'return';
     data: Order | Return;
@@ -368,14 +325,22 @@ const Distribution = () => {
     try {
       console.log('handleDrop called with zoneNumber:', zoneNumber, 'item:', item);
 
-      // Get the schedule ID for this zone from our mapping
-      const scheduleId = zoneScheduleMapping[zoneNumber];
-      if (!scheduleId) {
-        console.log('No schedule ID found for zone, cannot drop item');
+      // Find the schedule for this zone by looking at which schedules have items assigned to them
+      // or use the zone number to find the schedule (simple mapping 1:1)
+      const zoneSchedule = distributionSchedules.find(schedule => {
+        // Check if this schedule has any items already assigned to it and should be in this zone
+        const hasOrders = orders.some(order => order.schedule_id === schedule.schedule_id);
+        const hasReturns = returns.some(returnItem => returnItem.schedule_id === schedule.schedule_id);
+        return hasOrders || hasReturns;
+      }) || distributionSchedules[zoneNumber - 1]; // Fallback to zone index
+
+      if (!zoneSchedule) {
+        console.log('No schedule found for zone', zoneNumber);
         return;
       }
-      
-      console.log('Using schedule ID from mapping:', scheduleId);
+
+      const scheduleId = zoneSchedule.schedule_id;
+      console.log('Using schedule ID:', scheduleId, 'for zone:', zoneNumber);
       
       if (item.type === 'order') {
         console.log('Updating order', (item.data as Order).ordernumber, 'with schedule_id:', scheduleId);
@@ -411,6 +376,7 @@ const Distribution = () => {
       console.error('Error updating distribution:', error);
     }
   };
+
   const handleDropToUnassigned = async (item: {
     type: 'order' | 'return';
     data: Order | Return;
@@ -449,6 +415,7 @@ const Distribution = () => {
       console.error('Error removing assignment:', error);
     }
   };
+
   const handleScheduleDeleted = () => {
     console.log('Schedule deleted, refreshing all data...');
     refetchOrders();
@@ -458,13 +425,6 @@ const Distribution = () => {
 
   const handleScheduleCreated = (zoneNumber: number, newScheduleId: number) => {
     console.log('Schedule created for zone', zoneNumber, 'with ID:', newScheduleId);
-    
-    // Update the zone-schedule mapping immediately
-    setZoneScheduleMapping(prev => ({
-      ...prev,
-      [zoneNumber]: newScheduleId
-    }));
-    
     refetchSchedules();
   };
 
@@ -474,6 +434,7 @@ const Distribution = () => {
   }) => {
     await handleDropToUnassigned(item);
   };
+
   const handleDeleteItem = async (item: {
     type: 'order' | 'return';
     data: Order | Return;
@@ -523,15 +484,17 @@ const Distribution = () => {
     }
   };
 
-  // Updated helper function to get the current state of a zone using stable mapping
+  // Simplified helper function to get the current state of a zone
   const getZoneState = (zoneNumber: number) => {
     console.log('getZoneState called for zone:', zoneNumber);
-    console.log('Current zone-schedule mapping:', zoneScheduleMapping);
 
-    const scheduleId = zoneScheduleMapping[zoneNumber];
+    // Find a schedule that has items assigned to it for this zone
+    // We'll use a simple approach: each zone gets one active schedule in order
+    const availableSchedules = [...distributionSchedules].sort((a, b) => a.schedule_id - b.schedule_id);
+    const zoneSchedule = availableSchedules[zoneNumber - 1];
     
-    if (!scheduleId) {
-      console.log(`Zone ${zoneNumber} has no schedule - completely empty`);
+    if (!zoneSchedule) {
+      console.log(`No schedule available for zone ${zoneNumber}`);
       return {
         selectedGroupId: null,
         scheduleId: null,
@@ -539,28 +502,19 @@ const Distribution = () => {
       };
     }
 
-    // Find the schedule details
-    const schedule = distributionSchedules.find(s => s.schedule_id === scheduleId);
-    if (!schedule) {
-      console.log(`Schedule ${scheduleId} not found for zone ${zoneNumber}`);
-      return {
-        selectedGroupId: null,
-        scheduleId: null,
-        isPinned: false
-      };
-    }
-
-    console.log(`Zone ${zoneNumber} mapped to schedule:`, schedule);
+    console.log(`Zone ${zoneNumber} using schedule:`, zoneSchedule);
     return {
-      selectedGroupId: schedule.groups_id,
-      scheduleId: schedule.schedule_id,
-      isPinned: schedule.isPinned || false
+      selectedGroupId: zoneSchedule.groups_id,
+      scheduleId: zoneSchedule.schedule_id,
+      isPinned: zoneSchedule.isPinned || false
     };
   };
 
   // Add toggle pin handler
   const handleTogglePin = async (zoneNumber: number) => {
-    const scheduleId = zoneScheduleMapping[zoneNumber];
+    const zoneState = getZoneState(zoneNumber);
+    const scheduleId = zoneState.scheduleId;
+    
     if (!scheduleId) {
       console.log('No schedule ID found for zone, cannot toggle pin');
       return;
@@ -659,13 +613,14 @@ const Distribution = () => {
       // If both have the same pinned status, maintain numerical order
       return a - b;
     });
-  }, [distributionSchedules, zoneScheduleMapping]);
+  }, [distributionSchedules]);
 
   console.log('Unassigned orders:', unassignedOrders.length);
   console.log('Unassigned returns:', unassignedReturns.length);
   console.log('Distribution groups:', distributionGroups.length);
   console.log('Active schedules:', distributionSchedules.length);
   console.log('Sorted drop zones:', dropZones);
+
   const isLoading = ordersLoading || returnsLoading || groupsLoading || schedulesLoading || driversLoading || customerSupplyLoading;
 
   // Check if there are any items with active sirens anywhere in the system
@@ -717,6 +672,7 @@ const Distribution = () => {
         </div>
       </div>;
   }
+
   return <DndProvider backend={HTML5Backend}>
       <div className="min-h-screen p-6 bg-[#52a0e4]/15">
         <div className="flex items-center justify-between mb-6">
