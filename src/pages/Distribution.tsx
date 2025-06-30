@@ -141,7 +141,7 @@ const Distribution = () => {
       } = await supabase.from('mainorder').select('ordernumber, customername, address, city, totalorder, schedule_id, icecream, customernumber, agentnumber, orderdate, invoicenumber, totalinvoice, hour, remark, alert_status').or('icecream.is.null,icecream.eq.').is('done_mainorder', null).is('ordercancel', null) // Exclude deleted orders
       .order('ordernumber', {
         ascending: false
-      }).limit(50);
+      });
       if (error) throw error;
       console.log('Orders fetched:', data);
       return data as Order[];
@@ -163,7 +163,7 @@ const Distribution = () => {
       } = await supabase.from('mainreturns').select('returnnumber, customername, address, city, totalreturn, schedule_id, icecream, customernumber, agentnumber, returndate, hour, remark, alert_status').or('icecream.is.null,icecream.eq.').is('done_return', null).is('returncancel', null) // Exclude deleted returns
       .order('returnnumber', {
         ascending: false
-      }).limit(50);
+      });
       if (error) throw error;
       console.log('Returns fetched:', data);
       return data as Return[];
