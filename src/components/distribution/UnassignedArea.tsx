@@ -58,6 +58,10 @@ interface UnassignedAreaProps {
   }[];
   // new props for supply details - removed agentNameMap
   customerSupplyMap?: Record<string, string>;
+  
+  // new prop for customer areas and distribution days
+  customerAreasMap?: Record<string, { areas: Array<{ name: string; frequency?: string; day?: string }> }>;
+  
   // new prop for siren functionality
   onSirenToggle?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
 }
@@ -70,6 +74,7 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
   customerSupplyMap = {},
+  customerAreasMap = {},
   onSirenToggle
 }) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -123,6 +128,7 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
               multiOrderActiveCustomerList={multiOrderActiveCustomerList} 
               dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} 
               customerSupplyMap={customerSupplyMap} 
+              customerAreasMap={customerAreasMap}
               onSirenToggle={onSirenToggle} 
             />
             {onDeleteItem && (
@@ -145,6 +151,7 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
               multiOrderActiveCustomerList={multiOrderActiveCustomerList} 
               dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} 
               customerSupplyMap={customerSupplyMap} 
+              customerAreasMap={customerAreasMap}
               onSirenToggle={onSirenToggle} 
             />
             {onDeleteItem && (

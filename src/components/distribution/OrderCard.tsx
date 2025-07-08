@@ -68,6 +68,9 @@ interface OrderCardProps {
   // new props for supply details - removed agentNameMap as we'll display agentnumber directly
   customerSupplyMap?: Record<string, string>;
   
+  // new prop for customer areas and distribution days
+  customerAreasMap?: Record<string, { areas: Array<{ name: string; frequency?: string; day?: string }> }>;
+  
   // new prop for siren functionality
   onSirenToggle?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
 }
@@ -78,6 +81,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
   customerSupplyMap = {},
+  customerAreasMap = {},
   onSirenToggle
 }) => {
   // Local state for button states to ensure proper re-rendering
@@ -238,6 +242,42 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             >
               <Monitor className="h-4 w-4" />
             </Button>
+          </div>
+        )}
+        
+        {/* שורת אזורי הפצה וימים - רק להזמנות */}
+        {isOrder && data.customernumber && customerAreasMap[data.customernumber] && (
+          <div className="flex flex-wrap gap-2 mb-2 text-xs">
+            {customerAreasMap[data.customernumber].areas.map((area, index) => {
+              // Convert day string to day letters
+              const getDayLetters = (dayString: string) => {
+                if (!dayString) return '';
+                const dayMap: Record<string, string> = {
+                  'ראשון': 'א',
+                  'שני': 'ב', 
+                  'שלישי': 'ג',
+                  'רביעי': 'ד',
+                  'חמישי': 'ה',
+                  'שישי': 'ו'
+                };
+                return dayMap[dayString] || '';
+              };
+              
+              const dayLetter = getDayLetters(area.day || '');
+              
+              return (
+                <div key={index} className="flex items-center gap-1">
+                  <span className="text-muted-foreground font-medium">
+                    {area.name}
+                  </span>
+                  {dayLetter && (
+                    <Badge variant="secondary" className="text-xs px-1 py-0.5 h-auto min-w-[16px] text-center">
+                      {dayLetter}
+                    </Badge>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
         

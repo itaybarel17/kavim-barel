@@ -192,6 +192,37 @@ const Distribution = () => {
     }
   });
 
+  // Fetch customer areas and distribution days
+  const {
+    data: customerAreasData = { customers: [], groups: [] },
+    isLoading: customerAreasLoading
+  } = useQuery({
+    queryKey: ['customer-areas'],
+    queryFn: async () => {
+      console.log('Fetching customer areas and distribution days...');
+      const {
+        data: customerData,
+        error: customerError
+      } = await supabase
+        .from('customerlist')
+        .select('customernumber, newarea, city_area, extraarea');
+      
+      if (customerError) throw customerError;
+
+      const {
+        data: groupData,
+        error: groupError
+      } = await supabase
+        .from('distribution_groups')
+        .select('separation, frequency, day');
+      
+      if (groupError) throw groupError;
+
+      console.log('Customer areas and distribution groups fetched');
+      return { customers: customerData || [], groups: groupData || [] };
+    }
+  });
+
   // Fetch distribution groups
   const {
     data: distributionGroups = [],
@@ -253,6 +284,44 @@ const Distribution = () => {
     map[customer.customernumber] = customer.supplydetails || '';
     return map;
   }, {} as Record<string, string>);
+
+  // Create map for customer areas and distribution days
+  const customerAreasMap = useMemo(() => {
+    const map: Record<string, { areas: Array<{ name: string; frequency?: string; day?: string }> }> = {};
+    
+    if (customerAreasData.customers && customerAreasData.groups) {
+      customerAreasData.customers.forEach(customer => {
+        const areas: Array<{ name: string; frequency?: string; day?: string }> = [];
+        
+        // Primary area logic: newarea if exists, otherwise city_area
+        const primaryArea = customer.newarea || customer.city_area;
+        if (primaryArea) {
+          const groupData = customerAreasData.groups.find(g => g.separation === primaryArea);
+          areas.push({
+            name: primaryArea,
+            frequency: groupData?.frequency || '',
+            day: groupData?.day || ''
+          });
+        }
+        
+        // Extra area if exists
+        if (customer.extraarea) {
+          const groupData = customerAreasData.groups.find(g => g.separation === customer.extraarea);
+          areas.push({
+            name: customer.extraarea,
+            frequency: groupData?.frequency || '',
+            day: groupData?.day || ''
+          });
+        }
+        
+        if (areas.length > 0) {
+          map[customer.customernumber] = { areas };
+        }
+      });
+    }
+    
+    return map;
+  }, [customerAreasData]);
 
   // --- BEGIN CUSTOMER STATUS LOGIC FOR ICONS ---
   // ACTIVE order: done_mainorder == null && ordercancel == null
@@ -666,7 +735,7 @@ const Distribution = () => {
   console.log('Distribution groups:', distributionGroups.length);
   console.log('Active schedules:', distributionSchedules.length);
   console.log('Sorted drop zones:', dropZones);
-  const isLoading = ordersLoading || returnsLoading || groupsLoading || schedulesLoading || driversLoading || customerSupplyLoading;
+  const isLoading = ordersLoading || returnsLoading || groupsLoading || schedulesLoading || driversLoading || customerSupplyLoading || customerAreasLoading;
 
   // Check if there are any items with active sirens anywhere in the system
   const hasGlobalActiveSiren = useMemo(() => {
@@ -741,6 +810,7 @@ const Distribution = () => {
           multiOrderActiveCustomerList={multiOrderActiveCustomerList} 
           dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} 
           customerSupplyMap={customerSupplyMap} 
+          customerAreasMap={customerAreasMap}
           onSirenToggle={handleSirenToggle} 
         />
 
@@ -763,6 +833,7 @@ const Distribution = () => {
               multiOrderActiveCustomerList={multiOrderActiveCustomerList} 
               dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} 
               customerSupplyMap={customerSupplyMap} 
+              customerAreasMap={customerAreasMap}
               onSirenToggle={handleSirenToggle}
               onTogglePin={handleTogglePin}
             />

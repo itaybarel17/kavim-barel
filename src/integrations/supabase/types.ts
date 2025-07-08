@@ -120,7 +120,15 @@ export type Database = {
           supplydetails?: string | null
           type?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "customerlist_extraarea_fkey"
+            columns: ["extraarea"]
+            isOneToOne: false
+            referencedRelation: "distribution_groups"
+            referencedColumns: ["separation"]
+          },
+        ]
       }
       distribution_groups: {
         Row: {

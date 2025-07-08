@@ -85,6 +85,10 @@ interface DropZoneProps {
   dualActiveOrderReturnCustomers?: any[];
   // new props for supply details - removed agentNameMap
   customerSupplyMap?: Record<string, string>;
+  
+  // new prop for customer areas and distribution days
+  customerAreasMap?: Record<string, { areas: Array<{ name: string; frequency?: string; day?: string }> }>;
+  
   // new prop for siren functionality
   onSirenToggle?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
   // new prop for pin toggle functionality
@@ -116,6 +120,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
   customerSupplyMap = {},
+  customerAreasMap = {},
   onSirenToggle,
   onTogglePin
 }) => {
@@ -489,6 +494,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
             multiOrderActiveCustomerList={multiOrderActiveCustomerList}
             dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
             customerSupplyMap={customerSupplyMap}
+            customerAreasMap={customerAreasMap}
             onSirenToggle={onSirenToggle}
           />
         ))}
@@ -501,6 +507,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
             multiOrderActiveCustomerList={multiOrderActiveCustomerList}
             dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
             customerSupplyMap={customerSupplyMap}
+            customerAreasMap={customerAreasMap}
             onSirenToggle={onSirenToggle}
           />
         ))}
