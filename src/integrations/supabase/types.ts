@@ -314,10 +314,14 @@ export type Database = {
           customergroup: string | null
           customername: string | null
           customernumber: string | null
+          day1: string | null
+          day2: string | null
           Delete_extra: string | null
           done_mainorder: string | null
           end_picking_time: string | null
           euro_pallet: number | null
+          ezor1: string | null
+          ezor2: string | null
           hashavshevet: string | null
           hour: string | null
           icecream: string | null
@@ -357,10 +361,14 @@ export type Database = {
           customergroup?: string | null
           customername?: string | null
           customernumber?: string | null
+          day1?: string | null
+          day2?: string | null
           Delete_extra?: string | null
           done_mainorder?: string | null
           end_picking_time?: string | null
           euro_pallet?: number | null
+          ezor1?: string | null
+          ezor2?: string | null
           hashavshevet?: string | null
           hour?: string | null
           icecream?: string | null
@@ -400,10 +408,14 @@ export type Database = {
           customergroup?: string | null
           customername?: string | null
           customernumber?: string | null
+          day1?: string | null
+          day2?: string | null
           Delete_extra?: string | null
           done_mainorder?: string | null
           end_picking_time?: string | null
           euro_pallet?: number | null
+          ezor1?: string | null
+          ezor2?: string | null
           hashavshevet?: string | null
           hour?: string | null
           icecream?: string | null

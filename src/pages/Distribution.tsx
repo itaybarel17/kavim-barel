@@ -34,6 +34,10 @@ interface Order {
   done_mainorder?: string | null;
   ordercancel?: string | null;
   alert_status?: boolean;
+  ezor1?: string;
+  ezor2?: string;
+  day1?: string;
+  day2?: string;
 }
 interface Return {
   returnnumber: number;
@@ -138,7 +142,7 @@ const Distribution = () => {
       const {
         data,
         error
-      } = await supabase.from('mainorder').select('ordernumber, customername, address, city, totalorder, schedule_id, icecream, customernumber, agentnumber, orderdate, invoicenumber, totalinvoice, hour, remark, alert_status').or('icecream.is.null,icecream.eq.').is('done_mainorder', null).is('ordercancel', null) // Exclude deleted orders
+      } = await supabase.from('mainorder').select('ordernumber, customername, address, city, totalorder, schedule_id, icecream, customernumber, agentnumber, orderdate, invoicenumber, totalinvoice, hour, remark, alert_status, ezor1, ezor2, day1, day2').or('icecream.is.null,icecream.eq.').is('done_mainorder', null).is('ordercancel', null) // Exclude deleted orders
       .order('ordernumber', {
         ascending: false
       });
@@ -189,37 +193,6 @@ const Distribution = () => {
       if (error) throw error;
       console.log('Customer supply data fetched:', data);
       return data as CustomerSupply[];
-    }
-  });
-
-  // Fetch customer areas and distribution days
-  const {
-    data: customerAreasData = { customers: [], groups: [] },
-    isLoading: customerAreasLoading
-  } = useQuery({
-    queryKey: ['customer-areas'],
-    queryFn: async () => {
-      console.log('Fetching customer areas and distribution days...');
-      const {
-        data: customerData,
-        error: customerError
-      } = await supabase
-        .from('customerlist')
-        .select('customernumber, newarea, city_area, extraarea');
-      
-      if (customerError) throw customerError;
-
-      const {
-        data: groupData,
-        error: groupError
-      } = await supabase
-        .from('distribution_groups')
-        .select('separation, frequency, day');
-      
-      if (groupError) throw groupError;
-
-      console.log('Customer areas and distribution groups fetched');
-      return { customers: customerData || [], groups: groupData || [] };
     }
   });
 
@@ -285,62 +258,6 @@ const Distribution = () => {
     return map;
   }, {} as Record<string, string>);
 
-  // Create map for customer areas and distribution days
-  const customerAreasMap = useMemo(() => {
-    const map: Record<string, { areas: Array<{ name: string; frequency?: string; day?: string }> }> = {};
-    
-    console.log('Building customerAreasMap with data:', {
-      customersCount: customerAreasData.customers?.length || 0,
-      groupsCount: customerAreasData.groups?.length || 0,
-      sampleCustomer: customerAreasData.customers?.[0],
-      sampleGroup: customerAreasData.groups?.[0]
-    });
-    
-    if (customerAreasData.customers && customerAreasData.groups) {
-      customerAreasData.customers.forEach(customer => {
-        const areas: Array<{ name: string; frequency?: string; day?: string }> = [];
-        
-        // Primary area logic: newarea if exists, otherwise city_area
-        const primaryArea = customer.newarea || customer.city_area;
-        if (primaryArea) {
-          // Trim whitespace to ensure proper matching
-          const cleanPrimaryArea = primaryArea.trim();
-          const groupData = customerAreasData.groups.find(g => g.separation?.trim() === cleanPrimaryArea);
-          
-          if (!groupData) {
-            console.log(`No group found for customer ${customer.customernumber} with area "${cleanPrimaryArea}"`);
-            console.log('Available groups:', customerAreasData.groups.map(g => `"${g.separation}"`));
-          }
-          
-          areas.push({
-            name: cleanPrimaryArea,
-            frequency: groupData?.frequency || '',
-            day: groupData?.day || ''
-          });
-        }
-        
-        // Extra area if exists
-        if (customer.extraarea) {
-          const cleanExtraArea = customer.extraarea.trim();
-          const groupData = customerAreasData.groups.find(g => g.separation?.trim() === cleanExtraArea);
-          areas.push({
-            name: cleanExtraArea,
-            frequency: groupData?.frequency || '',
-            day: groupData?.day || ''
-          });
-        }
-        
-        if (areas.length > 0) {
-          map[customer.customernumber] = { areas };
-        }
-      });
-    }
-    
-    console.log('Final customerAreasMap:', Object.keys(map).length, 'customers mapped');
-    console.log('Sample mapping:', Object.entries(map).slice(0, 3));
-    
-    return map;
-  }, [customerAreasData]);
 
   // --- BEGIN CUSTOMER STATUS LOGIC FOR ICONS ---
   // ACTIVE order: done_mainorder == null && ordercancel == null
@@ -754,7 +671,7 @@ const Distribution = () => {
   console.log('Distribution groups:', distributionGroups.length);
   console.log('Active schedules:', distributionSchedules.length);
   console.log('Sorted drop zones:', dropZones);
-  const isLoading = ordersLoading || returnsLoading || groupsLoading || schedulesLoading || driversLoading || customerSupplyLoading || customerAreasLoading;
+  const isLoading = ordersLoading || returnsLoading || groupsLoading || schedulesLoading || driversLoading || customerSupplyLoading;
 
   // Check if there are any items with active sirens anywhere in the system
   const hasGlobalActiveSiren = useMemo(() => {
@@ -829,7 +746,6 @@ const Distribution = () => {
           multiOrderActiveCustomerList={multiOrderActiveCustomerList} 
           dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} 
           customerSupplyMap={customerSupplyMap} 
-          customerAreasMap={customerAreasMap}
           onSirenToggle={handleSirenToggle} 
         />
 
@@ -852,7 +768,6 @@ const Distribution = () => {
               multiOrderActiveCustomerList={multiOrderActiveCustomerList} 
               dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} 
               customerSupplyMap={customerSupplyMap} 
-              customerAreasMap={customerAreasMap}
               onSirenToggle={handleSirenToggle}
               onTogglePin={handleTogglePin}
             />

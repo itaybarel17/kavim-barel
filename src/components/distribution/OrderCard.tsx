@@ -30,6 +30,10 @@ interface Order {
   alert_status?: boolean;
   end_picking_time?: string | null;
   hashavshevet?: string | null;
+  ezor1?: string;
+  ezor2?: string;
+  day1?: string;
+  day2?: string;
 }
 interface Return {
   returnnumber: number;
@@ -68,9 +72,6 @@ interface OrderCardProps {
   // new props for supply details - removed agentNameMap as we'll display agentnumber directly
   customerSupplyMap?: Record<string, string>;
   
-  // new prop for customer areas and distribution days
-  customerAreasMap?: Record<string, { areas: Array<{ name: string; frequency?: string; day?: string }> }>;
-  
   // new prop for siren functionality
   onSirenToggle?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
 }
@@ -81,7 +82,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
   customerSupplyMap = {},
-  customerAreasMap = {},
   onSirenToggle
 }) => {
   // Local state for button states to ensure proper re-rendering
@@ -249,42 +249,56 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         
         {/* אזורי הפצה - רק להזמנות */}
         {isOrder && (() => {
-          // Debug logging for this specific order
-          if (data.customernumber && (data as Order).ordernumber === 344308) {
-            console.log(`Order ${(data as Order).ordernumber} customer ${data.customernumber}:`, {
-              hasCustomerAreasMap: !!customerAreasMap,
-              hasCustomerInMap: !!customerAreasMap[data.customernumber],
-              customerAreasMapKeys: Object.keys(customerAreasMap).slice(0, 10),
-              fullCustomerAreasMap: customerAreasMap[data.customernumber]
+          const orderData = data as Order;
+          
+          // Parse ezor1 and ezor2 from mainorder data
+          const parseArea = (ezorString: string) => {
+            if (!ezorString) return '';
+            // Remove brackets from format like "[צפון רחוק]" or "[צפון רחוק, אילת]"
+            return ezorString.replace(/[\[\]]/g, '').trim();
+          };
+          
+          // Parse day format {א, ה} to extract day letters
+          const parseDayLetters = (dayString: string) => {
+            if (!dayString) return '';
+            // Remove curly braces and split by comma
+            const cleaned = dayString.replace(/[{}]/g, '').trim();
+            if (!cleaned) return '';
+            // Split by comma and join with comma and space
+            return cleaned.split(',').map(d => d.trim()).join(', ');
+          };
+          
+          const areas = [];
+          
+          // Primary area from ezor1 and day1
+          const area1 = parseArea(orderData.ezor1 || '');
+          const day1 = parseDayLetters(orderData.day1 || '');
+          if (area1) {
+            // If ezor1 contains multiple areas, split them
+            const areaList = area1.split(',').map(a => a.trim());
+            areaList.forEach(areaName => {
+              areas.push({ name: areaName, day: day1 });
             });
           }
           
-          // Check if we have area data in customerAreasMap
-          if (data.customernumber && customerAreasMap[data.customernumber]) {
+          // Secondary area from ezor2 and day2
+          const area2 = parseArea(orderData.ezor2 || '');
+          const day2 = parseDayLetters(orderData.day2 || '');
+          if (area2) {
+            areas.push({ name: area2, day: day2 });
+          }
+          
+          if (areas.length > 0) {
             return (
               <div className="flex flex-wrap gap-1 mb-2">
-                {customerAreasMap[data.customernumber].areas.map((area, index) => {
-                  // Parse day format {א, ה} to extract day letters
-                  const parseDayLetters = (dayString: string) => {
-                    if (!dayString) return '';
-                    // Remove curly braces and split by comma
-                    const cleaned = dayString.replace(/[{}]/g, '').trim();
-                    if (!cleaned) return '';
-                    // Split by comma and join with comma and space
-                    return cleaned.split(',').map(d => d.trim()).join(', ');
-                  };
-                  
-                  const dayLetters = parseDayLetters(area.day || '');
-                  
-                  return (
-                    <Badge 
-                      key={index} 
-                      className={`text-xs px-2 py-1 font-medium ${getAreaColor(area.name)}`}
-                    >
-                      {area.name}   <span className="font-bold bg-white/20 px-1 rounded text-white shadow-sm">{dayLetters}</span>
-                    </Badge>
-                  );
-                })}
+                {areas.map((area, index) => (
+                  <Badge 
+                    key={index} 
+                    className={`text-xs px-2 py-1 font-medium ${getAreaColor(area.name)}`}
+                  >
+                    {area.name} <span className="font-bold bg-white/20 px-1 rounded text-white shadow-sm">{area.day}</span>
+                  </Badge>
+                ))}
               </div>
             );
           }
