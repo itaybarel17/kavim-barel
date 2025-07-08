@@ -129,7 +129,7 @@ const CalendarDay: React.FC<{
   return (
     <div className="space-y-1">
       {/* Areas box for this day - always shown with fixed height */}
-      <Card className="p-2 bg-white border border-gray-200 shadow-sm min-h-[60px]">
+      <Card className="p-2 bg-white border border-gray-200 shadow-sm h-[96px]">
         <div className="flex flex-col gap-1">
           {areasForDay.map((group, index) => {
             const areaName = getMainAreaFromSeparation(group.separation);
