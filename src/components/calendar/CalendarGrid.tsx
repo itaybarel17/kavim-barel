@@ -128,25 +128,23 @@ const CalendarDay: React.FC<{
   
   return (
     <div className="space-y-1">
-      {/* Areas box for this day */}
-      {areasForDay.length > 0 && (
-        <Card className="p-2 bg-white border border-gray-200 shadow-sm">
-          <div className="flex flex-wrap gap-1">
-            {areasForDay.map((group, index) => {
-              const areaName = getMainAreaFromSeparation(group.separation);
-              const areaColorClass = getAreaColor(areaName);
-              return (
-                <Badge 
-                  key={index}
-                  className={`${areaColorClass} text-[8px] px-1 py-0 font-bold border rounded-sm`}
-                >
-                  {group.separation}
-                </Badge>
-              );
-            })}
-          </div>
-        </Card>
-      )}
+      {/* Areas box for this day - always shown with fixed height */}
+      <Card className="p-2 bg-white border border-gray-200 shadow-sm min-h-[60px]">
+        <div className="flex flex-col gap-1">
+          {areasForDay.map((group, index) => {
+            const areaName = getMainAreaFromSeparation(group.separation);
+            const areaColorClass = getAreaColor(areaName);
+            return (
+              <Badge 
+                key={index}
+                className={`${areaColorClass} text-xs px-2 py-1 font-bold border rounded-sm`}
+              >
+                {group.separation}
+              </Badge>
+            );
+          })}
+        </div>
+      </Card>
       
       {/* Main day card */}
       <Card ref={drop} className={`p-3 min-h-[250px] border-2 border-dashed ${isOver ? 'border-blue-400 bg-blue-50' : 'border-gray-200'}`}>
