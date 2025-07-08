@@ -3,6 +3,7 @@ import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, ArrowRight } from 'lucide-react';
+import { getAreaColor, getMainAreaFromSeparation } from '@/utils/areaColors';
 import { 
   getOrdersByScheduleId, 
   getReturnsByScheduleId, 
@@ -134,6 +135,10 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   // Check if user is admin (agent "4")
   const isAdmin = currentUser?.agentnumber === "4";
   
+  // Get area color for the title
+  const areaName = group?.separation ? getMainAreaFromSeparation(group.separation) : '';
+  const areaColorClass = areaName ? getAreaColor(areaName) : 'bg-gray-500 text-white';
+  
   // Enhanced styling - all cards have normal visibility, only cursor changes based on permissions
   const cardClasses = isCalendarMode 
     ? `w-full max-w-[260px] overflow-hidden ${
@@ -165,9 +170,9 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
       <CardContent className={`${contentPadding} ${isProduced ? '' : 'bg-[#e8f6fb]'}`}>
         <div className={spacing}>
           <div className="flex items-center justify-between">
-            <h3 className={`font-bold ${titleSize} ${isProduced ? 'text-green-800' : 'text-blue-800'} truncate`}>
+            <Badge className={`${areaColorClass} font-bold ${titleSize} px-1.5 py-0.5 border rounded-sm`}>
               {group?.separation || 'אזור לא מוגדר'}
-            </h3>
+            </Badge>
             <div className="flex items-center gap-1">
               {isProduced && (
                 <Badge variant="secondary" className="text-[8px] px-1 py-0 bg-green-100 text-green-800 border border-green-300">
