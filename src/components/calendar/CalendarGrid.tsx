@@ -2,13 +2,16 @@ import React, { useState } from 'react';
 import { useDrop } from 'react-dnd';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { CalendarCard } from './CalendarCard';
 import { ProductionDialog } from './ProductionDialog';
 import { Play } from 'lucide-react';
 import { OrderWithSchedule, ReturnWithSchedule } from '@/utils/scheduleUtils';
+import { getAreaColor, getMainAreaFromSeparation } from '@/utils/areaColors';
 interface DistributionGroup {
   groups_id: number;
   separation: string;
+  day: string;
 }
 interface DistributionSchedule {
   schedule_id: number;
@@ -38,6 +41,33 @@ interface CalendarGridProps {
   };
   onRefreshData?: () => void;
 }
+
+// Helper functions for day mapping
+const getDayNumberFromHebrew = (hebrewLetter: string): number => {
+  const dayMap: Record<string, number> = {
+    'א': 0, // Sunday
+    'ב': 1, // Monday 
+    'ג': 2, // Tuesday
+    'ד': 3, // Wednesday
+    'ה': 4, // Thursday
+    'ו': 5, // Friday
+    'ש': 6  // Saturday
+  };
+  return dayMap[hebrewLetter] ?? -1;
+};
+
+const getAreasForDay = (distributionGroups: DistributionGroup[], dayNumber: number): DistributionGroup[] => {
+  return distributionGroups.filter(group => {
+    if (!group.day) return false;
+    
+    // Remove curly braces and split by comma
+    const dayString = group.day.replace(/[{}]/g, '');
+    const days = dayString.split(',').map(d => d.trim());
+    
+    // Check if any of the days match our target day
+    return days.some(day => getDayNumberFromHebrew(day) === dayNumber);
+  });
+};
 const CalendarDay: React.FC<{
   date: Date;
   schedulesForDate: DistributionSchedule[];
@@ -92,22 +122,51 @@ const CalendarDay: React.FC<{
 
   // Hide production button for Agent 99
   const shouldShowProductionButton = schedulesForDate.length > 0 && currentUser?.agentnumber !== "99";
-  return <Card ref={drop} className={`p-3 min-h-[250px] border-2 border-dashed ${isOver ? 'border-blue-400 bg-blue-50' : 'border-gray-200'}`}>
-      <div className="flex items-center justify-between mb-3">
-        <div className="text-center">
-          <div className="font-medium text-sm">{dayNames[date.getDay()]}</div>
-          <div className="text-xs text-gray-500">{dateStr}</div>
+  
+  // Get areas for this specific day
+  const areasForDay = getAreasForDay(distributionGroups, date.getDay());
+  
+  return (
+    <div className="space-y-1">
+      {/* Areas box for this day */}
+      {areasForDay.length > 0 && (
+        <Card className="p-2 bg-white border border-gray-200 shadow-sm">
+          <div className="flex flex-wrap gap-1">
+            {areasForDay.map((group, index) => {
+              const areaName = getMainAreaFromSeparation(group.separation);
+              const areaColorClass = getAreaColor(areaName);
+              return (
+                <Badge 
+                  key={index}
+                  className={`${areaColorClass} text-[8px] px-1 py-0 font-bold border rounded-sm`}
+                >
+                  {group.separation}
+                </Badge>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+      
+      {/* Main day card */}
+      <Card ref={drop} className={`p-3 min-h-[250px] border-2 border-dashed ${isOver ? 'border-blue-400 bg-blue-50' : 'border-gray-200'}`}>
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-center">
+            <div className="font-medium text-sm">{dayNames[date.getDay()]}</div>
+            <div className="text-xs text-gray-500">{dateStr}</div>
+          </div>
+          {/* Show production button to all users except Agent 99 when there are schedules */}
+          {shouldShowProductionButton && <Button size="sm" variant="outline" onClick={() => onProductionDialogOpen(date)} className="flex items-center gap-1 text-xs px-2 py-1 h-6">
+              <Play className="h-3 w-3" />
+              הפקה
+            </Button>}
         </div>
-        {/* Show production button to all users except Agent 99 when there are schedules */}
-        {shouldShowProductionButton && <Button size="sm" variant="outline" onClick={() => onProductionDialogOpen(date)} className="flex items-center gap-1 text-xs px-2 py-1 h-6">
-            <Play className="h-3 w-3" />
-            הפקה
-          </Button>}
-      </div>
-      <div className="space-y-2">
-        {schedulesForDate.map(schedule => <CalendarCard key={schedule.schedule_id} scheduleId={schedule.schedule_id} groupId={schedule.groups_id} distributionGroups={distributionGroups} drivers={drivers} orders={orders} returns={returns} driverId={schedule.driver_id} showAllCustomers={true} isCalendarMode={true} schedule={schedule} currentUser={currentUser} />)}
-      </div>
-    </Card>;
+        <div className="space-y-2">
+          {schedulesForDate.map(schedule => <CalendarCard key={schedule.schedule_id} scheduleId={schedule.schedule_id} groupId={schedule.groups_id} distributionGroups={distributionGroups} drivers={drivers} orders={orders} returns={returns} driverId={schedule.driver_id} showAllCustomers={true} isCalendarMode={true} schedule={schedule} currentUser={currentUser} />)}
+        </div>
+      </Card>
+    </div>
+  );
 };
 export const CalendarGrid: React.FC<CalendarGridProps> = ({
   currentWeekStart,
