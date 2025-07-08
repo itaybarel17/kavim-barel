@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 // Path for prominent customer blue/red icons
 import BlueCustomerIcon from '/blue-customer.svg';
 import RedCustomerIcon from '/red-customer.svg';
+import { getAreaColor } from '@/utils/areaColors';
 interface Order {
   ordernumber: number;
   customername: string;
@@ -136,25 +137,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   const isMultiOrderActive = multiOrderActiveCustomerList.some(cust => cust.name === data.customername && cust.city === data.city);
   const isDualActiveOrderReturn = dualActiveOrderReturnCustomers.some(cust => cust.name === data.customername && cust.city === data.city);
 
-  // Function to get area color
-  const getAreaColor = (areaName: string) => {
-    const areaColors: Record<string, string> = {
-      'תל אביב': 'bg-blue-500 text-white',
-      'חיפה': 'bg-green-500 text-white', 
-      'ירושלים': 'bg-purple-500 text-white',
-      'רמת גן': 'bg-orange-500 text-white',
-      'שרון': 'bg-pink-500 text-white',
-      'ראשון לציון': 'bg-indigo-500 text-white',
-      'שפלה': 'bg-teal-500 text-white',
-      'צפון רחוק': 'bg-red-500 text-white',
-      'צפון קרוב': 'bg-cyan-500 text-white',
-      'דרום': 'bg-amber-500 text-white',
-      'אילת': 'bg-lime-500 text-white',
-      'פתח תקווה': 'bg-violet-500 text-white',
-      'חדרה': 'bg-rose-500 text-white'
-    };
-    return areaColors[areaName] || 'bg-gray-500 text-white';
-  };
 
   // Size for prominent icon
   const iconSize = 24;

@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { OrderCard } from './OrderCard';
 import { pdf } from '@react-pdf/renderer';
 import { ZonePDFDocument } from './ZonePDFDocument';
+import { getAreaColor, getMainAreaFromSeparation } from '@/utils/areaColors';
 
 interface Order {
   ordernumber: number;
@@ -418,15 +419,19 @@ export const DropZone: React.FC<DropZoneProps> = ({
               <SelectValue placeholder="בחר אזור הפצה" />
             </SelectTrigger>
             <SelectContent className="bg-popover border border-border shadow-md z-50 max-h-[200px] overflow-y-auto">
-              {distributionGroups.map(group => (
-                <SelectItem
-                  key={group.groups_id}
-                  value={group.groups_id.toString()}
-                  className="cursor-pointer hover:bg-accent focus:bg-accent"
-                >
-                  {group.separation}
-                </SelectItem>
-              ))}
+              {distributionGroups.map(group => {
+                const mainArea = getMainAreaFromSeparation(group.separation || '');
+                const areaColorClass = getAreaColor(mainArea);
+                return (
+                  <SelectItem
+                    key={group.groups_id}
+                    value={group.groups_id.toString()}
+                    className={`cursor-pointer hover:opacity-80 focus:opacity-80 ${areaColorClass} font-bold`}
+                  >
+                    {group.separation}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
 
