@@ -289,6 +289,13 @@ const Distribution = () => {
   const customerAreasMap = useMemo(() => {
     const map: Record<string, { areas: Array<{ name: string; frequency?: string; day?: string }> }> = {};
     
+    console.log('Building customerAreasMap with data:', {
+      customersCount: customerAreasData.customers?.length || 0,
+      groupsCount: customerAreasData.groups?.length || 0,
+      sampleCustomer: customerAreasData.customers?.[0],
+      sampleGroup: customerAreasData.groups?.[0]
+    });
+    
     if (customerAreasData.customers && customerAreasData.groups) {
       customerAreasData.customers.forEach(customer => {
         const areas: Array<{ name: string; frequency?: string; day?: string }> = [];
@@ -296,9 +303,17 @@ const Distribution = () => {
         // Primary area logic: newarea if exists, otherwise city_area
         const primaryArea = customer.newarea || customer.city_area;
         if (primaryArea) {
-          const groupData = customerAreasData.groups.find(g => g.separation === primaryArea);
+          // Trim whitespace to ensure proper matching
+          const cleanPrimaryArea = primaryArea.trim();
+          const groupData = customerAreasData.groups.find(g => g.separation?.trim() === cleanPrimaryArea);
+          
+          if (!groupData) {
+            console.log(`No group found for customer ${customer.customernumber} with area "${cleanPrimaryArea}"`);
+            console.log('Available groups:', customerAreasData.groups.map(g => `"${g.separation}"`));
+          }
+          
           areas.push({
-            name: primaryArea,
+            name: cleanPrimaryArea,
             frequency: groupData?.frequency || '',
             day: groupData?.day || ''
           });
@@ -306,9 +321,10 @@ const Distribution = () => {
         
         // Extra area if exists
         if (customer.extraarea) {
-          const groupData = customerAreasData.groups.find(g => g.separation === customer.extraarea);
+          const cleanExtraArea = customer.extraarea.trim();
+          const groupData = customerAreasData.groups.find(g => g.separation?.trim() === cleanExtraArea);
           areas.push({
-            name: customer.extraarea,
+            name: cleanExtraArea,
             frequency: groupData?.frequency || '',
             day: groupData?.day || ''
           });
@@ -319,6 +335,9 @@ const Distribution = () => {
         }
       });
     }
+    
+    console.log('Final customerAreasMap:', Object.keys(map).length, 'customers mapped');
+    console.log('Sample mapping:', Object.entries(map).slice(0, 3));
     
     return map;
   }, [customerAreasData]);

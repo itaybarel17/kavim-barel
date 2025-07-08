@@ -251,32 +251,49 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         {isOrder && (
           <div className="flex justify-between items-center mb-2">
             {/* אזורי הפצה וימים */}
-            {data.customernumber && customerAreasMap[data.customernumber] && (
-              <div className="flex flex-wrap gap-1">
-                {customerAreasMap[data.customernumber].areas.map((area, index) => {
-                  // Parse day format {א, ה} to extract day letters
-                  const parseDayLetters = (dayString: string) => {
-                    if (!dayString) return '';
-                    // Remove curly braces and split by comma
-                    const cleaned = dayString.replace(/[{}]/g, '').trim();
-                    if (!cleaned) return '';
-                    // Split by comma and join with comma and space
-                    return cleaned.split(',').map(d => d.trim()).join(', ');
-                  };
-                  
-                  const dayLetters = parseDayLetters(area.day || '');
-                  
-                  return (
-                    <Badge 
-                      key={index} 
-                      className={`text-xs px-2 py-1 font-medium ${getAreaColor(area.name)}`}
-                    >
-                      {area.name}   <span className="font-bold bg-white/20 px-1 rounded text-white shadow-sm">{dayLetters}</span>
-                    </Badge>
-                  );
-                })}
-              </div>
-            )}
+            {(() => {
+              // Debug logging for this specific order
+              if (data.customernumber && (data as Order).ordernumber === 344308) {
+                console.log(`Order ${(data as Order).ordernumber} customer ${data.customernumber}:`, {
+                  hasCustomerAreasMap: !!customerAreasMap,
+                  hasCustomerInMap: !!customerAreasMap[data.customernumber],
+                  customerAreasMapKeys: Object.keys(customerAreasMap).slice(0, 10),
+                  fullCustomerAreasMap: customerAreasMap[data.customernumber]
+                });
+              }
+              
+              // Check if we have area data in customerAreasMap
+              if (data.customernumber && customerAreasMap[data.customernumber]) {
+                return (
+                  <div className="flex flex-wrap gap-1">
+                    {customerAreasMap[data.customernumber].areas.map((area, index) => {
+                      // Parse day format {א, ה} to extract day letters
+                      const parseDayLetters = (dayString: string) => {
+                        if (!dayString) return '';
+                        // Remove curly braces and split by comma
+                        const cleaned = dayString.replace(/[{}]/g, '').trim();
+                        if (!cleaned) return '';
+                        // Split by comma and join with comma and space
+                        return cleaned.split(',').map(d => d.trim()).join(', ');
+                      };
+                      
+                      const dayLetters = parseDayLetters(area.day || '');
+                      
+                      return (
+                        <Badge 
+                          key={index} 
+                          className={`text-xs px-2 py-1 font-medium ${getAreaColor(area.name)}`}
+                        >
+                          {area.name}   <span className="font-bold bg-white/20 px-1 rounded text-white shadow-sm">{dayLetters}</span>
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                );
+              }
+              
+              return null;
+            })()}
             
             {/* כפתור מחשב */}
             <Button
