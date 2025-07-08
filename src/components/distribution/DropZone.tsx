@@ -415,23 +415,28 @@ export const DropZone: React.FC<DropZoneProps> = ({
 
         <div className="space-y-2">
           <Select value={selectedGroupId?.toString() || ''} onValueChange={handleGroupSelection}>
-            <SelectTrigger className="w-full h-10 bg-background border border-input">
+            <SelectTrigger className={`w-full h-10 border border-input ${
+              selectedGroupId ? (() => {
+                const selectedGroup = distributionGroups.find(g => g.groups_id === selectedGroupId);
+                if (selectedGroup) {
+                  const mainArea = getMainAreaFromSeparation(selectedGroup.separation || '');
+                  return getAreaColor(mainArea) + ' font-bold';
+                }
+                return 'bg-background';
+              })() : 'bg-background'
+            }`}>
               <SelectValue placeholder="בחר אזור הפצה" />
             </SelectTrigger>
             <SelectContent className="bg-popover border border-border shadow-md z-50 max-h-[200px] overflow-y-auto">
-              {distributionGroups.map(group => {
-                const mainArea = getMainAreaFromSeparation(group.separation || '');
-                const areaColorClass = getAreaColor(mainArea);
-                return (
-                  <SelectItem
-                    key={group.groups_id}
-                    value={group.groups_id.toString()}
-                    className={`cursor-pointer hover:opacity-80 focus:opacity-80 ${areaColorClass} font-bold`}
-                  >
-                    {group.separation}
-                  </SelectItem>
-                );
-              })}
+              {distributionGroups.map(group => (
+                <SelectItem
+                  key={group.groups_id}
+                  value={group.groups_id.toString()}
+                  className="cursor-pointer hover:bg-accent focus:bg-accent"
+                >
+                  {group.separation}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
