@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -80,6 +80,18 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   customerSupplyMap = {},
   onSirenToggle
 }) => {
+  // Local state for button states to ensure proper re-rendering
+  const [endPickingTimeState, setEndPickingTimeState] = useState<string | null>(null);
+  const [hashavshevtState, setHashavshevtState] = useState<string | null>(null);
+  
+  // Initialize state from data
+  useEffect(() => {
+    if (type === 'order') {
+      const orderData = data as Order;
+      setEndPickingTimeState(orderData.end_picking_time || null);
+      setHashavshevtState(orderData.hashavshevet || null);
+    }
+  }, [data, type]);
   const [{
     isDragging
   }, drag] = useDrag(() => ({
@@ -142,7 +154,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     if (!isOrder) return;
     
     const orderData = data as Order;
-    const newValue = orderData.end_picking_time ? null : new Date().toISOString();
+    const newValue = endPickingTimeState ? null : new Date().toISOString();
     
     const { error } = await supabase
       .from('mainorder')
@@ -154,8 +166,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       return;
     }
     
-    // Update local data
+    // Update local data and state
     (data as Order).end_picking_time = newValue;
+    setEndPickingTimeState(newValue);
   };
 
   // Handle hashavshevet toggle (for orders only)
@@ -163,7 +176,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     if (!isOrder) return;
     
     const orderData = data as Order;
-    const newValue = orderData.hashavshevet ? null : new Date().toISOString();
+    const newValue = hashavshevtState ? null : new Date().toISOString();
     
     const { error } = await supabase
       .from('mainorder')
@@ -175,8 +188,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       return;
     }
     
-    // Update local data
+    // Update local data and state
     (data as Order).hashavshevet = newValue;
+    setHashavshevtState(newValue);
   };
 
   return <Card ref={drag} className={`min-w-[250px] cursor-move ${isDragging ? 'opacity-50' : ''} ${isOrder ? 'border-blue-200 bg-blue-50' : 'border-red-200 bg-red-50'} ${hasInvoiceNumber ? 'ring-2 ring-green-300' : ''} ${isCandyPlus ? 'ring-2 ring-pink-300 border-pink-200' : ''} ${data.alert_status ? 'ring-2 ring-red-500 shadow-lg shadow-red-200' : ''}`}>
@@ -198,7 +212,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
               variant="ghost"
               size="sm"
               className={`rounded-full p-1 h-auto transition-all duration-200 active:scale-95 ${
-                (data as Order).end_picking_time 
+                endPickingTimeState 
                   ? 'text-white bg-purple-500 shadow-lg shadow-purple-200 ring-2 ring-purple-300' 
                   : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
               }`}
@@ -216,7 +230,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
               variant="ghost"
               size="sm"
               className={`rounded-full p-1 h-auto transition-all duration-200 active:scale-95 ${
-                (data as Order).hashavshevet 
+                hashavshevtState 
                   ? 'text-white bg-orange-500 shadow-lg shadow-orange-200 ring-2 ring-orange-300' 
                   : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
               }`}
