@@ -538,6 +538,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
             dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
             customerSupplyMap={customerSupplyMap}
             onSirenToggle={onSirenToggle}
+            onReturnToKanban={onRemoveFromZone}
           />
         ))}
         {sortedReturns.map(returnItem => (
@@ -550,6 +551,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
             dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
             customerSupplyMap={customerSupplyMap}
             onSirenToggle={onSirenToggle}
+            onReturnToKanban={onRemoveFromZone}
           />
         ))}
         {assignedOrders.length === 0 && assignedReturns.length === 0 && (
