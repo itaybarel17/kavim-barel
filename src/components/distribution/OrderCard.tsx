@@ -197,10 +197,10 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              className={`rounded-full p-1 h-auto ${
+              className={`rounded-full p-1 h-auto transition-all duration-200 active:scale-95 ${
                 (data as Order).end_picking_time 
-                  ? 'text-blue-600 bg-blue-100 shadow-md' 
-                  : 'text-gray-400 hover:text-gray-600'
+                  ? 'text-white bg-purple-500 shadow-lg shadow-purple-200 ring-2 ring-purple-300' 
+                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
               }`}
               onClick={handleEndPickingTimeToggle}
             >
@@ -215,10 +215,10 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              className={`rounded-full p-1 h-auto ${
+              className={`rounded-full p-1 h-auto transition-all duration-200 active:scale-95 ${
                 (data as Order).hashavshevet 
-                  ? 'text-blue-600 bg-blue-100 shadow-md' 
-                  : 'text-gray-400 hover:text-gray-600'
+                  ? 'text-white bg-orange-500 shadow-lg shadow-orange-200 ring-2 ring-orange-300' 
+                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
               }`}
               onClick={handleHashavshevetToggle}
             >
