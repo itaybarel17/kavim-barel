@@ -89,14 +89,22 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   const [endPickingTimeState, setEndPickingTimeState] = useState<string | null>(null);
   const [hashavshevtState, setHashavshevtState] = useState<string | null>(null);
   
-  // Initialize state from data
+  // Initialize state from data - only update if values actually changed
   useEffect(() => {
     if (type === 'order') {
       const orderData = data as Order;
-      setEndPickingTimeState(orderData.end_picking_time || null);
-      setHashavshevtState(orderData.hashavshevet || null);
+      const currentEndPickingTime = orderData.end_picking_time || null;
+      const currentHashavshevet = orderData.hashavshevet || null;
+      
+      // Only update state if the server values are different from current state
+      if (endPickingTimeState !== currentEndPickingTime) {
+        setEndPickingTimeState(currentEndPickingTime);
+      }
+      if (hashavshevtState !== currentHashavshevet) {
+        setHashavshevtState(currentHashavshevet);
+      }
     }
-  }, [data, type]);
+  }, [data, type, endPickingTimeState, hashavshevtState]);
   const [{
     isDragging
   }, drag] = useDrag(() => ({
