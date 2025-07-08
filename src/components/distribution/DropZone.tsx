@@ -399,6 +399,12 @@ export const DropZone: React.FC<DropZoneProps> = ({
   // Get the selected group name for display
   const selectedGroup = distributionGroups.find(group => group.groups_id === selectedGroupId);
   const selectedDriver = drivers.find(driver => driver.id === selectedDriverId);
+  
+  // Debug logging for distribution days
+  console.log('Selected group ID:', selectedGroupId);
+  console.log('Selected group object:', selectedGroup);
+  console.log('Distribution groups:', distributionGroups);
+  
   return (
     <Card ref={drop} className={`min-h-[300px] transition-colors relative ${isOver && currentZoneState.scheduleId ? 'border-primary bg-primary/5' : 'border-border'} ${!currentZoneState.scheduleId && isOver ? 'border-red-300 bg-red-50' : ''}`}>
       <CardHeader className="pb-3">
