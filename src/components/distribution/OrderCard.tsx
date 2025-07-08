@@ -136,6 +136,26 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   const isMultiOrderActive = multiOrderActiveCustomerList.some(cust => cust.name === data.customername && cust.city === data.city);
   const isDualActiveOrderReturn = dualActiveOrderReturnCustomers.some(cust => cust.name === data.customername && cust.city === data.city);
 
+  // Function to get area color
+  const getAreaColor = (areaName: string) => {
+    const areaColors: Record<string, string> = {
+      'תל אביב': 'bg-blue-500 text-white',
+      'חיפה': 'bg-green-500 text-white', 
+      'ירושלים': 'bg-purple-500 text-white',
+      'רמת גן': 'bg-orange-500 text-white',
+      'שרון': 'bg-pink-500 text-white',
+      'ראשון לציון': 'bg-indigo-500 text-white',
+      'שפלה': 'bg-teal-500 text-white',
+      'צפון רחוק': 'bg-red-500 text-white',
+      'צפון קרוב': 'bg-cyan-500 text-white',
+      'דרום': 'bg-amber-500 text-white',
+      'אילת': 'bg-lime-500 text-white',
+      'פתח תקווה': 'bg-violet-500 text-white',
+      'חדרה': 'bg-rose-500 text-white'
+    };
+    return areaColors[areaName] || 'bg-gray-500 text-white';
+  };
+
   // Size for prominent icon
   const iconSize = 24;
 
@@ -227,9 +247,42 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           )}
         </div>
         
-        {/* שורה של כפתור מחשב - רק להזמנות */}
+        {/* שורה של כפתור מחשב ואזורי הפצה - רק להזמנות */}
         {isOrder && (
-          <div className="flex justify-end mb-2">
+          <div className="flex justify-between items-center mb-2">
+            {/* אזורי הפצה וימים */}
+            {data.customernumber && customerAreasMap[data.customernumber] && (
+              <div className="flex flex-wrap gap-1">
+                {customerAreasMap[data.customernumber].areas.map((area, index) => {
+                  // Convert day string to day letters
+                  const getDayLetters = (dayString: string) => {
+                    if (!dayString) return '';
+                    const dayMap: Record<string, string> = {
+                      'ראשון': 'א',
+                      'שני': 'ב', 
+                      'שלישי': 'ג',
+                      'רביעי': 'ד',
+                      'חמישי': 'ה',
+                      'שישי': 'ו'
+                    };
+                    return dayMap[dayString] || '';
+                  };
+                  
+                  const dayLetter = getDayLetters(area.day || '');
+                  
+                  return (
+                    <Badge 
+                      key={index} 
+                      className={`text-xs px-2 py-1 font-medium ${getAreaColor(area.name)}`}
+                    >
+                      {area.name} {dayLetter}
+                    </Badge>
+                  );
+                })}
+              </div>
+            )}
+            
+            {/* כפתור מחשב */}
             <Button
               variant="ghost"
               size="sm"
@@ -242,42 +295,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             >
               <Monitor className="h-4 w-4" />
             </Button>
-          </div>
-        )}
-        
-        {/* שורת אזורי הפצה וימים - רק להזמנות */}
-        {isOrder && data.customernumber && customerAreasMap[data.customernumber] && (
-          <div className="flex flex-wrap gap-2 mb-2 text-xs">
-            {customerAreasMap[data.customernumber].areas.map((area, index) => {
-              // Convert day string to day letters
-              const getDayLetters = (dayString: string) => {
-                if (!dayString) return '';
-                const dayMap: Record<string, string> = {
-                  'ראשון': 'א',
-                  'שני': 'ב', 
-                  'שלישי': 'ג',
-                  'רביעי': 'ד',
-                  'חמישי': 'ה',
-                  'שישי': 'ו'
-                };
-                return dayMap[dayString] || '';
-              };
-              
-              const dayLetter = getDayLetters(area.day || '');
-              
-              return (
-                <div key={index} className="flex items-center gap-1">
-                  <span className="text-muted-foreground font-medium">
-                    {area.name}
-                  </span>
-                  {dayLetter && (
-                    <Badge variant="secondary" className="text-xs px-1 py-0.5 h-auto min-w-[16px] text-center">
-                      {dayLetter}
-                    </Badge>
-                  )}
-                </div>
-              );
-            })}
           </div>
         )}
         
