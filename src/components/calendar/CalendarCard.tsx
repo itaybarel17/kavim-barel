@@ -174,15 +174,17 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
               {group?.separation || 'אזור לא מוגדר'}
             </Badge>
             <div className="flex items-center gap-1">
-              {isProduced && (
-                <Badge variant="secondary" className="text-[8px] px-1 py-0 bg-green-100 text-green-800 border border-green-300">
-                  הופק #{schedule?.dis_number || 'לא ידוע'}
-                </Badge>
-              )}
             </div>
           </div>
           <div className={`text-xs font-bold text-muted-foreground`}>
-            <div className="truncate">מזהה: {scheduleId}</div>
+            <div className="truncate flex items-center gap-1">
+              מזהה: {scheduleId}
+              {isProduced && (
+                <Badge variant="secondary" className="text-[8px] px-1 py-0 bg-green-100 text-green-800 border border-green-300">
+                  #{schedule?.dis_number || 'לא ידוע'}
+                </Badge>
+              )}
+            </div>
           </div>
         </div>
 

@@ -244,9 +244,9 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
                         <div className="font-semibold text-lg">
                           {group?.separation || `קו ${schedule.schedule_id}`} - מזהה: {schedule.schedule_id}
                         </div>
-                        {isProduced && (
+                         {isProduced && (
                           <div className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm font-medium border border-green-300">
-                            הופק #{schedule.dis_number || 'לא ידוע'}
+                            #{schedule.dis_number || 'לא ידוע'}
                           </div>
                         )}
                       </div>
