@@ -50,6 +50,7 @@ interface Return {
 interface DistributionGroup {
   groups_id: number;
   separation: string;
+  day?: string;
 }
 interface DistributionSchedule {
   schedule_id: number;
@@ -105,6 +106,32 @@ const sortBySirenStatus = <T extends { alert_status?: boolean }>(items: T[]): T[
   const withSiren = items.filter(item => item.alert_status === true);
   const withoutSiren = items.filter(item => item.alert_status !== true);
   return [...withSiren, ...withoutSiren];
+};
+
+/**
+ * Formats distribution days from {א, ה} format to "ראשון, חמישי"
+ */
+const formatDistributionDays = (dayString: string | undefined): string => {
+  if (!dayString) return '';
+  
+  const dayMap: Record<string, string> = {
+    'א': 'ראשון',
+    'ב': 'שני', 
+    'ג': 'שלישי',
+    'ד': 'רביעי',
+    'ה': 'חמישי',
+    'ו': 'שישי'
+  };
+  
+  // Remove curly braces and split by comma
+  const cleanedDays = dayString.replace(/[{}]/g, '').trim();
+  if (!cleanedDays) return '';
+  
+  // Split by comma, map to full names, and join back
+  return cleanedDays
+    .split(',')
+    .map(day => dayMap[day.trim()] || day.trim())
+    .join(', ');
 };
 
 export const DropZone: React.FC<DropZoneProps> = ({
@@ -464,7 +491,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
               מזהה לוח זמנים: {scheduleId}
               {selectedGroup && (
                 <div className="font-medium text-primary">
-                  אזור נבחר: {selectedGroup.separation}
+                  ימי הפצה: {formatDistributionDays(selectedGroup.day)}
                 </div>
               )}
               {selectedDriver && (
