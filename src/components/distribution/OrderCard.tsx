@@ -247,68 +247,63 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           )}
         </div>
         
-        {/* אזורי הפצה - רק להזמנות */}
-        {isOrder && (() => {
-          const orderData = data as Order;
-          
-          // Parse ezor1 and ezor2 from mainorder data
-          const parseArea = (ezorString: string) => {
-            if (!ezorString) return '';
-            // Remove brackets from format like "[צפון רחוק]" or "[צפון רחוק, אילת]"
-            return ezorString.replace(/[\[\]]/g, '').trim();
-          };
-          
-          // Parse day format {א, ה} to extract day letters
-          const parseDayLetters = (dayString: string) => {
-            if (!dayString) return '';
-            // Remove curly braces and split by comma
-            const cleaned = dayString.replace(/[{}]/g, '').trim();
-            if (!cleaned) return '';
-            // Split by comma and join with comma and space
-            return cleaned.split(',').map(d => d.trim()).join(', ');
-          };
-          
-          const areas = [];
-          
-          // Primary area from ezor1 and day1
-          const area1 = parseArea(orderData.ezor1 || '');
-          const day1 = parseDayLetters(orderData.day1 || '');
-          if (area1) {
-            // If ezor1 contains multiple areas, split them
-            const areaList = area1.split(',').map(a => a.trim());
-            areaList.forEach(areaName => {
-              areas.push({ name: areaName, day: day1 });
-            });
-          }
-          
-          // Secondary area from ezor2 and day2
-          const area2 = parseArea(orderData.ezor2 || '');
-          const day2 = parseDayLetters(orderData.day2 || '');
-          if (area2) {
-            areas.push({ name: area2, day: day2 });
-          }
-          
-          if (areas.length > 0) {
-            return (
-              <div className="flex flex-wrap gap-1 mb-2">
-                {areas.map((area, index) => (
+        {/* אזורי הפצה וכפתור מחשב באותה שורה - רק להזמנות */}
+        {isOrder && (
+          <div className="flex justify-between items-center mb-2">
+            {/* אזורי הפצה */}
+            <div className="flex flex-wrap gap-1">
+              {(() => {
+                const orderData = data as Order;
+                
+                // Parse ezor1 and ezor2 from mainorder data
+                const parseArea = (ezorString: string) => {
+                  if (!ezorString) return '';
+                  // Remove brackets from format like "[צפון רחוק]" or "[צפון רחוק, אילת]"
+                  return ezorString.replace(/[\[\]]/g, '').trim();
+                };
+                
+                // Parse day format {א, ה} to extract day letters
+                const parseDayLetters = (dayString: string) => {
+                  if (!dayString) return '';
+                  // Remove curly braces and split by comma
+                  const cleaned = dayString.replace(/[{}]/g, '').trim();
+                  if (!cleaned) return '';
+                  // Split by comma and join with comma and space
+                  return cleaned.split(',').map(d => d.trim()).join(', ');
+                };
+                
+                const areas = [];
+                
+                // Primary area from ezor1 and day1
+                const area1 = parseArea(orderData.ezor1 || '');
+                const day1 = parseDayLetters(orderData.day1 || '');
+                if (area1) {
+                  // If ezor1 contains multiple areas, split them
+                  const areaList = area1.split(',').map(a => a.trim());
+                  areaList.forEach(areaName => {
+                    areas.push({ name: areaName, day: day1 });
+                  });
+                }
+                
+                // Secondary area from ezor2 and day2
+                const area2 = parseArea(orderData.ezor2 || '');
+                const day2 = parseDayLetters(orderData.day2 || '');
+                if (area2) {
+                  areas.push({ name: area2, day: day2 });
+                }
+                
+                return areas.map((area, index) => (
                   <Badge 
                     key={index} 
                     className={`text-xs px-2 py-1 font-medium ${getAreaColor(area.name)}`}
                   >
                     {area.name} <span className="font-bold bg-white/20 px-1 rounded text-white shadow-sm">{area.day}</span>
                   </Badge>
-                ))}
-              </div>
-            );
-          }
-          
-          return null;
-        })()}
-        
-        {/* כפתור מחשב - תמיד בצד ימין */}
-        {isOrder && (
-          <div className="flex justify-end mb-2">
+                ));
+              })()}
+            </div>
+            
+            {/* כפתור מחשב */}
             <Button
               variant="ghost"
               size="sm"
