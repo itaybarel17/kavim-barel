@@ -244,22 +244,42 @@ export const DropZone: React.FC<DropZoneProps> = ({
       return;
     }
     try {
-      console.log('Creating new schedule for group:', groupId);
-      const {
-        data: newScheduleId,
-        error
-      } = await supabase.rpc('get_or_create_schedule_for_group', {
-        group_id: groupId
-      });
-      if (error) {
-        console.error('Error creating schedule:', error);
-        return;
+      // Check if we already have a schedule for this zone
+      if (scheduleId) {
+        // Update existing schedule with new group
+        console.log('Updating existing schedule', scheduleId, 'with new group:', groupId);
+        const { error } = await supabase
+          .from('distribution_schedule')
+          .update({ groups_id: groupId })
+          .eq('schedule_id', scheduleId);
+        
+        if (error) {
+          console.error('Error updating schedule with new group:', error);
+          return;
+        }
+        console.log('Schedule updated successfully with new group');
+        setSelectedGroupId(groupId);
+        // Keep the same scheduleId
+        setSelectedDriverId(null); // Reset driver when changing group
+      } else {
+        // Create new schedule as before
+        console.log('Creating new schedule for group:', groupId);
+        const {
+          data: newScheduleId,
+          error
+        } = await supabase.rpc('get_or_create_schedule_for_group', {
+          group_id: groupId
+        });
+        if (error) {
+          console.error('Error creating schedule:', error);
+          return;
+        }
+        console.log('Created new schedule ID:', newScheduleId);
+        setSelectedGroupId(groupId);
+        setScheduleId(newScheduleId);
+        setSelectedDriverId(null);
+        onScheduleCreated(zoneNumber, newScheduleId);
       }
-      console.log('Created new schedule ID:', newScheduleId);
-      setSelectedGroupId(groupId);
-      setScheduleId(newScheduleId);
-      setSelectedDriverId(null);
-      onScheduleCreated(zoneNumber, newScheduleId);
     } catch (error) {
       console.error('Error in group selection:', error);
     }
