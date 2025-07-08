@@ -271,7 +271,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                       key={index} 
                       className={`text-xs px-2 py-1 font-medium ${getAreaColor(area.name)}`}
                     >
-                      {area.name} {dayLetters}
+                      {area.name}   <span className="font-bold bg-white/20 px-1 rounded text-white shadow-sm">{dayLetters}</span>
                     </Badge>
                   );
                 })}
