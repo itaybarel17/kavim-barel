@@ -207,7 +207,7 @@ const Distribution = () => {
       const {
         data,
         error
-      } = await supabase.from('distribution_groups').select('groups_id, separation');
+      } = await supabase.from('distribution_groups').select('groups_id, separation, day');
       if (error) throw error;
       console.log('Distribution groups fetched:', data);
       return data as DistributionGroup[];
