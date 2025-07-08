@@ -85,26 +85,22 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   customerSupplyMap = {},
   onSirenToggle
 }) => {
-  // Local state for button states to ensure proper re-rendering
-  const [endPickingTimeState, setEndPickingTimeState] = useState<string | null>(null);
-  const [hashavshevtState, setHashavshevtState] = useState<string | null>(null);
-  
-  // Initialize state from data - only update if values actually changed
+  // Initialize state from data
   useEffect(() => {
     if (type === 'order') {
       const orderData = data as Order;
-      const currentEndPickingTime = orderData.end_picking_time || null;
-      const currentHashavshevet = orderData.hashavshevet || null;
-      
-      // Only update state if the server values are different from current state
-      if (endPickingTimeState !== currentEndPickingTime) {
-        setEndPickingTimeState(currentEndPickingTime);
-      }
-      if (hashavshevtState !== currentHashavshevet) {
-        setHashavshevtState(currentHashavshevet);
-      }
+      setEndPickingTimeState(orderData.end_picking_time || null);
+      setHashavshevtState(orderData.hashavshevet || null);
     }
-  }, [data, type, endPickingTimeState, hashavshevtState]);
+  }, [data, type]);
+
+  // Local state for button states to ensure proper re-rendering
+  const [endPickingTimeState, setEndPickingTimeState] = useState<string | null>(
+    type === 'order' ? (data as Order).end_picking_time || null : null
+  );
+  const [hashavshevtState, setHashavshevtState] = useState<string | null>(
+    type === 'order' ? (data as Order).hashavshevet || null : null
+  );
   const [{
     isDragging
   }, drag] = useDrag(() => ({
