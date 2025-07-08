@@ -310,6 +310,7 @@ export type Database = {
           done_mainorder: string | null
           end_picking_time: string | null
           euro_pallet: number | null
+          hashavshevet: string | null
           hour: string | null
           icecream: string | null
           invoicedate: string | null
@@ -352,6 +353,7 @@ export type Database = {
           done_mainorder?: string | null
           end_picking_time?: string | null
           euro_pallet?: number | null
+          hashavshevet?: string | null
           hour?: string | null
           icecream?: string | null
           invoicedate?: string | null
@@ -394,6 +396,7 @@ export type Database = {
           done_mainorder?: string | null
           end_picking_time?: string | null
           euro_pallet?: number | null
+          hashavshevet?: string | null
           hour?: string | null
           icecream?: string | null
           invoicedate?: string | null

@@ -3,7 +3,10 @@ import React from 'react';
 import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Package, Monitor } from 'lucide-react';
 import { SirenButton } from './SirenButton';
+import { supabase } from '@/integrations/supabase/client';
 
 // Path for prominent customer blue/red icons
 import BlueCustomerIcon from '/blue-customer.svg';
@@ -25,6 +28,8 @@ interface Order {
   hour?: string;
   remark?: string;
   alert_status?: boolean;
+  end_picking_time?: string | null;
+  hashavshevet?: string | null;
 }
 interface Return {
   returnnumber: number;
@@ -132,9 +137,51 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     }
   };
 
+  // Handle end picking time toggle (for orders only)
+  const handleEndPickingTimeToggle = async () => {
+    if (!isOrder) return;
+    
+    const orderData = data as Order;
+    const newValue = orderData.end_picking_time ? null : new Date().toISOString();
+    
+    const { error } = await supabase
+      .from('mainorder')
+      .update({ end_picking_time: newValue })
+      .eq('ordernumber', orderData.ordernumber);
+    
+    if (error) {
+      console.error('Error updating end_picking_time:', error);
+      return;
+    }
+    
+    // Update local data
+    (data as Order).end_picking_time = newValue;
+  };
+
+  // Handle hashavshevet toggle (for orders only)
+  const handleHashavshevetToggle = async () => {
+    if (!isOrder) return;
+    
+    const orderData = data as Order;
+    const newValue = orderData.hashavshevet ? null : new Date().toISOString();
+    
+    const { error } = await supabase
+      .from('mainorder')
+      .update({ hashavshevet: newValue })
+      .eq('ordernumber', orderData.ordernumber);
+    
+    if (error) {
+      console.error('Error updating hashavshevet:', error);
+      return;
+    }
+    
+    // Update local data
+    (data as Order).hashavshevet = newValue;
+  };
+
   return <Card ref={drag} className={`min-w-[250px] cursor-move ${isDragging ? 'opacity-50' : ''} ${isOrder ? 'border-blue-200 bg-blue-50' : 'border-red-200 bg-red-50'} ${hasInvoiceNumber ? 'ring-2 ring-green-300' : ''} ${isCandyPlus ? 'ring-2 ring-pink-300 border-pink-200' : ''} ${data.alert_status ? 'ring-2 ring-red-500 shadow-lg shadow-red-200' : ''}`}>
       <CardContent className="p-4 bg-[#e8f6fb]">
-        {/* שורה ראשונה: מספר הזמנה/החזרה + תאריך + שעה */}
+        {/* שורה ראשונה: מספר הזמנה/החזרה + תאריך + שעה + כפתור ארגז קרטון */}
         <div className="flex justify-between items-start mb-2">
           <span className={`text-sm font-semibold flex items-center gap-2 ${isOrder ? 'text-blue-600' : 'text-red-600'}`}>
             {isOrder ? <>#{number}
@@ -145,7 +192,40 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 {hour && <span className="ml-1">{formatHour(hour)}</span>}
                 </>}
           </span>
+          {/* כפתור ארגז קרטון - רק להזמנות */}
+          {isOrder && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`rounded-full p-1 h-auto ${
+                (data as Order).end_picking_time 
+                  ? 'text-blue-600 bg-blue-100 shadow-md' 
+                  : 'text-gray-400 hover:text-gray-600'
+              }`}
+              onClick={handleEndPickingTimeToggle}
+            >
+              <Package className="h-4 w-4" />
+            </Button>
+          )}
         </div>
+        
+        {/* שורה של כפתור מחשב - רק להזמנות */}
+        {isOrder && (
+          <div className="flex justify-end mb-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`rounded-full p-1 h-auto ${
+                (data as Order).hashavshevet 
+                  ? 'text-blue-600 bg-blue-100 shadow-md' 
+                  : 'text-gray-400 hover:text-gray-600'
+              }`}
+              onClick={handleHashavshevetToggle}
+            >
+              <Monitor className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
         
         {/* שורה שנייה: שם הלקוח */}
         <h3 className="font-medium text-sm mb-1">
