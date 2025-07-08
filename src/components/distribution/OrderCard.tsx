@@ -156,7 +156,10 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   };
 
   // Handle end picking time toggle (for orders only)
-  const handleEndPickingTimeToggle = async () => {
+  const handleEndPickingTimeToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent drag interference
+    console.log('End picking time toggle clicked');
+    
     if (!isOrder) return;
     
     const orderData = data as Order;
@@ -178,7 +181,10 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   };
 
   // Handle hashavshevet toggle (for orders only)
-  const handleHashavshevetToggle = async () => {
+  const handleHashavshevetToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent drag interference
+    console.log('Hashavshevet toggle clicked');
+    
     if (!isOrder) return;
     
     const orderData = data as Order;
@@ -217,7 +223,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              className={`rounded-full p-1 h-auto transition-all duration-200 active:scale-95 ${
+              className={`rounded-full p-1 h-auto transition-all duration-200 active:scale-95 pointer-events-auto relative z-10 ${
                 endPickingTimeState 
                   ? 'text-white bg-purple-500 shadow-lg shadow-purple-200 ring-2 ring-purple-300' 
                   : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
@@ -289,7 +295,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              className={`rounded-full p-1 h-auto transition-all duration-200 active:scale-95 ${
+              className={`rounded-full p-1 h-auto transition-all duration-200 active:scale-95 pointer-events-auto relative z-10 ${
                 hashavshevtState 
                   ? 'text-white bg-orange-500 shadow-lg shadow-orange-200 ring-2 ring-orange-300' 
                   : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
