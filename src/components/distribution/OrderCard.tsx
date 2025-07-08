@@ -254,28 +254,24 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             {data.customernumber && customerAreasMap[data.customernumber] && (
               <div className="flex flex-wrap gap-1">
                 {customerAreasMap[data.customernumber].areas.map((area, index) => {
-                  // Convert day string to day letters
-                  const getDayLetters = (dayString: string) => {
+                  // Parse day format {א, ה} to extract day letters
+                  const parseDayLetters = (dayString: string) => {
                     if (!dayString) return '';
-                    const dayMap: Record<string, string> = {
-                      'ראשון': 'א',
-                      'שני': 'ב', 
-                      'שלישי': 'ג',
-                      'רביעי': 'ד',
-                      'חמישי': 'ה',
-                      'שישי': 'ו'
-                    };
-                    return dayMap[dayString] || '';
+                    // Remove curly braces and split by comma
+                    const cleaned = dayString.replace(/[{}]/g, '').trim();
+                    if (!cleaned) return '';
+                    // Split by comma and join with comma and space
+                    return cleaned.split(',').map(d => d.trim()).join(', ');
                   };
                   
-                  const dayLetter = getDayLetters(area.day || '');
+                  const dayLetters = parseDayLetters(area.day || '');
                   
                   return (
                     <Badge 
                       key={index} 
                       className={`text-xs px-2 py-1 font-medium ${getAreaColor(area.name)}`}
                     >
-                      {area.name} {dayLetter}
+                      {area.name} {dayLetters}
                     </Badge>
                   );
                 })}
