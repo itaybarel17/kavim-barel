@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { CalendarCard } from '@/components/calendar/CalendarCard';
 import { CalendarGrid } from '@/components/calendar/CalendarGrid';
 import { HorizontalKanban } from '@/components/calendar/HorizontalKanban';
+import { ViewOnlyHorizontalKanban } from '@/components/calendar/ViewOnlyHorizontalKanban';
 import { useAuth } from '@/context/AuthContext';
 interface Order {
   ordernumber: number;
@@ -477,6 +478,16 @@ const Calendar = () => {
           
         </div>
       </div>
+
+      {/* View-Only Horizontal Kanban */}
+      <ViewOnlyHorizontalKanban 
+        distributionSchedules={filteredSchedules} 
+        distributionGroups={distributionGroups} 
+        drivers={drivers} 
+        orders={filteredOrders} 
+        returns={filteredReturns} 
+        currentUser={currentUser} 
+      />
 
       {/* Horizontal Kanban */}
       <HorizontalKanban distributionSchedules={filteredSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={filteredOrders} returns={filteredReturns} onUpdateDestinations={updateDestinationsCount} onDropToKanban={currentUser?.agentnumber === "4" ? handleDropToKanban : undefined} currentUser={currentUser} />
