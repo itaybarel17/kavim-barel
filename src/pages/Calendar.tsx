@@ -76,7 +76,7 @@ const Calendar = () => {
   // Set up realtime subscriptions
   useRealtimeSubscription();
 
-  // Fetch orders with schedule_id_if_changed
+  // Fetch orders with schedule_id_if_changed (only active orders)
   const {
     data: orders = [],
     refetch: refetchOrders,
@@ -85,19 +85,22 @@ const Calendar = () => {
     queryKey: ['calendar-orders'],
     queryFn: async () => {
       console.log('Fetching orders for calendar...');
-      const {
-        data,
-        error
-      } = await supabase.from('mainorder').select('ordernumber, customername, address, city, totalorder, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, orderdate, invoicenumber').order('ordernumber', {
-        ascending: false
-      });
+      let query = supabase
+        .from('mainorder')
+        .select('ordernumber, customername, address, city, totalorder, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, orderdate, invoicenumber, done_mainorder, ordercancel')
+        .is('done_mainorder', null)
+        .is('ordercancel', null)
+        .or('icecream.is.null,icecream.eq.')
+        .order('ordernumber', { ascending: false });
+
+      const { data, error } = await query;
       if (error) throw error;
       console.log('Calendar orders fetched:', data);
       return data as Order[];
     }
   });
 
-  // Fetch returns with schedule_id_if_changed
+  // Fetch returns with schedule_id_if_changed (only active returns)
   const {
     data: returns = [],
     refetch: refetchReturns,
@@ -106,12 +109,15 @@ const Calendar = () => {
     queryKey: ['calendar-returns'],
     queryFn: async () => {
       console.log('Fetching returns for calendar...');
-      const {
-        data,
-        error
-      } = await supabase.from('mainreturns').select('returnnumber, customername, address, city, totalreturn, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, returndate').order('returnnumber', {
-        ascending: false
-      });
+      let query = supabase
+        .from('mainreturns')
+        .select('returnnumber, customername, address, city, totalreturn, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, returndate, done_return, returncancel')
+        .is('done_return', null)
+        .is('returncancel', null)
+        .or('icecream.is.null,icecream.eq.')
+        .order('returnnumber', { ascending: false });
+
+      const { data, error } = await query;
       if (error) throw error;
       console.log('Calendar returns fetched:', data);
       return data as Return[];
