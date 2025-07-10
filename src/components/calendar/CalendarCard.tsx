@@ -92,8 +92,8 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   let scheduleOrders = getOrdersByScheduleId(orders, scheduleId);
   let scheduleReturns = getReturnsByScheduleId(returns, scheduleId);
 
-  // Special filtering for Agent 99 - only show his own orders/returns within cards
-  if (currentUser?.agentnumber === "99") {
+  // Special filtering for Agent 99 - only show his own orders/returns within cards (but not for produced cards)
+  if (currentUser?.agentnumber === "99" && !isProduced) {
     scheduleOrders = scheduleOrders.filter(order => order.agentnumber === '99');
     scheduleReturns = scheduleReturns.filter(returnItem => returnItem.agentnumber === '99');
   }
