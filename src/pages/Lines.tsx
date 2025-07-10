@@ -8,6 +8,8 @@ import { Loader2 } from 'lucide-react';
 import { TruckGrid } from '@/components/lines/TruckGrid';
 import { CityPool } from '@/components/lines/CityPool';
 import { AreaSchedule } from '@/components/lines/AreaSchedule';
+import { AreaPool } from '@/components/lines/AreaPool';
+import { WeeklyAreaKanban } from '@/components/lines/WeeklyAreaKanban';
 import { useToast } from '@/hooks/use-toast';
 
 interface DistributionGroup {
@@ -57,6 +59,33 @@ const Lines = () => {
       if (error) throw error;
       console.log('Lines cities fetched:', data);
       return data as City[];
+    }
+  });
+
+  // Update area assignment
+  const updateAreaDaysMutation = useMutation({
+    mutationFn: async ({ groupId, newDays }: { groupId: number; newDays: string[] }) => {
+      const { error } = await supabase
+        .from('distribution_groups')
+        .update({ days: newDays })
+        .eq('groups_id', groupId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lines-distribution-groups'] });
+      toast({
+        title: "נשמר בהצלחה",
+        description: "שיוך האזור עודכן במערכת",
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating area days:', error);
+      toast({
+        title: "שגיאה בשמירה",
+        description: "לא הצלחנו לעדכן את שיוך האזור",
+        variant: "destructive",
+      });
     }
   });
 
@@ -240,6 +269,65 @@ const Lines = () => {
     });
   };
 
+  // Handle area assignment to day
+  const handleAreaAssign = (area: string, day: string) => {
+    const groupsForArea = distributionGroups.filter(group => {
+      if (!group.separation) return false;
+      const mainArea = group.separation.replace(/\s+\d+$/, '').trim();
+      return mainArea === area;
+    });
+
+    groupsForArea.forEach(group => {
+      const currentDays = group.days || [];
+      const newDays = [...currentDays];
+      
+      // Check if this day is already included in any day string
+      let dayExists = false;
+      newDays.forEach((dayString, index) => {
+        const daysArray = dayString.split(',').map(d => d.trim());
+        if (daysArray.includes(day)) {
+          dayExists = true;
+        }
+      });
+      
+      if (!dayExists) {
+        // Add the day to the first day string, or create a new one
+        if (newDays.length > 0) {
+          const firstDayString = newDays[0];
+          const daysArray = firstDayString.split(',').map(d => d.trim());
+          if (!daysArray.includes(day)) {
+            daysArray.push(day);
+            newDays[0] = daysArray.join(',');
+          }
+        } else {
+          newDays.push(day);
+        }
+        
+        updateAreaDaysMutation.mutate({ groupId: group.groups_id, newDays });
+      }
+    });
+  };
+
+  // Handle area removal from day
+  const handleAreaRemove = (area: string, day: string) => {
+    const groupsForArea = distributionGroups.filter(group => {
+      if (!group.separation) return false;
+      const mainArea = group.separation.replace(/\s+\d+$/, '').trim();
+      return mainArea === area;
+    });
+
+    groupsForArea.forEach(group => {
+      const currentDays = group.days || [];
+      const newDays = currentDays.map(dayString => {
+        const daysArray = dayString.split(',').map(d => d.trim());
+        const filteredDays = daysArray.filter(d => d !== day);
+        return filteredDays.join(',');
+      }).filter(dayString => dayString.length > 0);
+      
+      updateAreaDaysMutation.mutate({ groupId: group.groups_id, newDays });
+    });
+  };
+
   // Handle moving all cities from one truck to another
   const handleMoveTruck = (fromWeek: number, fromDay: string, fromTruck: number, toWeek: number, toDay: string, toTruck: number) => {
     const citiesToMove = cities.filter(city => {
@@ -273,6 +361,22 @@ const Lines = () => {
         <div className="text-center">
           <h1 className="text-3xl font-bold mb-2">ניהול קווי הפצה</h1>
           <p className="text-muted-foreground">גרור עירים לימים המתאימים על פי לוח החודש</p>
+        </div>
+
+        {/* Area Pool */}
+        <AreaPool 
+          distributionGroups={distributionGroups}
+          onAreaAssign={handleAreaAssign}
+        />
+
+        {/* Weekly Area Kanban */}
+        <div className="border rounded-lg p-4 bg-card">
+          <h2 className="text-xl font-semibold mb-4">שיוך אזורים לימים</h2>
+          <WeeklyAreaKanban 
+            distributionGroups={distributionGroups}
+            onAreaAssign={handleAreaAssign}
+            onAreaRemove={handleAreaRemove}
+          />
         </div>
 
         {/* City Pool */}
