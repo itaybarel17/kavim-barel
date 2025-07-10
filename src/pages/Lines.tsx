@@ -138,9 +138,8 @@ const Lines = () => {
       currentDay[weekKey] = [];
     }
     
-    if (!currentDay[weekKey].includes(day)) {
-      currentDay[weekKey].push(day);
-    }
+    // Allow city to be assigned to multiple days - always add the day
+    currentDay[weekKey].push(day);
 
     updateCityDayMutation.mutate({ cityid: cityId, dayData: currentDay });
   };
