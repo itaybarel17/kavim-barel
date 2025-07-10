@@ -78,12 +78,12 @@ export const useWaitingCustomers = (currentUserAgent?: string) => {
           return true;
         }
         
-        // Criteria 2: done_mainorder has timestamp but distribution_date is today or later
-        if (order.done_mainorder && schedule?.distribution_date) {
+        // Criteria 2: done_mainorder has timestamp but done_schedule is null and distribution_date is today or later
+        if (order.done_mainorder && !schedule?.done_schedule && schedule?.distribution_date) {
           const distributionDate = new Date(schedule.distribution_date);
           distributionDate.setHours(0, 0, 0, 0);
           
-          // If distribution date is today or later, it's still waiting
+          // If distribution date is today or later and not yet distributed, it's still waiting
           if (distributionDate >= today) {
             return true;
           }
