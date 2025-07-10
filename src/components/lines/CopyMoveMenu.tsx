@@ -1,12 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useDrag } from 'react-dnd';
 import { Copy, Scissors, MoreHorizontal } from 'lucide-react';
 import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from '@/components/ui/context-menu';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 
 interface CopyMoveMenuProps {
@@ -22,6 +21,7 @@ export const CopyMoveMenu: React.FC<CopyMoveMenuProps> = ({
   truck,
   disabled = false
 }) => {
+  const [open, setOpen] = useState(false);
   const [{ isDraggingCopy }, dragCopy] = useDrag({
     type: 'truck-copy',
     item: { type: 'truck-copy', week, day, truck },
@@ -29,6 +29,7 @@ export const CopyMoveMenu: React.FC<CopyMoveMenuProps> = ({
       isDraggingCopy: monitor.isDragging(),
     }),
     canDrag: !disabled,
+    end: () => setOpen(false),
   });
 
   const [{ isDraggingMove }, dragMove] = useDrag({
@@ -38,6 +39,7 @@ export const CopyMoveMenu: React.FC<CopyMoveMenuProps> = ({
       isDraggingMove: monitor.isDragging(),
     }),
     canDrag: !disabled,
+    end: () => setOpen(false),
   });
 
   if (disabled) {
@@ -54,8 +56,8 @@ export const CopyMoveMenu: React.FC<CopyMoveMenuProps> = ({
   }
 
   return (
-    <ContextMenu>
-      <ContextMenuTrigger asChild>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
         <Button
           variant="ghost"
           size="sm"
@@ -63,31 +65,33 @@ export const CopyMoveMenu: React.FC<CopyMoveMenuProps> = ({
         >
           <MoreHorizontal className="h-3 w-3" />
         </Button>
-      </ContextMenuTrigger>
-      <ContextMenuContent className="w-48">
-        <ContextMenuItem asChild>
-          <div
+      </PopoverTrigger>
+      <PopoverContent className="w-48 p-1">
+        <div className="flex flex-col gap-1">
+          <Button
             ref={dragCopy}
-            className={`flex items-center gap-2 cursor-grab active:cursor-grabbing ${
+            variant="ghost"
+            className={`flex items-center gap-2 justify-start h-8 cursor-grab active:cursor-grabbing ${
               isDraggingCopy ? 'opacity-50' : ''
             }`}
+            disabled={disabled}
           >
             <Copy className="h-4 w-4" />
             <span>העתק משאית</span>
-          </div>
-        </ContextMenuItem>
-        <ContextMenuItem asChild>
-          <div
+          </Button>
+          <Button
             ref={dragMove}
-            className={`flex items-center gap-2 cursor-grab active:cursor-grabbing ${
+            variant="ghost"
+            className={`flex items-center gap-2 justify-start h-8 cursor-grab active:cursor-grabbing ${
               isDraggingMove ? 'opacity-50' : ''
             }`}
+            disabled={disabled}
           >
             <Scissors className="h-4 w-4" />
             <span>גזור משאית</span>
-          </div>
-        </ContextMenuItem>
-      </ContextMenuContent>
-    </ContextMenu>
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 };
