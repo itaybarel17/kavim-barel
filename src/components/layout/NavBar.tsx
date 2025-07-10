@@ -16,6 +16,7 @@ export const NavBar: React.FC = () => {
 
   const navItems = [
     { path: "/calendar", label: "לוח שנה", color: "green" },
+    { path: "/lines", label: "קווים", color: "cyan" },
     { path: "/messages", label: "הודעות", color: "purple" },
     ...(isAdmin ? [
       { path: "/distribution", label: "הפצה", color: "orange" },

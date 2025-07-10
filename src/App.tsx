@@ -10,6 +10,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import Index from "./pages/Index";
 import Distribution from "./pages/Distribution";
 import Calendar from "./pages/Calendar";
+import Lines from "./pages/Lines";
 import Archive from "./pages/Archive";
 import Messages from "./pages/Messages";
 import ZoneReport from "./pages/ZoneReport";
@@ -83,6 +84,9 @@ function App() {
                       </ProtectedRoute>} />
                     <Route path="/calendar" element={<ProtectedRoute>
                         <Calendar />
+                      </ProtectedRoute>} />
+                    <Route path="/lines" element={<ProtectedRoute>
+                        <Lines />
                       </ProtectedRoute>} />
                     <Route path="/archive" element={<ProtectedRoute adminOnly>
                         <Archive />

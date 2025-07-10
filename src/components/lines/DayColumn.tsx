@@ -1,0 +1,84 @@
+import React from 'react';
+import { useDrop } from 'react-dnd';
+import { CityTag } from './CityTag';
+import { getAreaColor } from '@/utils/areaColors';
+
+interface City {
+  cityid: number;
+  city: string;
+  area: string | null;
+  day: Record<string, any> | null;
+}
+
+interface DayColumnProps {
+  day: string;
+  week: number;
+  cities: City[];
+  onCityRemove: (cityId: number, week: number, day: string) => void;
+  onCityMove: (cityId: number, fromWeek: number, fromDay: string, toWeek: number, toDay: string) => void;
+}
+
+export const DayColumn: React.FC<DayColumnProps> = ({
+  day,
+  week,
+  cities,
+  onCityRemove,
+  onCityMove
+}) => {
+  const [{ isOver }, drop] = useDrop({
+    accept: ['city-from-pool', 'city-from-day'],
+    drop: (item: any) => {
+      if (item.type === 'city-from-pool') {
+        // This will be handled by the parent component's onCityAssign
+        return { week, day };
+      } else if (item.type === 'city-from-day') {
+        // Move city from one day to another
+        if (item.week !== week || item.day !== day) {
+          onCityMove(item.cityId, item.week, item.day, week, day);
+        }
+      }
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+    }),
+  });
+
+  const dayNames = {
+    'א': 'ראשון',
+    'ב': 'שני', 
+    'ג': 'שלישי',
+    'ד': 'רביעי',
+    'ה': 'חמישי'
+  };
+
+  return (
+    <div 
+      ref={drop}
+      className={`min-h-32 border-2 border-dashed rounded-lg p-3 transition-colors ${
+        isOver ? 'border-primary bg-primary/5' : 'border-border bg-background'
+      }`}
+    >
+      <h3 className="font-medium text-center mb-3 text-sm">
+        {dayNames[day as keyof typeof dayNames]}
+      </h3>
+      
+      <div className="space-y-2">
+        {cities.map(city => (
+          <CityTag
+            key={city.cityid}
+            city={city}
+            week={week}
+            day={day}
+            onRemove={() => onCityRemove(city.cityid, week, day)}
+          />
+        ))}
+      </div>
+      
+      {cities.length === 0 && (
+        <div className="text-center text-muted-foreground text-xs mt-4">
+          גרור עיר לכאן
+        </div>
+      )}
+    </div>
+  );
+};

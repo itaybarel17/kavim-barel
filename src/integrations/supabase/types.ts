@@ -14,24 +14,96 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_visits: {
+        Row: {
+          agent_id: string
+          city: string
+          id: number
+          status: boolean | null
+          week_number: number
+          weekday: string
+        }
+        Insert: {
+          agent_id: string
+          city: string
+          id?: number
+          status?: boolean | null
+          week_number: number
+          weekday: string
+        }
+        Update: {
+          agent_id?: string
+          city?: string
+          id?: number
+          status?: boolean | null
+          week_number?: number
+          weekday?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_visits_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["agentnumber"]
+          },
+          {
+            foreignKeyName: "agent_visits_city_fkey"
+            columns: ["city"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["city"]
+          },
+        ]
+      }
       agents: {
         Row: {
           agentname: string
           agentnumber: string
           id: string
+          monday1: string | null
+          monday2: Json | null
           password_hash: string | null
+          sunday1: string | null
+          sunday2: Json | null
+          thursday1: Json | null
+          thursday2: Json | null
+          tuesday1: Json | null
+          tuesday2: Json | null
+          wednesday1: Json | null
+          wednesday2: Json | null
         }
         Insert: {
           agentname: string
           agentnumber: string
           id?: string
+          monday1?: string | null
+          monday2?: Json | null
           password_hash?: string | null
+          sunday1?: string | null
+          sunday2?: Json | null
+          thursday1?: Json | null
+          thursday2?: Json | null
+          tuesday1?: Json | null
+          tuesday2?: Json | null
+          wednesday1?: Json | null
+          wednesday2?: Json | null
         }
         Update: {
           agentname?: string
           agentnumber?: string
           id?: string
+          monday1?: string | null
+          monday2?: Json | null
           password_hash?: string | null
+          sunday1?: string | null
+          sunday2?: Json | null
+          thursday1?: Json | null
+          thursday2?: Json | null
+          tuesday1?: Json | null
+          tuesday2?: Json | null
+          wednesday1?: Json | null
+          wednesday2?: Json | null
         }
         Relationships: []
       }
@@ -39,14 +111,20 @@ export type Database = {
         Row: {
           area: string | null
           city: string
+          cityid: number
+          day: Json | null
         }
         Insert: {
           area?: string | null
           city: string
+          cityid?: number
+          day?: Json | null
         }
         Update: {
           area?: string | null
           city?: string
+          cityid?: number
+          day?: Json | null
         }
         Relationships: []
       }
@@ -128,27 +206,37 @@ export type Database = {
             referencedRelation: "distribution_groups"
             referencedColumns: ["separation"]
           },
+          {
+            foreignKeyName: "customerlist_newarea_fkey"
+            columns: ["newarea"]
+            isOneToOne: false
+            referencedRelation: "distribution_groups"
+            referencedColumns: ["separation"]
+          },
         ]
       }
       distribution_groups: {
         Row: {
           agents: Json | null
           day: string | null
-          frequency: string | null
+          days: Json | null
+          freq: Json | null
           groups_id: number
           separation: string | null
         }
         Insert: {
           agents?: Json | null
           day?: string | null
-          frequency?: string | null
+          days?: Json | null
+          freq?: Json | null
           groups_id?: number
           separation?: string | null
         }
         Update: {
           agents?: Json | null
           day?: string | null
-          frequency?: string | null
+          days?: Json | null
+          freq?: Json | null
           groups_id?: number
           separation?: string | null
         }
