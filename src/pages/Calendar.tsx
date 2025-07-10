@@ -288,9 +288,21 @@ const Calendar = () => {
     }
   });
 
-  // Calculate unassigned orders and returns
-  const unassignedOrders = orders.filter(order => !order.schedule_id);
-  const unassignedReturns = returns.filter(returnItem => !returnItem.schedule_id);
+  // Calculate unassigned orders and returns with agent filtering
+  const unassignedOrders = orders.filter(order => {
+    if (!order.schedule_id) {
+      if (currentUser?.agentnumber === "4") return true; // Admin sees all
+      return order.agentnumber === currentUser?.agentnumber; // Others see only their own
+    }
+    return false;
+  });
+  const unassignedReturns = returns.filter(returnItem => {
+    if (!returnItem.schedule_id) {
+      if (currentUser?.agentnumber === "4") return true; // Admin sees all
+      return returnItem.agentnumber === currentUser?.agentnumber; // Others see only their own
+    }
+    return false;
+  });
 
   const allowedGroupIds = useMemo(() => {
     if (!currentUser) return [];
