@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { OrderCard } from './OrderCard';
 import { pdf } from '@react-pdf/renderer';
 import { ZonePDFDocument } from './ZonePDFDocument';
+import { ScheduleResetConfirmDialog } from './ScheduleResetConfirmDialog';
 import { getAreaColor, getMainAreaFromSeparation } from '@/utils/areaColors';
 
 interface Order {
@@ -155,6 +156,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [scheduleId, setScheduleId] = useState<number | null>(null);
   const [selectedDriverId, setSelectedDriverId] = useState<number | null>(null);
+  const [showResetDialog, setShowResetDialog] = useState(false);
   const navigate = useNavigate();
 
   // Get current zone state from parent
@@ -342,7 +344,11 @@ export const DropZone: React.FC<DropZoneProps> = ({
     }
   };
 
-  const handleDeleteSchedule = async () => {
+  const handleDeleteSchedule = () => {
+    setShowResetDialog(true);
+  };
+
+  const handleConfirmReset = async () => {
     if (!scheduleId) return;
     try {
       console.log('Clearing assignments for schedule:', scheduleId);
@@ -383,6 +389,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
       setSelectedGroupId(null);
       setScheduleId(null);
       setSelectedDriverId(null);
+      setShowResetDialog(false);
       onScheduleDeleted();
     } catch (error) {
       console.error('Error deleting schedule:', error);
@@ -558,6 +565,13 @@ export const DropZone: React.FC<DropZoneProps> = ({
           </div>
         )}
       </CardContent>
+      
+      <ScheduleResetConfirmDialog
+        open={showResetDialog}
+        onOpenChange={setShowResetDialog}
+        onConfirm={handleConfirmReset}
+        zoneNumber={zoneNumber}
+      />
     </Card>
   );
 };
