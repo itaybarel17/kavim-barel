@@ -10,7 +10,6 @@ import { useNavigate } from 'react-router-dom';
 import { CalendarCard } from '@/components/calendar/CalendarCard';
 import { CalendarGrid } from '@/components/calendar/CalendarGrid';
 import { HorizontalKanban } from '@/components/calendar/HorizontalKanban';
-import { ViewOnlyUnassignedArea } from '@/components/calendar/ViewOnlyUnassignedArea';
 import { useAuth } from '@/context/AuthContext';
 interface Order {
   ordernumber: number;
@@ -374,45 +373,6 @@ const Calendar = () => {
       updateAllDestinationsCount();
     }
   }, [orders, returns, distributionSchedules, refetchSchedules]);
-
-  // Create similar data structures as in Distribution page for UnassignedArea
-  const multiOrderActiveCustomerList = useMemo(() => {
-    const activeOrders = filteredOrders.filter(order => !order.done_mainorder && !order.ordercancel);
-    const customerMap: Record<string, any[]> = {};
-    activeOrders.forEach(order => {
-      const key = `${order.customername}^^${order.city}`;
-      if (!customerMap[key]) customerMap[key] = [];
-      customerMap[key].push(order);
-    });
-    return Object.entries(customerMap).filter(([_, arr]) => arr.length >= 2).map(([key]: [string, any[]]) => {
-      const [name, city] = key.split('^^');
-      return { name, city };
-    });
-  }, [filteredOrders]);
-
-  const dualActiveOrderReturnCustomers = useMemo(() => {
-    const activeOrders = filteredOrders.filter(order => !order.done_mainorder && !order.ordercancel);
-    const activeReturns = filteredReturns.filter(ret => !ret.done_return && !ret.returncancel);
-    const orderKeys = new Set(activeOrders.map(o => `${o.customername}^^${o.city}`));
-    const returnKeys = new Set(activeReturns.map(r => `${r.customername}^^${r.city}`));
-    const result: { name: string; city: string; }[] = [];
-    orderKeys.forEach((k: string) => {
-      if (returnKeys.has(k)) {
-        const [name, city] = k.split('^^');
-        result.push({ name, city });
-      }
-    });
-    return result;
-  }, [filteredOrders, filteredReturns]);
-
-  // Filter unassigned items (similar to Distribution page)
-  const unassignedOrders = filteredOrders.filter(order => 
-    !order.schedule_id || !filteredSchedules.some(schedule => schedule.schedule_id === order.schedule_id)
-  );
-  const unassignedReturns = filteredReturns.filter(returnItem => 
-    !returnItem.schedule_id || !filteredSchedules.some(schedule => schedule.schedule_id === returnItem.schedule_id)
-  );
-
   const handleDropToDate = async (scheduleId: number, date: Date) => {
     try {
       console.log('Dropping schedule', scheduleId, 'to date', date);
@@ -517,15 +477,6 @@ const Calendar = () => {
           
         </div>
       </div>
-
-      {/* View-Only Unassigned Area */}
-      <ViewOnlyUnassignedArea 
-        unassignedOrders={unassignedOrders}
-        unassignedReturns={unassignedReturns}
-        multiOrderActiveCustomerList={multiOrderActiveCustomerList}
-        dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
-        customerSupplyMap={{}}
-      />
 
       {/* Horizontal Kanban */}
       <HorizontalKanban distributionSchedules={filteredSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={filteredOrders} returns={filteredReturns} onUpdateDestinations={updateDestinationsCount} onDropToKanban={currentUser?.agentnumber === "4" ? handleDropToKanban : undefined} currentUser={currentUser} />

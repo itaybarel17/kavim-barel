@@ -4,7 +4,7 @@ import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Package, Monitor, ArrowLeft } from 'lucide-react';
+import { Package, Monitor } from 'lucide-react';
 import { SirenButton } from './SirenButton';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -75,9 +75,6 @@ interface OrderCardProps {
   
   // new prop for siren functionality
   onSirenToggle?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
-  
-  // new prop for returning to kanban
-  onReturnToKanban?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
 }
 export const OrderCard: React.FC<OrderCardProps> = ({
   type,
@@ -86,8 +83,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
   customerSupplyMap = {},
-  onSirenToggle,
-  onReturnToKanban
+  onSirenToggle
 }) => {
   // Initialize state from data
   useEffect(() => {
@@ -213,29 +209,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     setHashavshevtState(newValue);
   };
 
-  // Handle return to kanban
-  const handleReturnToKanban = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent drag interference
-    if (onReturnToKanban) {
-      onReturnToKanban({ type, data });
-    }
-  };
-
   return <Card ref={drag} className={`min-w-[250px] cursor-move ${isDragging ? 'opacity-50' : ''} ${isOrder ? 'border-blue-200 bg-blue-50' : 'border-red-200 bg-red-50'} ${hasInvoiceNumber ? 'ring-2 ring-green-300' : ''} ${isCandyPlus ? 'ring-2 ring-pink-300 border-pink-200' : ''} ${data.alert_status ? 'ring-2 ring-red-500 shadow-lg shadow-red-200' : ''}`}>
-      <CardContent className="p-4 bg-[#e8f6fb] relative">
-        {/* כפתור החזרה לקנבן - רק באזורים */}
-        {onReturnToKanban && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="absolute top-2 left-2 rounded-full p-1 h-auto transition-all duration-200 active:scale-95 pointer-events-auto z-10 text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-            onClick={handleReturnToKanban}
-            title="החזר לקנבן האופקי"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        )}
-        
+      <CardContent className="p-4 bg-[#e8f6fb]">
         {/* שורה ראשונה: מספר הזמנה/החזרה + תאריך + שעה + כפתור ארגז קרטון */}
         <div className="flex justify-between items-start mb-2">
           <span className={`text-sm font-semibold flex items-center gap-2 ${isOrder ? 'text-blue-600' : 'text-red-600'}`}>
