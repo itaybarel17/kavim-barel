@@ -92,10 +92,39 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   let scheduleOrders = getOrdersByScheduleId(orders, scheduleId);
   let scheduleReturns = getReturnsByScheduleId(returns, scheduleId);
 
+  // Debug logging for schedule 219
+  if (scheduleId === 219) {
+    console.log(`=== DEBUG SCHEDULE 219 ===`);
+    console.log(`isProduced: ${isProduced}`);
+    console.log(`currentUser: ${currentUser?.agentnumber}`);
+    console.log(`Raw orders count: ${orders.length}`);
+    console.log(`Raw returns count: ${returns.length}`);
+    console.log(`Schedule orders count (before agent filter): ${scheduleOrders.length}`);
+    console.log(`Schedule returns count (before agent filter): ${scheduleReturns.length}`);
+    console.log(`Schedule orders:`, scheduleOrders.map(o => ({ 
+      ordernumber: o.ordernumber, 
+      customername: o.customername, 
+      agentnumber: o.agentnumber,
+      schedule_id: o.schedule_id 
+    })));
+    console.log(`Schedule returns:`, scheduleReturns.map(r => ({ 
+      returnnumber: r.returnnumber, 
+      customername: r.customername, 
+      agentnumber: r.agentnumber,
+      schedule_id: r.schedule_id 
+    })));
+  }
+
   // Special filtering for Agent 99 - only show his own orders/returns within cards (but not for produced cards)
   if (currentUser?.agentnumber === "99" && !isProduced) {
     scheduleOrders = scheduleOrders.filter(order => order.agentnumber === '99');
     scheduleReturns = scheduleReturns.filter(returnItem => returnItem.agentnumber === '99');
+  }
+
+  // Debug logging for schedule 219 after filtering
+  if (scheduleId === 219) {
+    console.log(`Schedule orders count (after agent filter): ${scheduleOrders.length}`);
+    console.log(`Schedule returns count (after agent filter): ${scheduleReturns.length}`);
   }
 
   // Calculate unique customers based on filtered data
