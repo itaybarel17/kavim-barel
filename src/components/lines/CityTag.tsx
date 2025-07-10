@@ -19,6 +19,7 @@ interface CityTagProps {
   city: City;
   week: number;
   day: string;
+  truck?: number;
   onRemove: () => void;
   isInPool?: boolean;
 }
@@ -27,12 +28,13 @@ export const CityTag: React.FC<CityTagProps> = ({
   city,
   week,
   day,
+  truck,
   onRemove,
   isInPool = false
 }) => {
   const [{ isDragging }, drag] = useDrag({
     type: isInPool ? 'city-from-pool' : 'city-from-day',
-    item: { cityId: city.cityid, week, day, type: isInPool ? 'city-from-pool' : 'city-from-day' },
+    item: { cityId: city.cityid, week, day, truck, type: isInPool ? 'city-from-pool' : 'city-from-day' },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),

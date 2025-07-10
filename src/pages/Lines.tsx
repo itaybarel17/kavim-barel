@@ -5,7 +5,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { supabase } from '@/integrations/supabase/client';
 import { getAreaColor, getMainAreaFromSeparation } from '@/utils/areaColors';
 import { Loader2 } from 'lucide-react';
-import { WeekGrid } from '@/components/lines/WeekGrid';
+import { TruckGrid } from '@/components/lines/TruckGrid';
 import { CityPool } from '@/components/lines/CityPool';
 import { AreaSchedule } from '@/components/lines/AreaSchedule';
 import { useToast } from '@/hooks/use-toast';
@@ -60,7 +60,7 @@ const Lines = () => {
     }
   });
 
-  // Update city day assignment
+  // Update city truck assignment
   const updateCityDayMutation = useMutation({
     mutationFn: async ({ cityid, dayData }: { cityid: number; dayData: Record<string, any> | null }) => {
       const { error } = await supabase
@@ -126,8 +126,8 @@ const Lines = () => {
     return grouped;
   }, [cities]);
 
-  // Handle city assignment to day
-  const handleCityAssign = (cityId: number, week: number, day: string) => {
+  // Handle city assignment to truck
+  const handleCityAssign = (cityId: number, week: number, day: string, truck: number) => {
     const city = cities.find(c => c.cityid === cityId);
     if (!city) return;
 
@@ -135,26 +135,35 @@ const Lines = () => {
     const weekKey = `week${week}`;
     
     if (!currentDay[weekKey]) {
-      currentDay[weekKey] = [];
+      currentDay[weekKey] = {};
     }
     
-    // Allow city to be assigned to multiple days - always add the day
-    currentDay[weekKey].push(day);
+    if (!currentDay[weekKey][day]) {
+      currentDay[weekKey][day] = [];
+    }
+    
+    // Add truck to the day if not already there
+    if (!currentDay[weekKey][day].includes(truck)) {
+      currentDay[weekKey][day].push(truck);
+    }
 
     updateCityDayMutation.mutate({ cityid: cityId, dayData: currentDay });
   };
 
-  // Handle city removal from day
-  const handleCityRemove = (cityId: number, week: number, day: string) => {
+  // Handle city removal from truck
+  const handleCityRemove = (cityId: number, week: number, day: string, truck: number) => {
     const city = cities.find(c => c.cityid === cityId);
     if (!city || !city.day) return;
 
     const currentDay = { ...city.day };
     const weekKey = `week${week}`;
     
-    if (currentDay[weekKey]) {
-      currentDay[weekKey] = currentDay[weekKey].filter((d: string) => d !== day);
-      if (currentDay[weekKey].length === 0) {
+    if (currentDay[weekKey] && currentDay[weekKey][day]) {
+      currentDay[weekKey][day] = currentDay[weekKey][day].filter((t: number) => t !== truck);
+      if (currentDay[weekKey][day].length === 0) {
+        delete currentDay[weekKey][day];
+      }
+      if (Object.keys(currentDay[weekKey]).length === 0) {
         delete currentDay[weekKey];
       }
     }
@@ -163,8 +172,8 @@ const Lines = () => {
     updateCityDayMutation.mutate({ cityid: cityId, dayData });
   };
 
-  // Handle city move between days
-  const handleCityMove = (cityId: number, fromWeek: number, fromDay: string, toWeek: number, toDay: string) => {
+  // Handle city move between trucks
+  const handleCityMove = (cityId: number, fromWeek: number, fromDay: string, fromTruck: number, toWeek: number, toDay: string, toTruck: number) => {
     const city = cities.find(c => c.cityid === cityId);
     if (!city) return;
 
@@ -173,23 +182,74 @@ const Lines = () => {
     const toWeekKey = `week${toWeek}`;
     
     // Remove from source
-    if (currentDay[fromWeekKey]) {
-      currentDay[fromWeekKey] = currentDay[fromWeekKey].filter((d: string) => d !== fromDay);
-      if (currentDay[fromWeekKey].length === 0) {
+    if (currentDay[fromWeekKey] && currentDay[fromWeekKey][fromDay]) {
+      currentDay[fromWeekKey][fromDay] = currentDay[fromWeekKey][fromDay].filter((t: number) => t !== fromTruck);
+      if (currentDay[fromWeekKey][fromDay].length === 0) {
+        delete currentDay[fromWeekKey][fromDay];
+      }
+      if (Object.keys(currentDay[fromWeekKey]).length === 0) {
         delete currentDay[fromWeekKey];
       }
     }
     
     // Add to destination
     if (!currentDay[toWeekKey]) {
-      currentDay[toWeekKey] = [];
+      currentDay[toWeekKey] = {};
     }
-    if (!currentDay[toWeekKey].includes(toDay)) {
-      currentDay[toWeekKey].push(toDay);
+    if (!currentDay[toWeekKey][toDay]) {
+      currentDay[toWeekKey][toDay] = [];
+    }
+    if (!currentDay[toWeekKey][toDay].includes(toTruck)) {
+      currentDay[toWeekKey][toDay].push(toTruck);
     }
 
     const dayData = Object.keys(currentDay).length > 0 ? currentDay : null;
     updateCityDayMutation.mutate({ cityid: cityId, dayData });
+  };
+
+  // Handle copying all cities from one truck to another
+  const handleCopyTruck = (fromWeek: number, fromDay: string, fromTruck: number, toWeek: number, toDay: string, toTruck: number) => {
+    const citiesToCopy = cities.filter(city => {
+      if (!city.day) return false;
+      const weekKey = `week${fromWeek}`;
+      const dayData = city.day[weekKey];
+      if (!dayData || typeof dayData !== 'object') return false;
+      const truckData = dayData[fromDay];
+      return Array.isArray(truckData) && truckData.includes(fromTruck);
+    });
+
+    citiesToCopy.forEach(city => {
+      const currentDay = { ...city.day };
+      const toWeekKey = `week${toWeek}`;
+      
+      if (!currentDay[toWeekKey]) {
+        currentDay[toWeekKey] = {};
+      }
+      if (!currentDay[toWeekKey][toDay]) {
+        currentDay[toWeekKey][toDay] = [];
+      }
+      if (!currentDay[toWeekKey][toDay].includes(toTruck)) {
+        currentDay[toWeekKey][toDay].push(toTruck);
+      }
+
+      updateCityDayMutation.mutate({ cityid: city.cityid, dayData: currentDay });
+    });
+  };
+
+  // Handle moving all cities from one truck to another
+  const handleMoveTruck = (fromWeek: number, fromDay: string, fromTruck: number, toWeek: number, toDay: string, toTruck: number) => {
+    const citiesToMove = cities.filter(city => {
+      if (!city.day) return false;
+      const weekKey = `week${fromWeek}`;
+      const dayData = city.day[weekKey];
+      if (!dayData || typeof dayData !== 'object') return false;
+      const truckData = dayData[fromDay];
+      return Array.isArray(truckData) && truckData.includes(fromTruck);
+    });
+
+    citiesToMove.forEach(city => {
+      handleCityMove(city.cityid, fromWeek, fromDay, fromTruck, toWeek, toDay, toTruck);
+    });
   };
 
   if (groupsLoading || citiesLoading) {
@@ -226,13 +286,15 @@ const Lines = () => {
                 <h2 className="text-xl font-semibold">שבוע {week}</h2>
               </div>
               
-              <WeekGrid 
+              <TruckGrid 
                 week={week}
                 cities={cities}
                 areas={areaSchedule[week]}
                 onCityRemove={handleCityRemove}
                 onCityMove={handleCityMove}
                 onCityAssign={handleCityAssign}
+                onCopyTruck={handleCopyTruck}
+                onMoveTruck={handleMoveTruck}
               />
             </div>
           ))}

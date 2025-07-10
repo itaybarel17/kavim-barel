@@ -17,7 +17,7 @@ interface City {
 interface CityPoolProps {
   citiesByArea: Record<string, City[]>;
   cities: City[];
-  onCityAssign: (cityId: number, week: number, day: string) => void;
+  onCityAssign: (cityId: number, week: number, day: string, truck: number) => void;
 }
 
 export const CityPool: React.FC<CityPoolProps> = ({
@@ -62,13 +62,16 @@ export const CityPool: React.FC<CityPoolProps> = ({
     });
   };
 
-  // Check if city is assigned to any day
+  // Check if city is assigned to any truck
   const isCityAssigned = (city: City) => {
     if (!city.day || Object.keys(city.day).length === 0) return false;
     
-    // Check if any week has actual days assigned
-    return Object.values(city.day).some(weekDays => 
-      Array.isArray(weekDays) && weekDays.length > 0
+    // Check if any week has actual trucks assigned
+    return Object.values(city.day).some(weekData => 
+      weekData && typeof weekData === 'object' && 
+      Object.values(weekData).some(dayData => 
+        Array.isArray(dayData) && dayData.length > 0
+      )
     );
   };
 
