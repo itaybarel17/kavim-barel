@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDrop } from 'react-dnd';
 import { Plus } from 'lucide-react';
 import { CityTag } from './CityTag';
@@ -71,6 +71,20 @@ export const CityPool: React.FC<CityPoolProps> = ({
       Array.isArray(weekDays) && weekDays.length > 0
     );
   };
+
+  // Sync draggedCities with actual assignment status
+  useEffect(() => {
+    setDraggedCities(prev => {
+      const newSet = new Set<number>();
+      prev.forEach(cityId => {
+        const city = cities.find(c => c.cityid === cityId);
+        if (city && isCityAssigned(city)) {
+          newSet.add(cityId);
+        }
+      });
+      return newSet;
+    });
+  }, [cities]);
 
   return (
     <Card>
