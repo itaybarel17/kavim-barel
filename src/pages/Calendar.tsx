@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { CalendarCard } from '@/components/calendar/CalendarCard';
 import { CalendarGrid } from '@/components/calendar/CalendarGrid';
 import { HorizontalKanban } from '@/components/calendar/HorizontalKanban';
+import { ViewOnlyUnassignedArea } from '@/components/calendar/ViewOnlyUnassignedArea';
 import { useAuth } from '@/context/AuthContext';
 interface Order {
   ordernumber: number;
@@ -24,6 +25,15 @@ interface Order {
   agentnumber?: string;
   orderdate?: string;
   invoicenumber?: number;
+  hour?: string;
+  remark?: string;
+  alert_status?: boolean;
+  ezor1?: string;
+  ezor2?: string;
+  day1?: string;
+  day2?: string;
+  done_mainorder?: string | null;
+  ordercancel?: string | null;
 }
 interface Return {
   returnnumber: number;
@@ -37,6 +47,11 @@ interface Return {
   customernumber?: string;
   agentnumber?: string;
   returndate?: string;
+  hour?: string;
+  remark?: string;
+  alert_status?: boolean;
+  done_return?: string | null;
+  returncancel?: string | null;
 }
 interface DistributionGroup {
   groups_id: number;
@@ -58,6 +73,11 @@ interface Driver {
   id: number;
   nahag: string;
 }
+
+interface CustomerSupply {
+  customernumber: string;
+  supplydetails?: string;
+}
 const Calendar = () => {
   const navigate = useNavigate();
   const {
@@ -75,9 +95,29 @@ const Calendar = () => {
   // Set up realtime subscriptions
   useRealtimeSubscription();
 
-  // Fetch orders with schedule_id_if_changed
+  // Helper function to filter orders based on user permissions
+  const filterOrdersByUser = (orders: Order[]) => {
+    // Agent 99 can only see their own orders
+    if (currentUser?.agentnumber === '99') {
+      return orders.filter(order => order.agentnumber === '99');
+    }
+    // All other agents can see everything
+    return orders;
+  };
+
+  // Helper function to filter returns based on user permissions
+  const filterReturnsByUser = (returns: Return[]) => {
+    // Agent 99 can only see their own returns
+    if (currentUser?.agentnumber === '99') {
+      return returns.filter(returnItem => returnItem.agentnumber === '99');
+    }
+    // All other agents can see everything
+    return returns;
+  };
+
+  // Fetch all orders (including unassigned ones for the unassigned area)
   const {
-    data: orders = [],
+    data: allOrders = [],
     refetch: refetchOrders,
     isLoading: ordersLoading
   } = useQuery({
@@ -87,7 +127,7 @@ const Calendar = () => {
       const {
         data,
         error
-      } = await supabase.from('mainorder').select('ordernumber, customername, address, city, totalorder, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, orderdate, invoicenumber').order('ordernumber', {
+      } = await supabase.from('mainorder').select('ordernumber, customername, address, city, totalorder, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, orderdate, invoicenumber, hour, remark, alert_status, ezor1, ezor2, day1, day2').or('icecream.is.null,icecream.eq.').is('done_mainorder', null).is('ordercancel', null).order('ordernumber', {
         ascending: false
       });
       if (error) throw error;
@@ -96,9 +136,12 @@ const Calendar = () => {
     }
   });
 
-  // Fetch returns with schedule_id_if_changed
+  // Apply user permissions filtering
+  const orders = filterOrdersByUser(allOrders);
+
+  // Fetch all returns (including unassigned ones for the unassigned area)
   const {
-    data: returns = [],
+    data: allReturns = [],
     refetch: refetchReturns,
     isLoading: returnsLoading
   } = useQuery({
@@ -108,12 +151,33 @@ const Calendar = () => {
       const {
         data,
         error
-      } = await supabase.from('mainreturns').select('returnnumber, customername, address, city, totalreturn, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, returndate').order('returnnumber', {
+      } = await supabase.from('mainreturns').select('returnnumber, customername, address, city, totalreturn, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, returndate, hour, remark, alert_status').or('icecream.is.null,icecream.eq.').is('done_return', null).is('returncancel', null).order('returnnumber', {
         ascending: false
       });
       if (error) throw error;
       console.log('Calendar returns fetched:', data);
       return data as Return[];
+    }
+  });
+
+  // Apply user permissions filtering
+  const returns = filterReturnsByUser(allReturns);
+
+  // Fetch customer supply details
+  const {
+    data: customerSupplyData = [],
+    isLoading: customerSupplyLoading
+  } = useQuery({
+    queryKey: ['customer-supply'],
+    queryFn: async () => {
+      console.log('Fetching customer supply details...');
+      const {
+        data,
+        error
+      } = await supabase.from('customerlist').select('customernumber, supplydetails');
+      if (error) throw error;
+      console.log('Customer supply data fetched:', data);
+      return data as CustomerSupply[];
     }
   });
 
@@ -174,6 +238,60 @@ const Calendar = () => {
   });
 
   // AUTHORIZE: Get allowed group ids or schedule ids for this user (except admin "4" sees all)
+  // Create map for customer supply lookup
+  const customerSupplyMap = customerSupplyData.reduce((map, customer) => {
+    map[customer.customernumber] = customer.supplydetails || '';
+    return map;
+  }, {} as Record<string, string>);
+
+  // --- BEGIN CUSTOMER STATUS LOGIC FOR ICONS ---
+  // ACTIVE order: done_mainorder == null && ordercancel == null
+  // ACTIVE return: done_return == null && returncancel == null
+  function isOrderActive(order: Order) {
+    return !order.done_mainorder && !order.ordercancel;
+  }
+  function isReturnActive(ret: Return) {
+    return !ret.done_return && !ret.returncancel;
+  }
+
+  // 1. multi-active-order customers (blue icon)
+  const activeOrders = orders.filter(isOrderActive);
+  const customerMap: Record<string, Order[]> = {};
+  activeOrders.forEach(order => {
+    const key = `${order.customername}^^${order.city}`;
+    if (!customerMap[key]) customerMap[key] = [];
+    customerMap[key].push(order);
+  });
+  const multiOrderActiveCustomerList = Object.entries(customerMap).filter(([_, arr]) => arr.length >= 2).map(([key]) => {
+    const [name, city] = key.split('^^');
+    return {
+      name,
+      city
+    };
+  });
+
+  // 2. customers with BOTH active order and active return (red icon)
+  const activeReturns = returns.filter(isReturnActive);
+  const orderKeys = new Set(activeOrders.map(o => `${o.customername}^^${o.city}`));
+  const returnKeys = new Set(activeReturns.map(r => `${r.customername}^^${r.city}`));
+  const dualActiveOrderReturnCustomers: {
+    name: string;
+    city: string;
+  }[] = [];
+  orderKeys.forEach(k => {
+    if (returnKeys.has(k)) {
+      const [name, city] = k.split('^^');
+      dualActiveOrderReturnCustomers.push({
+        name,
+        city
+      });
+    }
+  });
+
+  // Calculate unassigned orders and returns
+  const unassignedOrders = orders.filter(order => !order.schedule_id);
+  const unassignedReturns = returns.filter(returnItem => !returnItem.schedule_id);
+
   const allowedGroupIds = useMemo(() => {
     if (!currentUser) return [];
     if (currentUser.agentnumber === "4") return null; // 4 ("משרד") sees all
@@ -460,7 +578,7 @@ const Calendar = () => {
     newDate.setDate(newDate.getDate() + (direction === 'next' ? 14 : -14));
     setCurrentWeekStart(newDate);
   };
-  const isLoading = ordersLoading || returnsLoading || groupsLoading || schedulesLoading || driversLoading;
+  const isLoading = ordersLoading || returnsLoading || groupsLoading || schedulesLoading || driversLoading || customerSupplyLoading;
   if (isLoading) {
     return <div className="min-h-screen p-6 bg-background flex items-center justify-center">
         <div className="flex items-center gap-2">
@@ -477,6 +595,15 @@ const Calendar = () => {
           
         </div>
       </div>
+
+      {/* View-Only Unassigned Area */}
+      <ViewOnlyUnassignedArea 
+        unassignedOrders={unassignedOrders}
+        unassignedReturns={unassignedReturns}
+        multiOrderActiveCustomerList={multiOrderActiveCustomerList}
+        dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
+        customerSupplyMap={customerSupplyMap}
+      />
 
       {/* Horizontal Kanban */}
       <HorizontalKanban distributionSchedules={filteredSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={filteredOrders} returns={filteredReturns} onUpdateDestinations={updateDestinationsCount} onDropToKanban={currentUser?.agentnumber === "4" ? handleDropToKanban : undefined} currentUser={currentUser} />
