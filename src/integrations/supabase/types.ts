@@ -113,18 +113,21 @@ export type Database = {
           city: string
           cityid: number
           day: Json | null
+          frequency: Json | null
         }
         Insert: {
           area?: string | null
           city: string
           cityid?: number
           day?: Json | null
+          frequency?: Json | null
         }
         Update: {
           area?: string | null
           city?: string
           cityid?: number
           day?: Json | null
+          frequency?: Json | null
         }
         Relationships: []
       }
