@@ -124,16 +124,8 @@ const Calendar = () => {
     queryKey: ['calendar-orders'],
     queryFn: async () => {
       console.log('Fetching orders for calendar...');
-      let query = supabase.from('mainorder').select('ordernumber, customername, address, city, totalorder, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, orderdate, invoicenumber, hour, remark, alert_status, ezor1, ezor2, day1, day2, done_mainorder').or('icecream.is.null,icecream.eq.').is('ordercancel', null);
-      
-      // For agent 99, include produced orders; for others, only unproduced
-      if (currentUser?.agentnumber === "99") {
-        // Agent 99 sees both produced and unproduced orders
-        query = query.order('ordernumber', { ascending: false });
-      } else {
-        // Other agents see only unproduced orders
-        query = query.is('done_mainorder', null).order('ordernumber', { ascending: false });
-      }
+      // All agents now see both produced and unproduced orders
+      let query = supabase.from('mainorder').select('ordernumber, customername, address, city, totalorder, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, orderdate, invoicenumber, hour, remark, alert_status, ezor1, ezor2, day1, day2, done_mainorder').or('icecream.is.null,icecream.eq.').is('ordercancel', null).order('ordernumber', { ascending: false });
       
       const { data, error } = await query;
       if (error) throw error;
@@ -154,16 +146,8 @@ const Calendar = () => {
     queryKey: ['calendar-returns'],
     queryFn: async () => {
       console.log('Fetching returns for calendar...');
-      let query = supabase.from('mainreturns').select('returnnumber, customername, address, city, totalreturn, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, returndate, hour, remark, alert_status, done_return').or('icecream.is.null,icecream.eq.').is('returncancel', null);
-      
-      // For agent 99, include produced returns; for others, only unproduced
-      if (currentUser?.agentnumber === "99") {
-        // Agent 99 sees both produced and unproduced returns
-        query = query.order('returnnumber', { ascending: false });
-      } else {
-        // Other agents see only unproduced returns
-        query = query.is('done_return', null).order('returnnumber', { ascending: false });
-      }
+      // All agents now see both produced and unproduced returns
+      let query = supabase.from('mainreturns').select('returnnumber, customername, address, city, totalreturn, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, returndate, hour, remark, alert_status, done_return').or('icecream.is.null,icecream.eq.').is('returncancel', null).order('returnnumber', { ascending: false });
       
       const { data, error } = await query;
       if (error) throw error;
