@@ -64,13 +64,18 @@ export const CityPool: React.FC<CityPoolProps> = ({
 
   // Check if city is assigned to any day
   const isCityAssigned = (city: City) => {
-    return city.day && Object.keys(city.day).length > 0;
+    if (!city.day || Object.keys(city.day).length === 0) return false;
+    
+    // Check if any week has actual days assigned
+    return Object.values(city.day).some(weekDays => 
+      Array.isArray(weekDays) && weekDays.length > 0
+    );
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">מאגר עירים</CardTitle>
+        <CardTitle className="text-lg">ערים</CardTitle>
       </CardHeader>
       <CardContent>
         <div 
