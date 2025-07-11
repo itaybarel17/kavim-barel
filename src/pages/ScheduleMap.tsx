@@ -4,7 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, MapPin, Package, RotateCcw } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ArrowLeft, MapPin, Package, RotateCcw, Clock } from 'lucide-react';
 import { RouteMapComponent } from '@/components/map/RouteMapComponent';
 
 interface Customer {
@@ -27,6 +29,7 @@ const ScheduleMap: React.FC = () => {
   const { scheduleId } = useParams<{ scheduleId: string }>();
   const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [departureTime, setDepartureTime] = useState('05:00');
 
   // Fetch orders and returns for this schedule
   const { data: orderData, isLoading } = useQuery({
@@ -86,7 +89,12 @@ const ScheduleMap: React.FC = () => {
         return;
       }
 
-      setCustomers(customerList || []);
+      // Sort customers by city alphabetically
+      const sortedCustomers = (customerList || []).sort((a, b) => 
+        a.city.localeCompare(b.city, 'he')
+      );
+
+      setCustomers(sortedCustomers);
     };
 
     fetchCustomerCoordinates();
@@ -168,38 +176,34 @@ const ScheduleMap: React.FC = () => {
         <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle className="text-lg">רשימת נקודות</CardTitle>
+            <div className="space-y-2">
+              <Label htmlFor="departure-time" className="text-sm font-medium">
+                שעת יציאה
+              </Label>
+              <div className="flex items-center gap-2">
+                <Clock size={16} className="text-muted-foreground" />
+                <Input
+                  id="departure-time"
+                  type="time"
+                  value={departureTime}
+                  onChange={(e) => setDepartureTime(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="p-4">
-            <div className="space-y-2 max-h-[500px] overflow-y-auto">
-              {customers.map((customer, index) => {
-                const customerOrders = orderData?.filter(
-                  item => item.customername === customer.customername
-                );
-                const hasOrders = customerOrders?.some(item => item.type === 'order');
-                const hasReturns = customerOrders?.some(item => item.type === 'return');
-
-                return (
-                  <div
-                    key={index}
-                    className="p-2 border rounded-lg bg-gray-50 text-sm"
-                  >
-                    <div className="font-semibold">{customer.customername}</div>
-                    <div className="text-gray-600">{customer.city}</div>
-                    <div className="flex gap-2 mt-1">
-                      {hasOrders && (
-                        <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-xs">
-                          הזמנה
-                        </span>
-                      )}
-                      {hasReturns && (
-                        <span className="px-1.5 py-0.5 bg-red-100 text-red-700 rounded text-xs">
-                          החזרה
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+              {customers.map((customer, index) => (
+                <div
+                  key={index}
+                  className="p-2 border rounded-lg bg-background text-sm"
+                >
+                  <div className="font-semibold">{customer.customername}</div>
+                  <div className="text-muted-foreground">{customer.address}</div>
+                  <div className="text-muted-foreground">{customer.city}</div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -211,6 +215,7 @@ const ScheduleMap: React.FC = () => {
               <RouteMapComponent 
                 customers={customers}
                 orderData={orderData || []}
+                departureTime={departureTime}
               />
             </CardContent>
           </Card>
