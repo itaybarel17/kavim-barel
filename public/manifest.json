@@ -9,13 +9,13 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/lovable-uploads/85ad5757-5c07-43fa-b40f-c3be246862b3.png",
+      "src": "https://tyccsodxtucpmmjphdrl.supabase.co/storage/v1/object/public/logo/kavim.png.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "/lovable-uploads/85ad5757-5c07-43fa-b40f-c3be246862b3.png",
+      "src": "https://tyccsodxtucpmmjphdrl.supabase.co/storage/v1/object/public/logo/kavim.png.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable any"
