@@ -15,6 +15,7 @@ import Archive from "./pages/Archive";
 import Messages from "./pages/Messages";
 import ZoneReport from "./pages/ZoneReport";
 import ProductionSummary from "./pages/ProductionSummary";
+import ScheduleMap from "./pages/ScheduleMap";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -99,6 +100,9 @@ function App() {
                       </ProtectedRoute>} />
                     <Route path="/production-summary/:scheduleId" element={<ProtectedRoute>
                         <ProductionSummary />
+                      </ProtectedRoute>} />
+                    <Route path="/schedule-map/:scheduleId" element={<ProtectedRoute>
+                        <ScheduleMap />
                       </ProtectedRoute>} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>

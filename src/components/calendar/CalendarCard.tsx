@@ -2,7 +2,8 @@ import React from 'react';
 import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, ArrowRight } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Map } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { getAreaColor, getMainAreaFromSeparation } from '@/utils/areaColors';
 import { 
   getOrdersByScheduleId, 
@@ -69,6 +70,8 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   dualActiveOrderReturnCustomers = [],
   currentUser,
 }) => {
+  const navigate = useNavigate();
+  
   // Check if this schedule has produced based on done_schedule timestamp
   const isProduced = schedule?.done_schedule != null;
   
@@ -134,10 +137,10 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   ]);
   
   // Create a map of customers with their cities for proper strikethrough logic
-  const customerCityMap = new Map<string, string>();
+  const customerCityMap: Record<string, string> = {};
   [...scheduleOrders, ...scheduleReturns].forEach(item => {
-    if (!customerCityMap.has(item.customername)) {
-      customerCityMap.set(item.customername, item.city);
+    if (!customerCityMap[item.customername]) {
+      customerCityMap[item.customername] = item.city;
     }
   });
   
@@ -218,10 +221,25 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
         </div>
 
         <div className={spacing}>
-          <div className={`${textSize} font-bold text-gray-700 mb-0.5`}>נקודות:</div>
+          <div className="flex items-center justify-between mb-0.5">
+            <div className={`${textSize} font-bold text-gray-700`}>נקודות:</div>
+            {uniqueCustomersList.length > 0 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/schedule-map/${scheduleId}`);
+                }}
+                className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] bg-blue-100 hover:bg-blue-200 text-blue-700 rounded transition-colors"
+                title="הצג מפה"
+              >
+                <Map size={10} />
+                מפה
+              </button>
+            )}
+          </div>
           <div className={`${maxHeight} overflow-y-auto ${textSize} space-y-0.5`}>
             {uniqueCustomersList.map((customer, index) => {
-              const customerCity = customerCityMap.get(customer) || '';
+              const customerCity = customerCityMap[customer] || '';
               const isCompletelyTransferred = isCustomerCompletelyTransferred(
                 customer, 
                 customerCity,
