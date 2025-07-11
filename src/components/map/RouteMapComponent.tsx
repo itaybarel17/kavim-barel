@@ -1,7 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 import { Button } from '@/components/ui/button';
-import { Route, Navigation } from 'lucide-react';
+import { Route, Navigation, ChevronUp, ChevronDown } from 'lucide-react';
+import { 
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from '@/components/ui/drawer';
 
 // Google Maps types
 type GoogleMap = google.maps.Map;
@@ -30,6 +37,7 @@ interface RouteMapComponentProps {
   departureTime: string;
   onRouteOptimized?: (order: number[]) => void;
   onRouteClear?: () => void;
+  isMobile?: boolean;
 }
 
 interface TravelTimeData {
@@ -63,7 +71,8 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
   orderData,
   departureTime,
   onRouteOptimized,
-  onRouteClear
+  onRouteClear,
+  isMobile = false
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<GoogleMap | null>(null);
@@ -366,29 +375,31 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
       <div ref={mapRef} className="h-full w-full rounded-lg" />
       
       {/* Route controls */}
-      <div className="absolute top-4 right-4 space-y-2">
+      <div className={`absolute top-4 ${isMobile ? 'left-4 right-4' : 'right-4'} ${isMobile ? 'flex gap-2' : 'space-y-2'}`}>
         <Button
           onClick={optimizeRoute}
           disabled={isLoadingRoute || customers.length === 0}
-          className="flex items-center gap-2 bg-white text-gray-700 border shadow-md hover:bg-gray-50"
+          className={`flex items-center gap-2 bg-white text-gray-700 border shadow-md hover:bg-gray-50 ${isMobile ? 'flex-1 text-xs px-3 py-2' : ''}`}
+          size={isMobile ? "sm" : "default"}
         >
-          <Route size={16} />
-          {isLoadingRoute ? 'מחשב מסלול...' : 'מסלול אופטימלי'}
+          <Route size={isMobile ? 14 : 16} />
+          {isLoadingRoute ? 'מחשב...' : (isMobile ? 'מסלול' : 'מסלול אופטימלי')}
         </Button>
         
         {routeOptimized && (
           <Button
             onClick={clearRoute}
             variant="outline"
-            className="flex items-center gap-2 bg-white border shadow-md"
+            className={`flex items-center gap-2 bg-white border shadow-md ${isMobile ? 'flex-1 text-xs px-3 py-2' : ''}`}
+            size={isMobile ? "sm" : "default"}
           >
-            נקה מסלול
+            {isMobile ? 'נקה' : 'נקה מסלול'}
           </Button>
         )}
       </div>
 
-      {/* Travel Time Data */}
-      {travelTimeData && (
+      {/* Travel Time Data - Desktop */}
+      {travelTimeData && !isMobile && (
         <div className="absolute bottom-4 right-4 bg-white p-4 rounded-lg shadow-md text-sm max-w-96 max-h-80 overflow-y-auto z-20">
           <div className="font-semibold mb-3 text-primary">נתוני נסיעה:</div>
           
@@ -443,6 +454,78 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Travel Time Data - Mobile Drawer */}
+      {travelTimeData && isMobile && (
+        <Drawer>
+          <DrawerTrigger asChild>
+            <Button 
+              className="absolute bottom-4 left-4 right-4 bg-white text-gray-700 border shadow-md hover:bg-gray-50 flex items-center justify-center gap-2"
+              size="sm"
+            >
+              <ChevronUp size={16} />
+              נתוני נסיעה - {travelTimeData.totalDuration}
+            </Button>
+          </DrawerTrigger>
+          <DrawerContent className="max-h-[70vh]">
+            <DrawerHeader>
+              <DrawerTitle className="text-center">נתוני נסיעה</DrawerTitle>
+            </DrawerHeader>
+            <div className="p-4 overflow-y-auto">
+              <div className="space-y-3 mb-4">
+                <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
+                  <span className="font-medium text-sm">סה"כ זמן (כולל פקקים):</span>
+                  <span className="font-bold text-primary">{travelTimeData.totalDuration}</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                  <span className="font-medium text-sm">זמן ללא פקקים:</span>
+                  <span className="font-bold text-green-600">{travelTimeData.totalDurationWithoutTraffic}</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-secondary/10 rounded-lg">
+                  <span className="font-medium text-sm">סה"כ מרחק:</span>
+                  <span className="font-bold">{travelTimeData.totalDistance}</span>
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <div className="font-medium mb-3 text-center">סדר נסיעה ושעות הגעה</div>
+                <div className="space-y-3">
+                  {travelTimeData.segments.map((segment, index) => (
+                    <div key={index} className="p-3 bg-gray-50 rounded-lg border">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          {segment.orderNumber === -1 ? (
+                            <span className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                              מ
+                            </span>
+                          ) : (
+                            <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                              {segment.orderNumber}
+                            </span>
+                          )}
+                          <span className="font-medium text-sm">
+                            {segment.orderNumber === -1 ? 'חזרה למחסן - ' : ''}{segment.to}
+                          </span>
+                        </div>
+                        <span className="text-blue-600 font-bold text-sm">{segment.arrivalTime}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground flex justify-between">
+                        <span>זמן נסיעה: {segment.duration}</span>
+                        <span>מרחק: {segment.distance}</span>
+                      </div>
+                      {segment.orderNumber !== -1 && (
+                        <div className="text-xs text-orange-600 mt-2">
+                          + 25 דקות שהייה בנקודה
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </DrawerContent>
+        </Drawer>
       )}
     </div>
   );

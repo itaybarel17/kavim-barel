@@ -60,7 +60,7 @@ export const NavBar: React.FC = () => {
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-50 bg-black/50" onClick={() => setMobileMenuOpen(false)}>
-          <div className="bg-white w-64 h-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-background w-64 h-full shadow-xl border-r" onClick={(e) => e.stopPropagation()}>
             <div className="p-4 border-b bg-gradient-to-r from-blue-600 to-blue-700">
               <div className="flex items-center justify-between">
                 <span className="text-white font-semibold">תפריט ניווט</span>
@@ -76,20 +76,27 @@ export const NavBar: React.FC = () => {
             </div>
             
             <div className="p-4 space-y-3">
-              {navItems.map(({ path, label, color }) => (
-                <Link
-                  key={path}
-                  to={path}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`block w-full text-right ${getNavItemClasses(path, color)}`}
-                >
-                  {label}
-                </Link>
-              ))}
+              {navItems.map(({ path, label, color }) => {
+                const isActive = location.pathname === path;
+                return (
+                  <Link
+                    key={path}
+                    to={path}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`block w-full text-right px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      isActive 
+                        ? `bg-${color}-100 text-${color}-800 border border-${color}-200 shadow-sm`
+                        : `text-foreground hover:bg-muted hover:text-foreground border border-transparent`
+                    }`}
+                  >
+                    {label}
+                  </Link>
+                );
+              })}
               
-              <div className="pt-4 border-t">
+              <div className="pt-4 border-t border-border">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm text-gray-600">{user.agentname}</span>
+                  <span className="text-sm text-muted-foreground">{user.agentname}</span>
                 </div>
                 <Button
                   variant="outline"

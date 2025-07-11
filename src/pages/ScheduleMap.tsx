@@ -201,8 +201,8 @@ const ScheduleMap: React.FC = () => {
       )}
 
       {/* Map */}
-      <div className={`${isMobile ? 'space-y-4' : 'grid grid-cols-1 lg:grid-cols-4 gap-4'} ${isMobile ? 'h-[70vh]' : 'h-[600px]'}`}>
-        {/* Customer List - Mobile: collapsed by default */}
+      <div className={`${isMobile ? 'space-y-4' : 'grid grid-cols-1 lg:grid-cols-4 gap-4'} ${isMobile ? 'h-[calc(100vh-200px)]' : 'h-[600px]'}`}>
+        {/* Customer List - Desktop only */}
         {!isMobile && (
           <Card className="lg:col-span-1">
             <CardHeader>
@@ -275,15 +275,16 @@ const ScheduleMap: React.FC = () => {
         )}
 
         {/* Map */}
-        <div className={isMobile ? 'flex-1' : 'lg:col-span-3'}>
+        <div className={isMobile ? 'flex-1 min-h-[500px]' : 'lg:col-span-3'}>
           <Card className="h-full relative">
-            <CardContent className={`${isMobile ? 'p-2' : 'p-4'} h-full`}>
+            <CardContent className={`${isMobile ? 'p-1' : 'p-4'} h-full`}>
               <RouteMapComponent 
                 customers={customers}
                 orderData={orderData || []}
                 departureTime={departureTime}
                 onRouteOptimized={handleRouteOptimized}
                 onRouteClear={handleRouteClear}
+                isMobile={isMobile}
               />
               {/* Add legend overlay */}
               <MapLegend 
