@@ -119,6 +119,33 @@ const Lines = () => {
     }
   });
 
+  // Update city area assignment
+  const updateCityAreaMutation = useMutation({
+    mutationFn: async ({ cityid, newArea }: { cityid: number; newArea: string }) => {
+      const { error } = await supabase
+        .from('cities')
+        .update({ area: newArea })
+        .eq('cityid', cityid);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lines-cities'] });
+      toast({
+        title: "נשמר בהצלחה",
+        description: "האזור עודכן במערכת",
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating city area:', error);
+      toast({
+        title: "שגיאה בשמירה",
+        description: "לא הצלחנו לעדכן את האזור",
+        variant: "destructive",
+      });
+    }
+  });
+
   // Calculate which areas appear in which weeks and days
   const areaSchedule = useMemo(() => {
     const schedule: Record<number, Record<string, string[]>> = {
@@ -347,6 +374,11 @@ const Lines = () => {
     });
   };
 
+  // Handle city area change
+  const handleCityAreaChange = (cityId: number, newArea: string) => {
+    updateCityAreaMutation.mutate({ cityid: cityId, newArea });
+  };
+
   if (groupsLoading || citiesLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -390,6 +422,7 @@ const Lines = () => {
           citiesByArea={citiesByArea}
           cities={cities}
           onCityAssign={handleCityAssign}
+          onCityAreaChange={handleCityAreaChange}
         />
 
         {/* Weekly Grid */}

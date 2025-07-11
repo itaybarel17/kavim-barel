@@ -7,6 +7,38 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
+// Component for area drop zone
+const AreaDropZone: React.FC<{
+  area: string;
+  onCityAreaChange: (cityId: number, newArea: string) => void;
+  children: React.ReactNode;
+}> = ({ area, onCityAreaChange, children }) => {
+  const [{ isOver, canDrop }, drop] = useDrop({
+    accept: ['city-from-pool'],
+    drop: (item: any) => {
+      if (item.currentArea !== area) {
+        onCityAreaChange(item.cityId, area);
+      }
+    },
+    canDrop: (item: any) => item.currentArea !== area,
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+      canDrop: monitor.canDrop(),
+    }),
+  });
+
+  return (
+    <div
+      ref={drop}
+      className={`${
+        isOver && canDrop ? 'bg-primary/10 border-2 border-primary/30 rounded-lg' : ''
+      } transition-all duration-200`}
+    >
+      {children}
+    </div>
+  );
+};
+
 interface City {
   cityid: number;
   city: string;
@@ -18,12 +50,14 @@ interface CityPoolProps {
   citiesByArea: Record<string, City[]>;
   cities: City[];
   onCityAssign: (cityId: number, week: number, day: string, truck: number) => void;
+  onCityAreaChange: (cityId: number, newArea: string) => void;
 }
 
 export const CityPool: React.FC<CityPoolProps> = ({
   citiesByArea,
   cities,
-  onCityAssign
+  onCityAssign,
+  onCityAreaChange
 }) => {
   const [openAreas, setOpenAreas] = useState<Record<string, boolean>>({});
   const [draggedCities, setDraggedCities] = useState<Set<number>>(new Set());
@@ -118,7 +152,12 @@ export const CityPool: React.FC<CityPoolProps> = ({
                 </CollapsibleTrigger>
                 
                 <CollapsibleContent className="p-3 pt-0">
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                  {/* Area drop zone */}
+                  <AreaDropZone 
+                    area={area} 
+                    onCityAreaChange={onCityAreaChange}
+                  >
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                     {areaCities.map(city => {
                       const isDragged = draggedCities.has(city.cityid);
                       const isAssigned = isCityAssigned(city);
@@ -154,8 +193,9 @@ export const CityPool: React.FC<CityPoolProps> = ({
                           )}
                         </div>
                       );
-                    })}
-                  </div>
+                     })}
+                    </div>
+                  </AreaDropZone>
                 </CollapsibleContent>
               </Collapsible>
             </div>
