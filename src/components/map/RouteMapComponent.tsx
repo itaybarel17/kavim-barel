@@ -295,7 +295,7 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
               durationWithoutTraffic: leg.duration?.text || '', // Google doesn't provide separate without traffic time
               distance: leg.distance?.text || '',
               arrivalTime: arrivalTime.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
-              orderNumber: index < legs.length - 1 ? index + 1 : 0
+              orderNumber: index < legs.length - 1 ? index + 1 : -1 // Return to depot gets -1
             });
           });
 
@@ -410,16 +410,22 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
           <div className="border-t pt-3">
             <div className="font-medium mb-2">סדר נסיעה ושעות הגעה:</div>
             <div className="space-y-2 text-xs">
-              {travelTimeData.segments
-                .filter(segment => segment.orderNumber > 0)
-                .map((segment, index) => (
+              {travelTimeData.segments.map((segment, index) => (
                 <div key={index} className="p-2 bg-gray-50 rounded border">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                        {segment.orderNumber}
+                      {segment.orderNumber === -1 ? (
+                        <span className="w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                          מ
+                        </span>
+                      ) : (
+                        <span className="w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                          {segment.orderNumber}
+                        </span>
+                      )}
+                      <span className="font-medium">
+                        {segment.orderNumber === -1 ? 'חזרה למחסן - ' : ''}{segment.to}
                       </span>
-                      <span className="font-medium">{segment.to}</span>
                     </div>
                     <span className="text-blue-600 font-bold">{segment.arrivalTime}</span>
                   </div>
@@ -427,9 +433,11 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
                     <span>זמן נסיעה: {segment.duration}</span>
                     <span>מרחק: {segment.distance}</span>
                   </div>
-                  <div className="text-xs text-orange-600 mt-1">
-                    + 25 דקות שהייה בנקודה
-                  </div>
+                  {segment.orderNumber !== -1 && (
+                    <div className="text-xs text-orange-600 mt-1">
+                      + 25 דקות שהייה בנקודה
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
