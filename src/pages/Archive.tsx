@@ -9,6 +9,7 @@ import { ArrowLeft, Package, RotateCcw, Undo2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { ReturnReasonDialog } from '@/components/archive/ReturnReasonDialog';
+import { useIsMobile } from '@/hooks/use-mobile';
 interface ArchivedOrder {
   ordernumber: number;
   customername: string;
@@ -71,9 +72,8 @@ const Archive = () => {
     data: ArchivedOrder | ArchivedReturn;
   } | null>(null);
   const navigate = useNavigate();
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   // Fetch archived orders with schedule data
   const {
@@ -352,9 +352,11 @@ const Archive = () => {
     groups: orderGroups,
     ungrouped: ungroupedOrders
   } = groupOrdersByInvoice(filteredOrders);
-  return <div className="min-h-screen p-6 bg-[#52a0e4]/15">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-gray-700">ארכיון הזמנות והחזרות</h1>
+  return <div className={`min-h-screen ${isMobile ? 'p-3' : 'p-6'} bg-[#52a0e4]/15`}>
+      <div className={`flex items-center ${isMobile ? 'flex-col gap-2' : 'justify-between'} mb-6`}>
+        <h1 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold text-gray-700`}>
+          ארכיון {isMobile ? 'הזמנות' : 'הזמנות והחזרות'}
+        </h1>
         <div className="flex gap-2">
           
           
@@ -363,12 +365,17 @@ const Archive = () => {
 
       {/* Search input */}
       <div className="mb-6">
-        <Input placeholder="חיפוש לפי שם לקוח, עיר, מספר הזמנה או מספר חשבונית..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="max-w-md" />
+        <Input 
+          placeholder={isMobile ? "חיפוש לקוח, הזמנה..." : "חיפוש לפי שם לקוח, עיר, מספר הזמנה או מספר חשבונית..."} 
+          value={searchTerm} 
+          onChange={e => setSearchTerm(e.target.value)} 
+          className={isMobile ? 'w-full' : 'max-w-md'} 
+        />
       </div>
 
       {isLoading ? <div className="text-center py-8">טוען נתוני ארכיון...</div> : <div className="space-y-6">
           {/* Deleted Items Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'lg:grid-cols-2 gap-6'}`}>
             {/* Deleted Orders */}
             <Card>
               <CardHeader>

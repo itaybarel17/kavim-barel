@@ -389,7 +389,7 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
 
       {/* Travel Time Data */}
       {travelTimeData && (
-        <div className="absolute bottom-4 right-4 bg-white p-4 rounded-lg shadow-md text-sm max-w-96 max-h-80 overflow-y-auto">
+        <div className="absolute bottom-4 right-4 bg-white p-4 rounded-lg shadow-md text-sm max-w-96 max-h-80 overflow-y-auto z-20">
           <div className="font-semibold mb-3 text-primary">נתוני נסיעה:</div>
           
           <div className="space-y-2 mb-3">

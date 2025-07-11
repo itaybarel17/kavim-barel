@@ -8,11 +8,13 @@ import { MessageList } from "@/components/messages/MessageList";
 import { MessageFilters } from "@/components/messages/MessageFilters";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Messages() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [filters, setFilters] = useState({
     subject: "",
     isHandled: "",
@@ -152,26 +154,26 @@ export default function Messages() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">מערכת הודעות</h1>
-        <div className="text-sm text-gray-600">
+    <div className={`container mx-auto ${isMobile ? 'p-3' : 'p-6'} space-y-4`}>
+      <div className={`flex ${isMobile ? 'flex-col gap-2' : 'justify-between items-center'}`}>
+        <h1 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold text-gray-900`}>מערכת הודעות</h1>
+        <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>
           {user?.agentname} ({user?.agentnumber})
         </div>
       </div>
 
       <Tabs defaultValue="messages" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="messages">הודעות קיימות</TabsTrigger>
-          <TabsTrigger value="new">הודעה חדשה</TabsTrigger>
+        <TabsList className={`grid w-full grid-cols-2 ${isMobile ? 'h-8' : ''}`}>
+          <TabsTrigger value="messages" className={isMobile ? 'text-sm' : ''}>הודעות קיימות</TabsTrigger>
+          <TabsTrigger value="new" className={isMobile ? 'text-sm' : ''}>הודעה חדשה</TabsTrigger>
         </TabsList>
 
         <TabsContent value="new" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>שליחת הודעה חדשה</CardTitle>
+              <CardTitle className={isMobile ? 'text-lg' : ''}>שליחת הודעה חדשה</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className={isMobile ? 'p-3' : ''}>
               <MessageForm />
             </CardContent>
           </Card>
@@ -180,14 +182,14 @@ export default function Messages() {
         <TabsContent value="messages" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex justify-between items-center">
-                הודעות המערכת
-                <span className="text-sm font-normal text-gray-600">
+              <CardTitle className={`flex ${isMobile ? 'flex-col gap-2' : 'justify-between items-center'}`}>
+                <span className={isMobile ? 'text-lg' : ''}>הודעות המערכת</span>
+                <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-normal text-gray-600`}>
                   {messages?.length || 0} הודעות
                 </span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className={isMobile ? 'p-3' : ''}>
               <MessageFilters 
                 filters={filters} 
                 onFiltersChange={setFilters}

@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, MapPin, Package, RotateCcw, Clock } from 'lucide-react';
 import { RouteMapComponent } from '@/components/map/RouteMapComponent';
+import { MapLegend } from '@/components/map/MapLegend';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Customer {
   customername: string;
@@ -32,6 +34,7 @@ const ScheduleMap: React.FC = () => {
   const [departureTime, setDepartureTime] = useState('05:00');
   const [optimizedOrder, setOptimizedOrder] = useState<number[]>([]);
   const [routeOptimized, setRouteOptimized] = useState(false);
+  const isMobile = useIsMobile();
 
   // Fetch orders and returns for this schedule
   const { data: orderData, isLoading } = useQuery({
@@ -137,120 +140,156 @@ const ScheduleMap: React.FC = () => {
   const displayedCustomers = getDisplayedCustomers();
 
   return (
-    <div className="container mx-auto p-4 space-y-4">
+    <div className={`container mx-auto ${isMobile ? 'p-2' : 'p-4'} space-y-4`}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className={`flex items-center ${isMobile ? 'flex-col gap-2' : 'justify-between'}`}>
+        <div className={`flex items-center ${isMobile ? 'w-full justify-between' : 'gap-4'}`}>
           <Button
             variant="ghost"
             onClick={() => navigate('/calendar')}
             className="flex items-center gap-2"
+            size={isMobile ? "sm" : "default"}
           >
             <ArrowLeft size={16} />
-            חזרה לקלנדר
+            {isMobile ? 'חזרה' : 'חזרה לקלנדר'}
           </Button>
-          <h1 className="text-2xl font-bold">מפת הפצה - לוח זמנים {scheduleId}</h1>
+          <h1 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold`}>
+            מפת הפצה {isMobile ? '' : '- לוח זמנים'} {scheduleId}
+          </h1>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <MapPin className="text-blue-500" size={20} />
-              <div>
-                <p className="text-sm text-muted-foreground">סה"כ נקודות</p>
-                <p className="text-2xl font-bold">{customers.length}</p>
+      {!isMobile && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <MapPin className="text-blue-500" size={20} />
+                <div>
+                  <p className="text-sm text-muted-foreground">סה"כ נקודות</p>
+                  <p className="text-2xl font-bold">{customers.length}</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Package className="text-green-500" size={20} />
-              <div>
-                <p className="text-sm text-muted-foreground">הזמנות</p>
-                <p className="text-2xl font-bold">{ordersCount}</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Package className="text-green-500" size={20} />
+                <div>
+                  <p className="text-sm text-muted-foreground">הזמנות</p>
+                  <p className="text-2xl font-bold">{ordersCount}</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <RotateCcw className="text-red-500" size={20} />
-              <div>
-                <p className="text-sm text-muted-foreground">החזרות</p>
-                <p className="text-2xl font-bold">{returnsCount}</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <RotateCcw className="text-red-500" size={20} />
+                <div>
+                  <p className="text-sm text-muted-foreground">החזרות</p>
+                  <p className="text-2xl font-bold">{returnsCount}</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Map */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[600px]">
-        {/* Customer List */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="text-lg">רשימת נקודות</CardTitle>
-            <div className="space-y-2">
-              <Label htmlFor="departure-time" className="text-sm font-medium">
-                שעת יציאה
-              </Label>
-              <div className="flex items-center gap-2">
-                <Clock size={16} className="text-muted-foreground" />
-                <Input
-                  id="departure-time"
-                  type="time"
-                  value={departureTime}
-                  onChange={(e) => setDepartureTime(e.target.value)}
-                  className="w-full"
-                />
+      <div className={`${isMobile ? 'space-y-4' : 'grid grid-cols-1 lg:grid-cols-4 gap-4'} ${isMobile ? 'h-[70vh]' : 'h-[600px]'}`}>
+        {/* Customer List - Mobile: collapsed by default */}
+        {!isMobile && (
+          <Card className="lg:col-span-1">
+            <CardHeader>
+              <CardTitle className="text-lg">רשימת נקודות</CardTitle>
+              <div className="space-y-2">
+                <Label htmlFor="departure-time" className="text-sm font-medium">
+                  שעת יציאה
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Clock size={16} className="text-muted-foreground" />
+                  <Input
+                    id="departure-time"
+                    type="time"
+                    value={departureTime}
+                    onChange={(e) => setDepartureTime(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="space-y-2 max-h-[400px] overflow-y-auto">
-              {displayedCustomers.map((customer, index) => {
-                const originalIndex = customers.findIndex(c => c.customername === customer.customername);
-                const orderNumber = routeOptimized ? optimizedOrder.indexOf(originalIndex) + 1 : null;
-                return (
-                  <div
-                    key={`${customer.customername}-${index}`}
-                    className="p-2 border rounded-lg bg-background text-sm"
-                  >
-                    <div className="flex items-center gap-2">
-                      {orderNumber && orderNumber > 0 && (
-                        <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                          {orderNumber}
-                        </span>
-                      )}
-                      <div className="font-semibold">{customer.customername}</div>
+            </CardHeader>
+            <CardContent className="p-4">
+              <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                {displayedCustomers.map((customer, index) => {
+                  const originalIndex = customers.findIndex(c => c.customername === customer.customername);
+                  const orderNumber = routeOptimized ? optimizedOrder.indexOf(originalIndex) + 1 : null;
+                  return (
+                    <div
+                      key={`${customer.customername}-${index}`}
+                      className="p-2 border rounded-lg bg-background text-sm"
+                    >
+                      <div className="flex items-center gap-2">
+                        {orderNumber && orderNumber > 0 && (
+                          <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                            {orderNumber}
+                          </span>
+                        )}
+                        <div className="font-semibold">{customer.customername}</div>
+                      </div>
+                      <div className="text-muted-foreground">{customer.address}</div>
+                      <div className="text-muted-foreground">{customer.city}</div>
                     </div>
-                    <div className="text-muted-foreground">{customer.address}</div>
-                    <div className="text-muted-foreground">{customer.city}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Departure Time - Mobile only */}
+        {isMobile && (
+          <Card>
+            <CardContent className="p-3">
+              <div className="flex items-center gap-3">
+                <Label htmlFor="departure-time-mobile" className="text-sm font-medium whitespace-nowrap">
+                  שעת יציאה:
+                </Label>
+                <div className="flex items-center gap-2 flex-1">
+                  <Clock size={16} className="text-muted-foreground" />
+                  <Input
+                    id="departure-time-mobile"
+                    type="time"
+                    value={departureTime}
+                    onChange={(e) => setDepartureTime(e.target.value)}
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Map */}
-        <div className="lg:col-span-3">
-          <Card className="h-full">
-            <CardContent className="p-4 h-full">
+        <div className={isMobile ? 'flex-1' : 'lg:col-span-3'}>
+          <Card className="h-full relative">
+            <CardContent className={`${isMobile ? 'p-2' : 'p-4'} h-full`}>
               <RouteMapComponent 
                 customers={customers}
                 orderData={orderData || []}
                 departureTime={departureTime}
                 onRouteOptimized={handleRouteOptimized}
                 onRouteClear={handleRouteClear}
+              />
+              {/* Add legend overlay */}
+              <MapLegend 
+                totalPoints={customers.length}
+                ordersCount={ordersCount}
+                returnsCount={returnsCount}
               />
             </CardContent>
           </Card>

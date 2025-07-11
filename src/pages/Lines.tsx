@@ -12,6 +12,7 @@ import { AreaPool } from '@/components/lines/AreaPool';
 import { WeeklyAreaKanban } from '@/components/lines/WeeklyAreaKanban';
 import { MapComponent } from '@/components/lines/MapComponent';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface DistributionGroup {
   groups_id: number;
@@ -32,6 +33,7 @@ interface City {
 const Lines = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
 
   // Fetch distribution groups
   const { data: distributionGroups = [], isLoading: groupsLoading } = useQuery({
@@ -392,10 +394,11 @@ const Lines = () => {
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="container mx-auto p-6 space-y-6">
+      <div className={`container mx-auto ${isMobile ? 'p-3' : 'p-6'} space-y-4`}>
         <div className="text-center">
-          <h1 className="text-3xl font-bold mb-2">ניהול קווי הפצה</h1>
-          <p className="text-muted-foreground">גרור עירים לימים המתאימים על פי לוח החודש</p>
+          <h1 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold mb-2`}>ניהול קווי הפצה</h1>
+          {!isMobile && <p className="text-muted-foreground">גרור עירים לימים המתאימים על פי לוח החודש</p>}
+          {isMobile && <p className="text-sm text-muted-foreground">שיוך ערים לימי הפצה</p>}
         </div>
 
         {/* Area Pool */}
@@ -405,8 +408,8 @@ const Lines = () => {
         />
 
         {/* Weekly Area Kanban */}
-        <div className="border rounded-lg p-4 bg-card">
-          <h2 className="text-xl font-semibold mb-4">שיוך אזורים לימים</h2>
+        <div className={`border rounded-lg ${isMobile ? 'p-3' : 'p-4'} bg-card`}>
+          <h2 className={`${isMobile ? 'text-lg' : 'text-xl'} font-semibold mb-4`}>שיוך אזורים לימים</h2>
           <WeeklyAreaKanban 
             distributionGroups={distributionGroups}
             onAreaAssign={handleAreaAssign}
@@ -426,11 +429,11 @@ const Lines = () => {
         />
 
         {/* Weekly Grid */}
-        <div className="space-y-8">
+        <div className={`space-y-${isMobile ? '4' : '8'}`}>
           {[1, 2, 3, 4].map(week => (
-            <div key={week} className="border rounded-lg p-4 bg-card">
+            <div key={week} className={`border rounded-lg ${isMobile ? 'p-3' : 'p-4'} bg-card`}>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">שבוע {week}</h2>
+                <h2 className={`${isMobile ? 'text-lg' : 'text-xl'} font-semibold`}>שבוע {week}</h2>
               </div>
               
               <TruckGrid 
