@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Loader } from '@googlemaps/js-api-loader';
 import { Button } from '@/components/ui/button';
-import { Route, Navigation, ChevronUp, ChevronDown } from 'lucide-react';
+import { Route, Navigation, ChevronUp } from 'lucide-react';
 import { 
   Drawer,
   DrawerContent,
@@ -10,10 +9,11 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer';
 
-// Google Maps types
-type GoogleMap = google.maps.Map;
-type GoogleMapsDirectionsService = google.maps.DirectionsService;
-type GoogleMapsDirectionsRenderer = google.maps.DirectionsRenderer;
+declare global {
+  interface Window {
+    google: any;
+  }
+}
 
 interface Customer {
   customername: string;
@@ -55,7 +55,7 @@ interface TravelTimeData {
   }>;
 }
 
-const GOOGLE_MAPS_API_KEY = 'AIzaSyCC1VMiEQgv0fHVErjT1b1ZJuzJYWEqxmk';
+
 
 // בראל אלון - נקודת ההתחלה והסיום הקבועה
 const DEPOT_LOCATION = {
@@ -75,51 +75,44 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
   isMobile = false
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
-  const [map, setMap] = useState<GoogleMap | null>(null);
-  const [directionsService, setDirectionsService] = useState<GoogleMapsDirectionsService | null>(null);
-  const [directionsRenderer, setDirectionsRenderer] = useState<GoogleMapsDirectionsRenderer | null>(null);
+  const [map, setMap] = useState<any>(null);
+  const [directionsService, setDirectionsService] = useState<any>(null);
+  const [directionsRenderer, setDirectionsRenderer] = useState<any>(null);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
   const [routeOptimized, setRouteOptimized] = useState(false);
   const [travelTimeData, setTravelTimeData] = useState<TravelTimeData | null>(null);
   const [optimizedOrder, setOptimizedOrder] = useState<number[]>([]);
-  const [customerMarkers, setCustomerMarkers] = useState<google.maps.Marker[]>([]);
+  const [customerMarkers, setCustomerMarkers] = useState<any[]>([]);
 
   useEffect(() => {
-    const initializeMap = async () => {
-      if (!mapRef.current || customers.length === 0) return;
+    const initializeMap = () => {
+      if (!mapRef.current || customers.length === 0 || !window.google) return;
 
-      const loader = new Loader({
-        apiKey: GOOGLE_MAPS_API_KEY,
-        version: 'weekly',
-        libraries: ['places']
+      // Calculate center point including depot
+      const bounds = new window.google.maps.LatLngBounds();
+      bounds.extend({ lat: DEPOT_LOCATION.lat, lng: DEPOT_LOCATION.lng });
+      customers.forEach(customer => {
+        bounds.extend({ lat: customer.lat, lng: customer.lng });
       });
 
-      try {
-        const google = await loader.load();
-        
-        // Calculate center point including depot
-        const bounds = new google.maps.LatLngBounds();
-        bounds.extend({ lat: DEPOT_LOCATION.lat, lng: DEPOT_LOCATION.lng });
-        customers.forEach(customer => {
-          bounds.extend({ lat: customer.lat, lng: customer.lng });
-        });
+      const mapInstance = new window.google.maps.Map(mapRef.current, {
+        zoom: 10,
+        center: bounds.getCenter(),
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+      });
 
-        const mapInstance = new google.maps.Map(mapRef.current, {
-          zoom: 10,
-          center: bounds.getCenter(),
-          mapTypeId: google.maps.MapTypeId.ROADMAP,
-        });
-
-        // Fit map to show all customers and depot
-        mapInstance.fitBounds(bounds);
+      // Fit map to show all customers and depot
+      mapInstance.fitBounds(bounds);
 
         // Add depot marker (starting point)
-        const depotMarker = new google.maps.Marker({
+        const depotMarker = new window.google.maps.Marker({
           position: { lat: DEPOT_LOCATION.lat, lng: DEPOT_LOCATION.lng },
           map: mapInstance,
           title: DEPOT_LOCATION.name,
           icon: {
-            path: google.maps.SymbolPath.CIRCLE,
+            path: window.google.maps.SymbolPath.CIRCLE,
             fillColor: '#FF0000',
             fillOpacity: 1,
             strokeColor: '#ffffff',
@@ -134,7 +127,7 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
           }
         });
 
-        const depotInfoWindow = new google.maps.InfoWindow({
+        const depotInfoWindow = new window.google.maps.InfoWindow({
           content: `
             <div style="padding: 8px; direction: rtl;">
               <h3 style="margin: 0 0 8px 0; font-weight: bold; color: #FF0000;">${DEPOT_LOCATION.name}</h3>
@@ -150,14 +143,14 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
         });
 
         // Add markers for each customer (initially without numbers)
-        const markers: google.maps.Marker[] = [];
+        const markers: any[] = [];
         customers.forEach((customer, index) => {
-          const marker = new google.maps.Marker({
+          const marker = new window.google.maps.Marker({
             position: { lat: customer.lat, lng: customer.lng },
             map: mapInstance,
             title: customer.customername,
             icon: {
-              path: google.maps.SymbolPath.CIRCLE,
+              path: window.google.maps.SymbolPath.CIRCLE,
               fillColor: '#4285f4',
               fillOpacity: 0.8,
               strokeColor: '#ffffff',
@@ -167,7 +160,7 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
           });
 
           // Create info window (only opens on click)
-          const infoWindow = new google.maps.InfoWindow({
+          const infoWindow = new window.google.maps.InfoWindow({
             content: `
               <div style="padding: 8px; direction: rtl;">
                 <h3 style="margin: 0 0 8px 0; font-weight: bold;">${customer.customername}</h3>
@@ -187,8 +180,8 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
         setCustomerMarkers(markers);
 
         // Initialize directions service and renderer
-        const directionsServiceInstance = new google.maps.DirectionsService();
-        const directionsRendererInstance = new google.maps.DirectionsRenderer({
+        const directionsServiceInstance = new window.google.maps.DirectionsService();
+        const directionsRendererInstance = new window.google.maps.DirectionsRenderer({
           map: mapInstance,
           suppressMarkers: true, // Keep our custom markers
           polylineOptions: {
@@ -201,9 +194,7 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
         setMap(mapInstance);
         setDirectionsService(directionsServiceInstance);
         setDirectionsRenderer(directionsRendererInstance);
-      } catch (error) {
-        console.error('Error loading Google Maps:', error);
-      }
+        setCustomerMarkers(markers);
     };
 
     initializeMap();
@@ -230,17 +221,17 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
       const departureDateTime = new Date(today);
       departureDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
 
-      const request: google.maps.DirectionsRequest = {
+      const request: any = {
         origin,
         destination,
         waypoints,
         optimizeWaypoints: true,
-        travelMode: google.maps.TravelMode.DRIVING,
-        unitSystem: google.maps.UnitSystem.METRIC,
+        travelMode: window.google.maps.TravelMode.DRIVING,
+        unitSystem: window.google.maps.UnitSystem.METRIC,
         region: 'IL',
         drivingOptions: {
           departureTime: departureDateTime,
-          trafficModel: google.maps.TrafficModel.BEST_GUESS
+          trafficModel: window.google.maps.TrafficModel.BEST_GUESS
         }
       };
 
@@ -372,7 +363,11 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
 
   return (
     <div className="relative h-full">
-      <div ref={mapRef} className="h-full w-full rounded-lg" />
+      <div 
+        ref={mapRef} 
+        className={`w-full rounded-lg ${isMobile ? 'h-[400px]' : 'h-full'}`}
+        style={{ direction: 'ltr' }}
+      />
       
       {/* Route controls */}
       <div className={`absolute top-4 ${isMobile ? 'left-4 right-4' : 'right-4'} ${isMobile ? 'flex gap-2' : 'space-y-2'}`}>
