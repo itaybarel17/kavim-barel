@@ -1,7 +1,7 @@
 {
-  "name": "כוים ברל",
-  "short_name": "כוים ברל",
-  "description": "מערכת ניהול הפצה",
+  "name": "קווים בראל",
+  "short_name": "קווים בראל",
+  "description": "מערכת ניהול הפצה - קווים בראל",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
