@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,9 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, MapPin, Package, RotateCcw, Clock } from 'lucide-react';
+import { ArrowLeft, MapPin, Package, RotateCcw, Clock, Route } from 'lucide-react';
 import { RouteMapComponent } from '@/components/map/RouteMapComponent';
-import { MapLegend } from '@/components/map/MapLegend';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Customer {
@@ -38,6 +37,7 @@ const ScheduleMap: React.FC = () => {
   const [optimizedOrder, setOptimizedOrder] = useState<number[]>([]);
   const [routeOptimized, setRouteOptimized] = useState(false);
   const isMobile = useIsMobile();
+  const mapComponentRef = useRef<any>(null);
 
   // Fetch orders and returns for this schedule
   const { data: orderData, isLoading } = useQuery({
@@ -162,6 +162,53 @@ const ScheduleMap: React.FC = () => {
         </div>
       </div>
 
+      {/* Mobile: Natural Legend and Stats */}
+      {isMobile && (
+        <div className="space-y-3">
+          {/* Statistics */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="text-center p-3 bg-background border rounded-lg">
+              <MapPin className="text-blue-500 mx-auto mb-1" size={16} />
+              <p className="text-xs text-muted-foreground">נקודות</p>
+              <p className="text-lg font-bold">{customers.length}</p>
+            </div>
+            <div className="text-center p-3 bg-background border rounded-lg">
+              <Package className="text-green-500 mx-auto mb-1" size={16} />
+              <p className="text-xs text-muted-foreground">הזמנות</p>
+              <p className="text-lg font-bold">{ordersCount}</p>
+            </div>
+            <div className="text-center p-3 bg-background border rounded-lg">
+              <RotateCcw className="text-red-500 mx-auto mb-1" size={16} />
+              <p className="text-xs text-muted-foreground">החזרות</p>
+              <p className="text-lg font-bold">{returnsCount}</p>
+            </div>
+          </div>
+          
+          {/* Map Legend */}
+          <div className="p-3 bg-background border rounded-lg">
+            <h3 className="font-medium mb-2 text-sm">מקרא המפה:</h3>
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                <span>נקודת התחלה וסיום (בראל אלון)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                <span>נקודות חלוקה</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-1 bg-blue-500 rounded"></div>
+                <span>מסלול נסיעה אופטימלי</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">1</div>
+                <span>סדר ביקור (לאחר אופטימיזציה)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stats */}
       {!isMobile && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -284,26 +331,23 @@ const ScheduleMap: React.FC = () => {
               <div className="flex gap-2">
                 <Button
                   onClick={() => {
-                    // Call the route optimization function
-                    const mapComponent = document.querySelector('[data-map-component]') as any;
-                    if (mapComponent?.optimizeRoute) {
-                      mapComponent.optimizeRoute();
+                    if (mapComponentRef.current?.optimizeRoute) {
+                      mapComponentRef.current.optimizeRoute();
                     }
                   }}
                   disabled={customers.length === 0}
                   className="flex items-center gap-2 flex-1"
                   size="sm"
                 >
-                  <MapPin size={14} />
+                  <Route size={14} />
                   מסלול אופטימלי
                 </Button>
                 
                 {routeOptimized && (
                   <Button
                     onClick={() => {
-                      const mapComponent = document.querySelector('[data-map-component]') as any;
-                      if (mapComponent?.clearRoute) {
-                        mapComponent.clearRoute();
+                      if (mapComponentRef.current?.clearRoute) {
+                        mapComponentRef.current.clearRoute();
                       }
                       handleRouteClear();
                     }}
@@ -319,24 +363,12 @@ const ScheduleMap: React.FC = () => {
           </Card>
         )}
 
-        {/* Map Legend - Mobile only */}
-        {isMobile && (
-          <Card>
-            <CardContent className="p-3">
-              <MapLegend 
-                totalPoints={customers.length}
-                ordersCount={ordersCount}
-                returnsCount={returnsCount}
-              />
-            </CardContent>
-          </Card>
-        )}
-
         {/* Map */}
         <div className={isMobile ? 'flex-1 min-h-[400px]' : 'lg:col-span-3'}>
           <Card className="h-full relative">
             <CardContent className={`${isMobile ? 'p-1' : 'p-4'} h-full`}>
               <RouteMapComponent 
+                ref={mapComponentRef}
                 customers={customers}
                 orderData={orderData || []}
                 departureTime={departureTime}
@@ -344,14 +376,6 @@ const ScheduleMap: React.FC = () => {
                 onRouteClear={handleRouteClear}
                 isMobile={isMobile}
               />
-              {/* Add legend overlay - Desktop only */}
-              {!isMobile && (
-                <MapLegend 
-                  totalPoints={customers.length}
-                  ordersCount={ordersCount}
-                  returnsCount={returnsCount}
-                />
-              )}
             </CardContent>
           </Card>
         </div>

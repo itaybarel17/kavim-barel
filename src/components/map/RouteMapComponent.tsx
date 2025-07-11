@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { Button } from '@/components/ui/button';
 import { Route, Navigation, ChevronUp } from 'lucide-react';
 import { 
@@ -66,14 +66,14 @@ const DEPOT_LOCATION = {
   city: 'יבנה'
 };
 
-export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
+export const RouteMapComponent = forwardRef<any, RouteMapComponentProps>(({
   customers,
   orderData,
   departureTime,
   onRouteOptimized,
   onRouteClear,
   isMobile = false
-}) => {
+}, ref) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<any>(null);
   const [directionsService, setDirectionsService] = useState<any>(null);
@@ -83,6 +83,12 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
   const [travelTimeData, setTravelTimeData] = useState<TravelTimeData | null>(null);
   const [optimizedOrder, setOptimizedOrder] = useState<number[]>([]);
   const [customerMarkers, setCustomerMarkers] = useState<any[]>([]);
+
+  // Expose functions to parent component
+  useImperativeHandle(ref, () => ({
+    optimizeRoute,
+    clearRoute
+  }));
 
   useEffect(() => {
     const initializeMap = () => {
@@ -524,4 +530,4 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
       )}
     </div>
   );
-};
+});
