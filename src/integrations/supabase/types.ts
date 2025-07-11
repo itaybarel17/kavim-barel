@@ -114,6 +114,8 @@ export type Database = {
           cityid: number
           day: Json | null
           frequency: Json | null
+          lat: number | null
+          lng: number | null
         }
         Insert: {
           area?: string | null
@@ -121,6 +123,8 @@ export type Database = {
           cityid?: number
           day?: Json | null
           frequency?: Json | null
+          lat?: number | null
+          lng?: number | null
         }
         Update: {
           area?: string | null
@@ -128,6 +132,8 @@ export type Database = {
           cityid?: number
           day?: Json | null
           frequency?: Json | null
+          lat?: number | null
+          lng?: number | null
         }
         Relationships: []
       }
@@ -143,6 +149,8 @@ export type Database = {
           discount: number | null
           discountdetails: string | null
           extraarea: string | null
+          lat: number | null
+          lng: number | null
           mobile: string | null
           newarea: string | null
           obligolimit: number | null
@@ -166,6 +174,8 @@ export type Database = {
           discount?: number | null
           discountdetails?: string | null
           extraarea?: string | null
+          lat?: number | null
+          lng?: number | null
           mobile?: string | null
           newarea?: string | null
           obligolimit?: number | null
@@ -189,6 +199,8 @@ export type Database = {
           discount?: number | null
           discountdetails?: string | null
           extraarea?: string | null
+          lat?: number | null
+          lng?: number | null
           mobile?: string | null
           newarea?: string | null
           obligolimit?: number | null

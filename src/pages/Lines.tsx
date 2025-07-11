@@ -10,6 +10,7 @@ import { CityPool } from '@/components/lines/CityPool';
 import { AreaSchedule } from '@/components/lines/AreaSchedule';
 import { AreaPool } from '@/components/lines/AreaPool';
 import { WeeklyAreaKanban } from '@/components/lines/WeeklyAreaKanban';
+import { MapComponent } from '@/components/lines/MapComponent';
 import { useToast } from '@/hooks/use-toast';
 
 interface DistributionGroup {
@@ -24,6 +25,8 @@ interface City {
   city: string;
   area: string | null;
   day: Record<string, any> | null;
+  lat: number | null;
+  lng: number | null;
 }
 
 const Lines = () => {
@@ -52,7 +55,7 @@ const Lines = () => {
       console.log('Fetching cities for lines...');
       const { data, error } = await supabase
         .from('cities')
-        .select('cityid, city, area, day')
+        .select('cityid, city, area, day, lat, lng')
         .order('area')
         .order('city');
       
@@ -378,6 +381,9 @@ const Lines = () => {
             onAreaRemove={handleAreaRemove}
           />
         </div>
+
+        {/* Map Component */}
+        <MapComponent cities={cities} />
 
         {/* City Pool */}
         <CityPool 

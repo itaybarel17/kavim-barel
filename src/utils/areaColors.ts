@@ -26,3 +26,26 @@ export const getMainAreaFromSeparation = (separation: string) => {
   // Extract the main area name before the number (e.g., "תל אביב-יפו 1" -> "תל אביב-יפו")
   return separation.replace(/\s+\d+$/, '').trim();
 };
+
+// Convert Tailwind color classes to hex colors for Google Maps
+export const getAreaColorHex = (areaName: string): string => {
+  const colorMap: Record<string, string> = {
+    'תל אביב-יפו': '#3b82f6', // blue-500
+    'חיפה-קריות': '#22c55e', // green-500
+    'ירושלים': '#a855f7', // purple-500
+    'רמת גן': '#f97316', // orange-500
+    'שרון': '#ec4899', // pink-500
+    'ראשון לציון': '#6366f1', // indigo-500
+    'שפלה': '#14b8a6', // teal-500
+    'צפון רחוק': '#ef4444', // red-500
+    'צפון קרוב': '#06b6d4', // cyan-500
+    'דרום': '#f59e0b', // amber-500
+    'אילת': '#84cc16', // lime-500
+    'פתח תקווה': '#8b5cf6', // violet-500
+    'חדרה': '#f43f5e', // rose-500
+    'באר שבע': '#eab308', // yellow-500
+    'אשדוד': '#10b981', // emerald-500
+    'משולש': '#64748b' // slate-500
+  };
+  return colorMap[areaName] || '#6b7280'; // gray-500
+};
