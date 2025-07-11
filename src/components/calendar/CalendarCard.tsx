@@ -223,7 +223,7 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
         <div className={spacing}>
           <div className="flex items-center justify-between mb-0.5">
             <div className={`${textSize} font-bold text-gray-700`}>נקודות:</div>
-            {uniqueCustomersList.length > 0 && (
+            {uniqueCustomersList.length > 0 && currentUser?.agentnumber === "4" && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
