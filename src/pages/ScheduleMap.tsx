@@ -30,6 +30,8 @@ const ScheduleMap: React.FC = () => {
   const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [departureTime, setDepartureTime] = useState('05:00');
+  const [optimizedOrder, setOptimizedOrder] = useState<number[]>([]);
+  const [routeOptimized, setRouteOptimized] = useState(false);
 
   // Fetch orders and returns for this schedule
   const { data: orderData, isLoading } = useQuery({
@@ -114,6 +116,26 @@ const ScheduleMap: React.FC = () => {
   const ordersCount = orderData?.filter(item => item.type === 'order').length || 0;
   const returnsCount = orderData?.filter(item => item.type === 'return').length || 0;
 
+  // Get displayed customers in order (optimized or alphabetical)
+  const getDisplayedCustomers = () => {
+    if (routeOptimized && optimizedOrder.length > 0) {
+      return optimizedOrder.map(index => customers[index]);
+    }
+    return customers;
+  };
+
+  const handleRouteOptimized = (order: number[]) => {
+    setOptimizedOrder(order);
+    setRouteOptimized(true);
+  };
+
+  const handleRouteClear = () => {
+    setOptimizedOrder([]);
+    setRouteOptimized(false);
+  };
+
+  const displayedCustomers = getDisplayedCustomers();
+
   return (
     <div className="container mx-auto p-4 space-y-4">
       {/* Header */}
@@ -194,16 +216,27 @@ const ScheduleMap: React.FC = () => {
           </CardHeader>
           <CardContent className="p-4">
             <div className="space-y-2 max-h-[400px] overflow-y-auto">
-              {customers.map((customer, index) => (
-                <div
-                  key={index}
-                  className="p-2 border rounded-lg bg-background text-sm"
-                >
-                  <div className="font-semibold">{customer.customername}</div>
-                  <div className="text-muted-foreground">{customer.address}</div>
-                  <div className="text-muted-foreground">{customer.city}</div>
-                </div>
-              ))}
+              {displayedCustomers.map((customer, index) => {
+                const originalIndex = customers.findIndex(c => c.customername === customer.customername);
+                const orderNumber = routeOptimized ? optimizedOrder.indexOf(originalIndex) + 1 : null;
+                return (
+                  <div
+                    key={`${customer.customername}-${index}`}
+                    className="p-2 border rounded-lg bg-background text-sm"
+                  >
+                    <div className="flex items-center gap-2">
+                      {orderNumber && orderNumber > 0 && (
+                        <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                          {orderNumber}
+                        </span>
+                      )}
+                      <div className="font-semibold">{customer.customername}</div>
+                    </div>
+                    <div className="text-muted-foreground">{customer.address}</div>
+                    <div className="text-muted-foreground">{customer.city}</div>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
@@ -216,6 +249,8 @@ const ScheduleMap: React.FC = () => {
                 customers={customers}
                 orderData={orderData || []}
                 departureTime={departureTime}
+                onRouteOptimized={handleRouteOptimized}
+                onRouteClear={handleRouteClear}
               />
             </CardContent>
           </Card>

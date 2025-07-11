@@ -28,16 +28,22 @@ interface RouteMapComponentProps {
   customers: Customer[];
   orderData: OrderData[];
   departureTime: string;
+  onRouteOptimized?: (order: number[]) => void;
+  onRouteClear?: () => void;
 }
 
 interface TravelTimeData {
   totalDuration: string;
+  totalDurationWithoutTraffic: string;
   totalDistance: string;
   segments: Array<{
     from: string;
     to: string;
     duration: string;
+    durationWithoutTraffic: string;
     distance: string;
+    arrivalTime: string;
+    orderNumber: number;
   }>;
 }
 
@@ -55,7 +61,9 @@ const DEPOT_LOCATION = {
 export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
   customers,
   orderData,
-  departureTime
+  departureTime,
+  onRouteOptimized,
+  onRouteClear
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<GoogleMap | null>(null);
@@ -64,6 +72,8 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
   const [routeOptimized, setRouteOptimized] = useState(false);
   const [travelTimeData, setTravelTimeData] = useState<TravelTimeData | null>(null);
+  const [optimizedOrder, setOptimizedOrder] = useState<number[]>([]);
+  const [customerMarkers, setCustomerMarkers] = useState<google.maps.Marker[]>([]);
 
   useEffect(() => {
     const initializeMap = async () => {
@@ -130,7 +140,8 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
           depotInfoWindow.open(mapInstance, depotMarker);
         });
 
-        // Add markers for each customer
+        // Add markers for each customer (initially without numbers)
+        const markers: google.maps.Marker[] = [];
         customers.forEach((customer, index) => {
           const marker = new google.maps.Marker({
             position: { lat: customer.lat, lng: customer.lng },
@@ -143,16 +154,10 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
               strokeColor: '#ffffff',
               strokeWeight: 2,
               scale: 15
-            },
-            label: {
-              text: `${index + 1}`,
-              color: 'white',
-              fontSize: '12px',
-              fontWeight: 'bold'
             }
           });
 
-          // Create info window
+          // Create info window (only opens on click)
           const infoWindow = new google.maps.InfoWindow({
             content: `
               <div style="padding: 8px; direction: rtl;">
@@ -167,14 +172,10 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
             infoWindow.open(mapInstance, marker);
           });
 
-          // Add customer name label next to marker
-          const nameLabel = new google.maps.InfoWindow({
-            content: `<div style="background: transparent; border: none; box-shadow: none; font-size: 11px; font-weight: bold; color: #333; direction: rtl;">${customer.customername}</div>`,
-            position: { lat: customer.lat + 0.003, lng: customer.lng },
-            disableAutoPan: true
-          });
-          nameLabel.open(mapInstance);
+          markers.push(marker);
         });
+
+        setCustomerMarkers(markers);
 
         // Initialize directions service and renderer
         const directionsServiceInstance = new google.maps.DirectionsService();
@@ -239,43 +240,68 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
           directionsRenderer.setDirections(result);
           setRouteOptimized(true);
           
+          // Store optimized order
+          const waypointOrder = result.routes[0].waypoint_order || customers.map((_, i) => i);
+          setOptimizedOrder(waypointOrder);
+          
+          // Update markers with route numbers
+          updateMarkersWithRouteNumbers(waypointOrder);
+          
+          // Notify parent of route optimization
+          onRouteOptimized?.(waypointOrder);
+          
           // Calculate travel time data
           const route = result.routes[0];
           const legs = route.legs;
           
           let totalDuration = 0;
+          let totalDurationWithoutTraffic = 0;
           let totalDistance = 0;
+          let currentTime = new Date();
+          const [hours, minutes] = departureTime.split(':');
+          currentTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+          
           const segments: TravelTimeData['segments'] = [];
 
           legs.forEach((leg, index) => {
-            totalDuration += leg.duration?.value || 0;
+            const dwellTime = 25 * 60; // 25 minutes in seconds
+            totalDuration += (leg.duration?.value || 0) + (index < legs.length - 1 ? dwellTime : 0);
+            totalDurationWithoutTraffic += (leg.duration?.value || 0) + (index < legs.length - 1 ? dwellTime : 0);
             totalDistance += leg.distance?.value || 0;
             
             let fromName, toName;
             if (index === 0) {
               fromName = DEPOT_LOCATION.name;
             } else {
-              const waypointIndex = route.waypoint_order ? route.waypoint_order[index - 1] : index - 1;
+              const waypointIndex = waypointOrder[index - 1];
               fromName = customers[waypointIndex]?.customername || `נקודה ${index}`;
             }
             
             if (index === legs.length - 1) {
               toName = DEPOT_LOCATION.name;
             } else {
-              const waypointIndex = route.waypoint_order ? route.waypoint_order[index] : index;
+              const waypointIndex = waypointOrder[index];
               toName = customers[waypointIndex]?.customername || `נקודה ${index + 1}`;
             }
+
+            // Calculate arrival time
+            const arrivalTime = new Date(currentTime.getTime() + (leg.duration?.value || 0) * 1000);
+            currentTime = new Date(arrivalTime.getTime() + dwellTime * 1000);
 
             segments.push({
               from: fromName,
               to: toName,
               duration: leg.duration?.text || '',
-              distance: leg.distance?.text || ''
+              durationWithoutTraffic: leg.duration?.text || '', // Google doesn't provide separate without traffic time
+              distance: leg.distance?.text || '',
+              arrivalTime: arrivalTime.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+              orderNumber: index < legs.length - 1 ? index + 1 : 0
             });
           });
 
           setTravelTimeData({
             totalDuration: `${Math.floor(totalDuration / 3600)}:${Math.floor((totalDuration % 3600) / 60).toString().padStart(2, '0')}`,
+            totalDurationWithoutTraffic: `${Math.floor(totalDurationWithoutTraffic / 3600)}:${Math.floor((totalDurationWithoutTraffic % 3600) / 60).toString().padStart(2, '0')}`,
             totalDistance: `${(totalDistance / 1000).toFixed(1)} ק"מ`,
             segments
           });
@@ -290,11 +316,34 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
     }
   };
 
+  const updateMarkersWithRouteNumbers = (waypointOrder: number[]) => {
+    customerMarkers.forEach((marker, index) => {
+      const routeIndex = waypointOrder.indexOf(index);
+      if (routeIndex !== -1) {
+        marker.setLabel({
+          text: `${routeIndex + 1}`,
+          color: 'white',
+          fontSize: '12px',
+          fontWeight: 'bold'
+        });
+      }
+    });
+  };
+
   const clearRoute = () => {
     if (directionsRenderer) {
       directionsRenderer.setDirections({ routes: [] } as any);
       setRouteOptimized(false);
       setTravelTimeData(null);
+      setOptimizedOrder([]);
+      
+      // Remove numbers from markers
+      customerMarkers.forEach(marker => {
+        marker.setLabel(null);
+      });
+      
+      // Notify parent of route clear
+      onRouteClear?.();
     }
   };
 
@@ -340,13 +389,17 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
 
       {/* Travel Time Data */}
       {travelTimeData && (
-        <div className="absolute bottom-4 right-4 bg-white p-4 rounded-lg shadow-md text-sm max-w-80 max-h-60 overflow-y-auto">
+        <div className="absolute bottom-4 right-4 bg-white p-4 rounded-lg shadow-md text-sm max-w-96 max-h-80 overflow-y-auto">
           <div className="font-semibold mb-3 text-primary">נתוני נסיעה:</div>
           
           <div className="space-y-2 mb-3">
             <div className="flex justify-between items-center p-2 bg-primary/10 rounded">
-              <span className="font-medium">סה"כ זמן:</span>
+              <span className="font-medium">סה"כ זמן (כולל פקקים):</span>
               <span className="font-bold text-primary">{travelTimeData.totalDuration}</span>
+            </div>
+            <div className="flex justify-between items-center p-2 bg-green-50 rounded">
+              <span className="font-medium">זמן ללא פקקים:</span>
+              <span className="font-bold text-green-600">{travelTimeData.totalDurationWithoutTraffic}</span>
             </div>
             <div className="flex justify-between items-center p-2 bg-secondary/10 rounded">
               <span className="font-medium">סה"כ מרחק:</span>
@@ -355,18 +408,27 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
           </div>
 
           <div className="border-t pt-3">
-            <div className="font-medium mb-2">זמני נסיעה בין נקודות:</div>
-            <div className="space-y-1 text-xs">
-              {travelTimeData.segments.map((segment, index) => (
-                <div key={index} className="flex justify-between items-center p-1 border-b border-border/50">
-                  <div className="flex-1 text-right">
-                    <div>{segment.from}</div>
-                    <div className="text-muted-foreground">↓</div>
-                    <div>{segment.to}</div>
+            <div className="font-medium mb-2">סדר נסיעה ושעות הגעה:</div>
+            <div className="space-y-2 text-xs">
+              {travelTimeData.segments
+                .filter(segment => segment.orderNumber > 0)
+                .map((segment, index) => (
+                <div key={index} className="p-2 bg-gray-50 rounded border">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <span className="w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                        {segment.orderNumber}
+                      </span>
+                      <span className="font-medium">{segment.to}</span>
+                    </div>
+                    <span className="text-blue-600 font-bold">{segment.arrivalTime}</span>
                   </div>
-                  <div className="text-left">
-                    <div className="font-medium">{segment.duration}</div>
-                    <div className="text-muted-foreground">{segment.distance}</div>
+                  <div className="text-xs text-muted-foreground flex justify-between">
+                    <span>זמן נסיעה: {segment.duration}</span>
+                    <span>מרחק: {segment.distance}</span>
+                  </div>
+                  <div className="text-xs text-orange-600 mt-1">
+                    + 25 דקות שהייה בנקודה
                   </div>
                 </div>
               ))}
