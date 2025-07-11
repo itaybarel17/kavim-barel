@@ -362,36 +362,36 @@ export const RouteMapComponent: React.FC<RouteMapComponentProps> = ({
   }
 
   return (
-    <div className="relative h-full">
+    <div className="relative h-full" data-map-component>
       <div 
         ref={mapRef} 
         className={`w-full rounded-lg ${isMobile ? 'h-[400px]' : 'h-full'}`}
         style={{ direction: 'ltr' }}
       />
       
-      {/* Route controls */}
-      <div className={`absolute top-4 ${isMobile ? 'left-4 right-4' : 'right-4'} ${isMobile ? 'flex gap-2' : 'space-y-2'}`}>
-        <Button
-          onClick={optimizeRoute}
-          disabled={isLoadingRoute || customers.length === 0}
-          className={`flex items-center gap-2 bg-white text-gray-700 border shadow-md hover:bg-gray-50 ${isMobile ? 'flex-1 text-xs px-3 py-2' : ''}`}
-          size={isMobile ? "sm" : "default"}
-        >
-          <Route size={isMobile ? 14 : 16} />
-          {isLoadingRoute ? 'מחשב...' : (isMobile ? 'מסלול' : 'מסלול אופטימלי')}
-        </Button>
-        
-        {routeOptimized && (
+      {/* Route controls - Desktop only */}
+      {!isMobile && (
+        <div className="absolute top-4 right-4 space-y-2">
           <Button
-            onClick={clearRoute}
-            variant="outline"
-            className={`flex items-center gap-2 bg-white border shadow-md ${isMobile ? 'flex-1 text-xs px-3 py-2' : ''}`}
-            size={isMobile ? "sm" : "default"}
+            onClick={optimizeRoute}
+            disabled={isLoadingRoute || customers.length === 0}
+            className="flex items-center gap-2 bg-white text-gray-700 border shadow-md hover:bg-gray-50"
           >
-            {isMobile ? 'נקה' : 'נקה מסלול'}
+            <Route size={16} />
+            {isLoadingRoute ? 'מחשב...' : 'מסלול אופטימלי'}
           </Button>
-        )}
-      </div>
+          
+          {routeOptimized && (
+            <Button
+              onClick={clearRoute}
+              variant="outline"
+              className="flex items-center gap-2 bg-white border shadow-md"
+            >
+              נקה מסלול
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Travel Time Data - Desktop */}
       {travelTimeData && !isMobile && (

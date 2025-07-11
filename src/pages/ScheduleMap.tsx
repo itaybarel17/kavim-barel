@@ -31,7 +31,10 @@ const ScheduleMap: React.FC = () => {
   const { scheduleId } = useParams<{ scheduleId: string }>();
   const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [departureTime, setDepartureTime] = useState('05:00');
+  const [departureTime, setDepartureTime] = useState(() => {
+    const now = new Date();
+    return now.toTimeString().slice(0, 5);
+  });
   const [optimizedOrder, setOptimizedOrder] = useState<number[]>([]);
   const [routeOptimized, setRouteOptimized] = useState(false);
   const isMobile = useIsMobile();
@@ -274,8 +277,63 @@ const ScheduleMap: React.FC = () => {
           </Card>
         )}
 
+        {/* Route Controls - Mobile only */}
+        {isMobile && (
+          <Card>
+            <CardContent className="p-3">
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    // Call the route optimization function
+                    const mapComponent = document.querySelector('[data-map-component]') as any;
+                    if (mapComponent?.optimizeRoute) {
+                      mapComponent.optimizeRoute();
+                    }
+                  }}
+                  disabled={customers.length === 0}
+                  className="flex items-center gap-2 flex-1"
+                  size="sm"
+                >
+                  <MapPin size={14} />
+                  מסלול אופטימלי
+                </Button>
+                
+                {routeOptimized && (
+                  <Button
+                    onClick={() => {
+                      const mapComponent = document.querySelector('[data-map-component]') as any;
+                      if (mapComponent?.clearRoute) {
+                        mapComponent.clearRoute();
+                      }
+                      handleRouteClear();
+                    }}
+                    variant="outline"
+                    className="flex items-center gap-2 flex-1"
+                    size="sm"
+                  >
+                    נקה מסלול
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Map Legend - Mobile only */}
+        {isMobile && (
+          <Card>
+            <CardContent className="p-3">
+              <MapLegend 
+                totalPoints={customers.length}
+                ordersCount={ordersCount}
+                returnsCount={returnsCount}
+              />
+            </CardContent>
+          </Card>
+        )}
+
         {/* Map */}
-        <div className={isMobile ? 'flex-1 min-h-[500px]' : 'lg:col-span-3'}>
+        <div className={isMobile ? 'flex-1 min-h-[400px]' : 'lg:col-span-3'}>
           <Card className="h-full relative">
             <CardContent className={`${isMobile ? 'p-1' : 'p-4'} h-full`}>
               <RouteMapComponent 
@@ -286,15 +344,51 @@ const ScheduleMap: React.FC = () => {
                 onRouteClear={handleRouteClear}
                 isMobile={isMobile}
               />
-              {/* Add legend overlay */}
-              <MapLegend 
-                totalPoints={customers.length}
-                ordersCount={ordersCount}
-                returnsCount={returnsCount}
-              />
+              {/* Add legend overlay - Desktop only */}
+              {!isMobile && (
+                <MapLegend 
+                  totalPoints={customers.length}
+                  ordersCount={ordersCount}
+                  returnsCount={returnsCount}
+                />
+              )}
             </CardContent>
           </Card>
         </div>
+
+        {/* Customer List - Mobile only */}
+        {isMobile && displayedCustomers.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">רשימת נקודות ({displayedCustomers.length})</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {displayedCustomers.map((customer, index) => {
+                  const originalIndex = customers.findIndex(c => c.customername === customer.customername);
+                  const orderNumber = routeOptimized ? optimizedOrder.indexOf(originalIndex) + 1 : null;
+                  return (
+                    <div
+                      key={`${customer.customername}-${index}`}
+                      className="p-3 border rounded-lg bg-background"
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        {orderNumber && orderNumber > 0 && (
+                          <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                            {orderNumber}
+                          </span>
+                        )}
+                        <div className="font-semibold text-sm">{customer.customername}</div>
+                      </div>
+                      <div className="text-xs text-muted-foreground">{customer.address}</div>
+                      <div className="text-xs text-muted-foreground">{customer.city}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
