@@ -86,7 +86,7 @@ function App() {
                     <Route path="/calendar" element={<ProtectedRoute>
                         <Calendar />
                       </ProtectedRoute>} />
-                    <Route path="/lines" element={<ProtectedRoute>
+                    <Route path="/lines" element={<ProtectedRoute adminOnly>
                         <Lines />
                       </ProtectedRoute>} />
                     <Route path="/archive" element={<ProtectedRoute adminOnly>
