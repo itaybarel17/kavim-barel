@@ -60,6 +60,8 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
   const [relatedItemsDialogOpen, setRelatedItemsDialogOpen] = useState(false);
   const [pendingRelatedItems, setPendingRelatedItems] = useState<RelatedItem[]>([]);
   const [associationError, setAssociationError] = useState<string>("");
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [isSystemCustomer, setIsSystemCustomer] = useState(true);
 
   const isAdmin = user?.agentnumber === "4";
 
@@ -411,7 +413,18 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
                       <FormItem>
                         <CustomerSelector 
                           value={field.value || ""} 
-                          onChange={field.onChange} 
+                          onChange={field.onChange}
+                          onCustomerChange={(customer, isSystem) => {
+                            setSelectedCustomer(customer);
+                            setIsSystemCustomer(isSystem);
+                            // If customer exists in system, set city from customer data
+                            if (customer && isSystem) {
+                              form.setValue("city", customer.city || "");
+                            } else if (!isSystem) {
+                              // Clear city when switching to free text
+                              form.setValue("city", "");
+                            }
+                          }}
                         />
                         <FormMessage />
                       </FormItem>
@@ -420,42 +433,72 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
                  </CardContent>
                </Card>
 
-               {/* עיר - תת-שדה של הזמנה על לקוח אחר */}
-               <Card className="border-2 border-warning/20 bg-warning/5 mt-4">
-                 <CardHeader className="pb-3">
-                   <CardTitle className="text-lg text-foreground flex items-center gap-2">
-                     <span className="bg-warning/80 text-warning-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">3.1</span>
-                     עיר
-                     <span className="text-sm font-normal text-muted-foreground">(נדרש לחישוב אזור האספקה החדש)</span>
-                   </CardTitle>
-                 </CardHeader>
-                 <CardContent>
-                   <FormField
-                     control={form.control}
-                     name="city"
-                     rules={{ required: "יש לבחור עיר" }}
-                     render={({ field }) => (
-                       <FormItem>
-                         <Select onValueChange={field.onChange} value={field.value}>
-                           <FormControl>
-                             <SelectTrigger className="h-11">
-                               <SelectValue placeholder="בחר עיר" />
-                             </SelectTrigger>
-                           </FormControl>
-                           <SelectContent>
-                             {cities?.map((city) => (
-                               <SelectItem key={city.city} value={city.city}>
-                                 {city.city}
-                               </SelectItem>
-                             ))}
-                           </SelectContent>
-                         </Select>
-                         <FormMessage />
-                       </FormItem>
-                     )}
-                   />
-                 </CardContent>
-               </Card>
+                {/* עיר - תת-שדה של הזמנה על לקוח אחר - רק כשהלקוח לא במערכת */}
+                {!isSystemCustomer && (
+                  <Card className="border-2 border-warning/20 bg-warning/5 mt-4">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg text-foreground flex items-center gap-2">
+                        <span className="bg-warning/80 text-warning-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">3.1</span>
+                        עיר
+                        <span className="text-sm font-normal text-muted-foreground">(נדרש לחישוב אזור האספקה החדש)</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <FormField
+                        control={form.control}
+                        name="city"
+                        rules={{ required: !isSystemCustomer ? "יש לבחור עיר" : false }}
+                        render={({ field }) => (
+                          <FormItem>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger className="h-11">
+                                  <SelectValue placeholder="בחר עיר" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {cities?.map((city) => (
+                                  <SelectItem key={city.city} value={city.city}>
+                                    {city.city}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </CardContent>
+                  </Card>
+                )}
+                
+                {/* הצגת פרטי הלקוח מהמערכת */}
+                {isSystemCustomer && selectedCustomer && (
+                  <Card className="border-2 border-green-200 bg-green-50 mt-4">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg text-foreground flex items-center gap-2">
+                        <span className="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">✓</span>
+                        פרטי הלקוח מהמערכת
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium">מספר לקוח:</span> {selectedCustomer.customernumber}
+                        </div>
+                        <div>
+                          <span className="font-medium">שם לקוח:</span> {selectedCustomer.customername || 'ללא שם'}
+                        </div>
+                        <div>
+                          <span className="font-medium">עיר:</span> {selectedCustomer.city || 'לא מוגדר'}
+                        </div>
+                        <div>
+                          <span className="font-medium">כתובת:</span> {selectedCustomer.address || 'לא מוגדר'}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
              </div>
            )}
 

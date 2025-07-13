@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 interface CustomerSelectorProps {
   value: string;
   onChange: (value: string) => void;
+  onCustomerChange?: (customer: Customer | null, isSystemCustomer: boolean) => void;
 }
 
 interface Customer {
@@ -21,7 +22,7 @@ interface Customer {
   address: string | null;
 }
 
-export function CustomerSelector({ value, onChange }: CustomerSelectorProps) {
+export function CustomerSelector({ value, onChange, onCustomerChange }: CustomerSelectorProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isSystemCustomer, setIsSystemCustomer] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
@@ -48,11 +49,13 @@ export function CustomerSelector({ value, onChange }: CustomerSelectorProps) {
     onChange(customer.customername || customer.customernumber);
     setSearchTerm("");
     setIsOpen(false);
+    onCustomerChange?.(customer, true);
   };
 
   const handleFreeTextChange = (text: string) => {
     onChange(text);
     setSearchTerm(text);
+    onCustomerChange?.(null, false);
   };
 
   const handleSystemToggle = (checked: boolean) => {
@@ -61,10 +64,12 @@ export function CustomerSelector({ value, onChange }: CustomerSelectorProps) {
       // Switch to free text mode
       setSearchTerm(value);
       setIsOpen(false);
+      onCustomerChange?.(null, false);
     } else {
       // Switch to system search mode
       setSearchTerm("");
       onChange("");
+      onCustomerChange?.(null, true);
     }
   };
 

@@ -474,28 +474,45 @@ const Distribution = () => {
 
       if (customerError) throw customerError;
 
-      // Get area information for the cities
-      const cities = [...new Set(messages.map(m => m.city).filter(Boolean))];
+      // Create customer lookup map
+      const customerMap = new Map(existingCustomers?.map(c => [c.customername, c]) || []);
+
+      // Get all cities we need to check (from messages where city is specified, or from existing customers)
+      const allCities = new Set<string>();
+      
+      messages.forEach(msg => {
+        const existingCustomer = customerMap.get(msg.correctcustomer);
+        if (existingCustomer && existingCustomer.city) {
+          // If customer exists in system, use their city from customerlist
+          allCities.add(existingCustomer.city);
+        } else if (msg.city) {
+          // If customer doesn't exist, use city from message
+          allCities.add(msg.city);
+        }
+      });
+
+      // Get area information for all relevant cities
       const { data: cityAreas, error: cityError } = await supabase
         .from('cities')
         .select('city, area')
-        .in('city', cities);
+        .in('city', Array.from(allCities));
 
       if (cityError) throw cityError;
 
-      // Create maps for quick lookup
-      const customerMap = new Map(existingCustomers?.map(c => [c.customername, c]) || []);
       const cityAreaMap = new Map(cityAreas?.map(c => [c.city, c.area]) || []);
 
       // Process each message
       messages.forEach(msg => {
         const key = msg.ordernumber ? `order-${msg.ordernumber}` : `return-${msg.returnnumber}`;
         const existingCustomer = customerMap.get(msg.correctcustomer);
-        const newArea = cityAreaMap.get(msg.city);
+        
+        // Determine which city to use for area calculation
+        const effectiveCity = existingCustomer?.city || msg.city;
+        const newArea = cityAreaMap.get(effectiveCity);
 
         details.set(key, {
           correctCustomer: msg.correctcustomer,
-          city: msg.city,
+          city: effectiveCity, // Use customer's city if exists, otherwise message city
           newArea,
           customerExists: !!existingCustomer,
           customerDetails: existingCustomer || null
