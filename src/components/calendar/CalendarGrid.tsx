@@ -11,7 +11,7 @@ import { getAreaColor, getMainAreaFromSeparation } from '@/utils/areaColors';
 interface DistributionGroup {
   groups_id: number;
   separation: string;
-  day: string;
+  days: string[];
 }
 interface DistributionSchedule {
   schedule_id: number;
@@ -59,14 +59,10 @@ const getDayNumberFromHebrew = (hebrewLetter: string): number => {
 
 const getAreasForDay = (distributionGroups: DistributionGroup[], dayNumber: number): DistributionGroup[] => {
   return distributionGroups.filter(group => {
-    if (!group.day) return false;
-    
-    // Remove curly braces and split by comma
-    const dayString = group.day.replace(/[{}]/g, '');
-    const days = dayString.split(',').map(d => d.trim());
+    if (!group.days || !Array.isArray(group.days)) return false;
     
     // Check if any of the days match our target day
-    return days.some(day => getDayNumberFromHebrew(day) === dayNumber);
+    return group.days.some(day => getDayNumberFromHebrew(day) === dayNumber);
   });
 };
 const CalendarDay: React.FC<{
