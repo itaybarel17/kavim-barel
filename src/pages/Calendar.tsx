@@ -208,7 +208,7 @@ const Calendar = () => {
       existsInSystem: false, // Will be determined in getCustomerReplacementMap
     }));
     
-    return getCustomerReplacementMap(transformedData, customerDetails);
+    return getCustomerReplacementMap(transformedData);
   }, [orderReplacementData, customerDetails]);
 
   // Fetch customer supply details
