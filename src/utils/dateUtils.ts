@@ -16,13 +16,12 @@ export const formatDistributionDays = (daysInput: any): string => {
   
   let daysArray: string[] = [];
   
-  // Handle JSONB array format
+  // Handle JSONB array format - each element is a single letter
   if (Array.isArray(daysInput)) {
     daysInput.forEach(dayEntry => {
       if (typeof dayEntry === 'string') {
-        // Handle entries like "א,ג" - split by comma
-        const individualDays = dayEntry.split(',').map(d => d.trim());
-        daysArray.push(...individualDays);
+        // Each entry is already a single letter like "ד" or "א"
+        daysArray.push(dayEntry.trim());
       }
     });
   }
