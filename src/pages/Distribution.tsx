@@ -328,39 +328,79 @@ const Distribution = () => {
     enabled: currentUser?.agentnumber === "4"
   });
 
-  // Add query for customer messages (only show when message_alert = true)
+  // Simplified query for customer messages with message_alert = true
   const { data: customerMessages = [] } = useQuery({
     queryKey: ['customer-messages'],
     queryFn: async () => {
       console.log('Fetching customer messages...');
-      const { data, error } = await supabase
-        .from('messages')
-        .select(`
-          subject, 
-          ordernumber, 
-          returnnumber,
-          mainorder:ordernumber!inner(customername, city, message_alert),
-          mainreturns:returnnumber!inner(customername, city, message_alert)
-        `)
-        .neq('subject', 'מחסן')
-        .or('ordernumber.not.is.null,returnnumber.not.is.null')
-        .order('created_at', { ascending: false });
       
-      if (error) throw error;
-      console.log('Customer messages fetched:', data);
+      // Get orders with message_alert = true
+      const { data: orderMessages, error: orderError } = await supabase
+        .from('mainorder')
+        .select('customername, city, ordernumber')
+        .eq('message_alert', true);
       
-      // Format for CustomerMessageBanner - only show messages with message_alert = true
-      return data
-        .filter(msg => 
-          (msg.mainorder?.message_alert === true) || 
-          (msg.mainreturns?.message_alert === true)
-        )
-        .map(msg => ({
-          subject: msg.subject,
-          customername: msg.mainorder?.customername || msg.mainreturns?.customername,
-          city: msg.mainorder?.city || msg.mainreturns?.city
-        }))
-        .filter(msg => msg.customername && msg.city);
+      if (orderError) throw orderError;
+
+      // Get returns with message_alert = true  
+      const { data: returnMessages, error: returnError } = await supabase
+        .from('mainreturns')
+        .select('customername, city, returnnumber')
+        .eq('message_alert', true);
+        
+      if (returnError) throw returnError;
+
+      // Get the corresponding message subjects only if we have any orders/returns
+      const result = [];
+      
+      if (orderMessages && orderMessages.length > 0) {
+        const orderNums = orderMessages.map(o => o.ordernumber);
+        const { data: orderMessageSubjects, error: orderMsgError } = await supabase
+          .from('messages')
+          .select('subject, ordernumber')
+          .in('ordernumber', orderNums)
+          .neq('subject', 'מחסן')
+          .order('created_at', { ascending: false });
+          
+        if (orderMsgError) throw orderMsgError;
+
+        orderMessages.forEach(order => {
+          const msg = orderMessageSubjects?.find(m => m.ordernumber === order.ordernumber);
+          if (msg) {
+            result.push({
+              subject: msg.subject,
+              customername: order.customername,
+              city: order.city
+            });
+          }
+        });
+      }
+      
+      if (returnMessages && returnMessages.length > 0) {
+        const returnNums = returnMessages.map(r => r.returnnumber);
+        const { data: returnMessageSubjects, error: returnMsgError } = await supabase
+          .from('messages')
+          .select('subject, returnnumber')
+          .in('returnnumber', returnNums)
+          .neq('subject', 'מחסן')
+          .order('created_at', { ascending: false });
+          
+        if (returnMsgError) throw returnMsgError;
+
+        returnMessages.forEach(returnItem => {
+          const msg = returnMessageSubjects?.find(m => m.returnnumber === returnItem.returnnumber);
+          if (msg) {
+            result.push({
+              subject: msg.subject,
+              customername: returnItem.customername,
+              city: returnItem.city
+            });
+          }
+        });
+      }
+
+      console.log('Customer messages with message_alert=true:', result);
+      return result.filter(msg => msg.customername && msg.city);
     }
   });
 
@@ -909,11 +949,11 @@ const Distribution = () => {
       <div className="min-h-screen p-6 bg-[#52a0e4]/15">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-gray-700">ממשק הפצה</h1>
-          <div className="flex gap-2">
-            <CustomerMessageBanner messages={customerMessages} />
-            <CentralAlertBanner isVisible={hasGlobalActiveSiren} />
-          </div>
+          <CentralAlertBanner isVisible={hasGlobalActiveSiren} />
         </div>
+        
+        {/* Customer message banner - displayed prominently below title */}
+        <CustomerMessageBanner messages={customerMessages} />
         
         {/* Warehouse message banner - only for user 4 */}
         {currentUser?.agentnumber === "4" && (
