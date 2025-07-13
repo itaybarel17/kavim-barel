@@ -70,6 +70,8 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
           .from('mainorder')
           .select('ordernumber, customername, customernumber, orderdate, agentnumber')
           .or(`customername.ilike.%${searchTerm}%,customernumber.ilike.%${searchTerm}%,ordernumber.eq.${parseInt(searchTerm) || 0}`)
+          .is('done_mainorder', null)
+          .is('ordercancel', null)
           .limit(8);
 
         // Filter by agent unless admin
@@ -95,6 +97,8 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
           .from('mainreturns')
           .select('returnnumber, customername, customernumber, returndate, agentnumber')
           .or(`customername.ilike.%${searchTerm}%,customernumber.ilike.%${searchTerm}%,returnnumber.eq.${parseInt(searchTerm) || 0}`)
+          .is('done_return', null)
+          .is('returncancel', null)
           .limit(8);
 
         // Filter by agent unless admin
@@ -123,6 +127,7 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
           .from('distribution_schedule')
           .select('schedule_id, distribution_date, nahag_name, destinations, dis_number')
           .or(`schedule_id.eq.${parseInt(searchTerm) || 0},nahag_name.ilike.%${searchTerm}%,dis_number.eq.${parseInt(searchTerm) || 0}`)
+          .is('done_schedule', null)
           .order('distribution_date', { ascending: false })
           .limit(8);
         

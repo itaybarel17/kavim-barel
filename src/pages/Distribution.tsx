@@ -686,9 +686,10 @@ const Distribution = () => {
       console.log('Message badge clicked for item:', item);
       
       if (item.type === 'order') {
+        const currentAlert = (item.data as Order).message_alert;
         const { error } = await supabase
           .from('mainorder')
-          .update({ message_alert: false })
+          .update({ message_alert: !currentAlert })
           .eq('ordernumber', (item.data as Order).ordernumber);
         
         if (error) {
@@ -696,12 +697,13 @@ const Distribution = () => {
           return;
         }
         
-        // Force immediate local update
-        (item.data as Order).message_alert = false;
+        // Toggle message_alert and force immediate local update
+        (item.data as Order).message_alert = !currentAlert;
       } else {
+        const currentAlert = (item.data as Return).message_alert;
         const { error } = await supabase
           .from('mainreturns')
-          .update({ message_alert: false })
+          .update({ message_alert: !currentAlert })
           .eq('returnnumber', (item.data as Return).returnnumber);
         
         if (error) {
@@ -709,8 +711,8 @@ const Distribution = () => {
           return;
         }
         
-        // Force immediate local update
-        (item.data as Return).message_alert = false;
+        // Toggle message_alert and force immediate local update
+        (item.data as Return).message_alert = !currentAlert;
       }
       
       console.log('Message alert status updated successfully');
