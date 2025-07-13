@@ -695,8 +695,6 @@ const Distribution = () => {
           return;
         }
         
-        // Toggle message_alert and force immediate local update
-        (item.data as Order).message_alert = !currentAlert;
         refetchOrders();
       } else {
         const currentAlert = (item.data as Return).message_alert;
@@ -710,8 +708,6 @@ const Distribution = () => {
           return;
         }
         
-        // Toggle message_alert and force immediate local update
-        (item.data as Return).message_alert = !currentAlert;
         refetchReturns();
       }
       
