@@ -328,7 +328,7 @@ const Distribution = () => {
     enabled: currentUser?.agentnumber === "4"
   });
 
-  // Add query for customer messages (tagged to orders/returns, not warehouse messages)
+  // Add query for customer messages (only show when message_alert = true)
   const { data: customerMessages = [] } = useQuery({
     queryKey: ['customer-messages'],
     queryFn: async () => {
@@ -339,8 +339,8 @@ const Distribution = () => {
           subject, 
           ordernumber, 
           returnnumber,
-          mainorder:ordernumber!inner(customername, city),
-          mainreturns:returnnumber!inner(customername, city)
+          mainorder:ordernumber!inner(customername, city, message_alert),
+          mainreturns:returnnumber!inner(customername, city, message_alert)
         `)
         .neq('subject', 'מחסן')
         .or('ordernumber.not.is.null,returnnumber.not.is.null')
@@ -349,12 +349,18 @@ const Distribution = () => {
       if (error) throw error;
       console.log('Customer messages fetched:', data);
       
-      // Format for CustomerMessageBanner
-      return data.map(msg => ({
-        subject: msg.subject,
-        customername: msg.mainorder?.customername || msg.mainreturns?.customername,
-        city: msg.mainorder?.city || msg.mainreturns?.city
-      })).filter(msg => msg.customername && msg.city);
+      // Format for CustomerMessageBanner - only show messages with message_alert = true
+      return data
+        .filter(msg => 
+          (msg.mainorder?.message_alert === true) || 
+          (msg.mainreturns?.message_alert === true)
+        )
+        .map(msg => ({
+          subject: msg.subject,
+          customername: msg.mainorder?.customername || msg.mainreturns?.customername,
+          city: msg.mainorder?.city || msg.mainreturns?.city
+        }))
+        .filter(msg => msg.customername && msg.city);
     }
   });
 

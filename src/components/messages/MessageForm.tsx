@@ -42,7 +42,11 @@ type SelectedItem = {
   subtitle: string;
 };
 
-export const MessageForm: React.FC = () => {
+interface MessageFormProps {
+  onMessageSent?: () => void;
+}
+
+export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -122,6 +126,7 @@ export const MessageForm: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['messages'] });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['returns'] });
+      queryClient.invalidateQueries({ queryKey: ['customer-messages'] });
       
       toast({
         title: "הודעה נשלחה בהצלחה!",
@@ -129,13 +134,10 @@ export const MessageForm: React.FC = () => {
         duration: 3000,
       });
 
-      // Navigate to existing messages tab after 1 second
-      setTimeout(() => {
-        const messagesTab = document.querySelector('[data-value="messages"]') as HTMLElement;
-        if (messagesTab) {
-          messagesTab.click();
-        }
-      }, 1000);
+      // Call the navigation callback
+      if (onMessageSent) {
+        onMessageSent();
+      }
     },
     onError: (error) => {
       console.error('Error creating message:', error);

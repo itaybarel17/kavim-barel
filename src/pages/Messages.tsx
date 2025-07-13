@@ -15,6 +15,7 @@ export default function Messages() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+  const [activeTab, setActiveTab] = useState("new");
   const [filters, setFilters] = useState({
     subject: "",
     isHandled: "",
@@ -162,7 +163,7 @@ export default function Messages() {
         </div>
       </div>
 
-      <Tabs defaultValue="new" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className={`grid w-full grid-cols-2 ${isMobile ? 'h-8' : ''}`}>
           <TabsTrigger value="messages" className={isMobile ? 'text-sm' : ''}>הודעות קיימות</TabsTrigger>
           <TabsTrigger value="new" className={isMobile ? 'text-sm' : ''}>הודעה חדשה</TabsTrigger>
@@ -174,7 +175,7 @@ export default function Messages() {
               <CardTitle className={isMobile ? 'text-lg' : ''}>שליחת הודעה חדשה</CardTitle>
             </CardHeader>
             <CardContent className={isMobile ? 'p-3' : ''}>
-              <MessageForm />
+              <MessageForm onMessageSent={() => setActiveTab("messages")} />
             </CardContent>
           </Card>
         </TabsContent>
