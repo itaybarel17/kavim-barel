@@ -81,6 +81,55 @@ const ScheduleMap: React.FC = () => {
     const fetchCustomerCoordinates = async () => {
       if (!orderData || orderData.length === 0) return;
 
+      // First, get customer replacements from messages
+      const orderNumbers = orderData.filter(item => item.type === 'order').map(item => ({ customername: item.customername }));
+      const returnNumbers = orderData.filter(item => item.type === 'return').map(item => ({ customername: item.customername }));
+      
+      let replacementMap = new Map();
+      
+      if (orderNumbers.length > 0 || returnNumbers.length > 0) {
+        // Get replacement data for orders and returns
+        const allOrderNumbers = orderData.filter(item => item.type === 'order').map(item => item.customername);
+        const allReturnNumbers = orderData.filter(item => item.type === 'return').map(item => item.customername);
+        
+        // Find all relevant order and return numbers from the database
+        const { data: orderIds } = await supabase
+          .from('mainorder')
+          .select('ordernumber, customername')
+          .eq('schedule_id', parseInt(scheduleId!))
+          .in('customername', allOrderNumbers);
+          
+        const { data: returnIds } = await supabase
+          .from('mainreturns')
+          .select('returnnumber, customername')
+          .eq('schedule_id', parseInt(scheduleId!))
+          .in('customername', allReturnNumbers);
+
+        const orderNumbersForMessages = orderIds?.map(o => o.ordernumber) || [];
+        const returnNumbersForMessages = returnIds?.map(r => r.returnnumber) || [];
+
+        if (orderNumbersForMessages.length > 0 || returnNumbersForMessages.length > 0) {
+          const { data: replacements } = await supabase
+            .from('messages')
+            .select('ordernumber, returnnumber, correctcustomer, city')
+            .eq('subject', 'הזמנה על לקוח אחר')
+            .not('correctcustomer', 'is', null)
+            .or(`ordernumber.in.(${orderNumbersForMessages.join(',')}),returnnumber.in.(${returnNumbersForMessages.join(',')})`);
+
+          if (replacements) {
+            replacements.forEach(replacement => {
+              const key = replacement.ordernumber || replacement.returnnumber;
+              if (key) {
+                replacementMap.set(key.toString(), {
+                  customername: replacement.correctcustomer,
+                  city: replacement.city
+                });
+              }
+            });
+          }
+        }
+      }
+
       const uniqueCustomers = Array.from(
         new Set(orderData.map(item => item.customername))
       );
@@ -126,29 +175,61 @@ const ScheduleMap: React.FC = () => {
         const orderDataItem = orderData.find(item => item.customername === customerName);
         if (!orderDataItem) continue;
 
-        // Find customer in customerlist
-        const customerRecord = customerList?.find(c => c.customername === customerName);
+        // Check if this customer has been replaced
+        let finalCustomerName = customerName;
+        let finalCityName = orderDataItem.city;
+        
+        // Look for replacements in the orderData by finding actual order/return numbers
+        const { data: orderCheck } = await supabase
+          .from('mainorder')
+          .select('ordernumber')
+          .eq('schedule_id', parseInt(scheduleId!))
+          .eq('customername', customerName)
+          .limit(1);
+          
+        const { data: returnCheck } = await supabase
+          .from('mainreturns')
+          .select('returnnumber')
+          .eq('schedule_id', parseInt(scheduleId!))
+          .eq('customername', customerName)
+          .limit(1);
+
+        const orderNumber = orderCheck?.[0]?.ordernumber;
+        const returnNumber = returnCheck?.[0]?.returnnumber;
+        
+        const replacementKey = orderNumber?.toString() || returnNumber?.toString();
+        if (replacementKey && replacementMap.has(replacementKey)) {
+          const replacement = replacementMap.get(replacementKey);
+          finalCustomerName = replacement.customername;
+          finalCityName = replacement.city;
+        }
+
+        // Find customer in customerlist (try both original and replacement name)
+        let customerRecord = customerList?.find(c => c.customername === finalCustomerName);
+        if (!customerRecord) {
+          customerRecord = customerList?.find(c => c.customername === customerName);
+        }
         
         let customer: Customer;
         
         if (customerRecord?.lat && customerRecord?.lng) {
           // Use existing precise coordinates
           customer = {
-            customername: customerRecord.customername,
-            city: customerRecord.city || orderDataItem.city,
+            customername: finalCustomerName,
+            city: customerRecord.city || finalCityName,
             address: customerRecord.address || orderDataItem.address,
             lat: customerRecord.lat,
             lng: customerRecord.lng
           };
         } else {
           // Try to get city coordinates as fallback
-          const cityName = customerRecord?.city || orderDataItem.city;
+          const cityName = finalCityName;
           const mappedCityName = cityNameMappings[cityName] || cityName;
           const cityCoords = cityCoordMap.get(mappedCityName) || cityCoordMap.get(cityName);
           
           if (cityCoords) {
             customer = {
-              customername: customerName,
+              customername: finalCustomerName,
               city: cityName,
               address: customerRecord?.address || orderDataItem.address || 'כתובת לא זמינה',
               lat: cityCoords.lat,
@@ -156,7 +237,7 @@ const ScheduleMap: React.FC = () => {
             };
           } else {
             // Skip customers without any coordinates
-            console.warn(`No coordinates found for customer: ${customerName} in city: ${cityName}`);
+            console.warn(`No coordinates found for customer: ${finalCustomerName} in city: ${cityName}`);
             continue;
           }
         }

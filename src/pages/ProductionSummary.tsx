@@ -269,6 +269,9 @@ const ProductionSummary = () => {
   const customerDetailsMap = new Map(
     customerDetails.map(customer => [customer.customernumber, customer])
   );
+  
+  console.log('Customer details loaded:', customerDetails.length);
+  console.log('Customer details map:', customerDetailsMap);
 
   // Combine orders and returns by customer
   const customerEntries = new Map<string, CustomerEntry>();
@@ -281,15 +284,26 @@ const ProductionSummary = () => {
     
     if (!customerEntries.has(key)) {
       const originalDetails = customerDetailsMap.get(order.customernumber || '');
+      // If there's a replacement and it exists in system, use replacement details
+      const finalDetails = replacementDetails.customernumber ? 
+        customerDetailsMap.get(replacementDetails.customernumber) || originalDetails :
+        originalDetails;
+        
+      console.log(`Processing order for ${order.customername}:`, {
+        originalDetails,
+        replacementDetails,
+        finalDetails
+      });
+      
       customerEntries.set(key, {
         customername: replacementDetails.customername,
         address: replacementDetails.address || '',
         city: replacementDetails.city || '',
         customernumber: replacementDetails.customernumber || order.customernumber,
-        mobile: replacementDetails.mobile,
-        phone: replacementDetails.phone,
-        supplydetails: replacementDetails.supplydetails,
-        shotefnumber: originalDetails?.shotefnumber,
+        mobile: finalDetails?.mobile || replacementDetails.mobile,
+        phone: finalDetails?.phone || replacementDetails.phone,
+        supplydetails: finalDetails?.supplydetails || replacementDetails.supplydetails,
+        shotefnumber: finalDetails?.shotefnumber,
         orders: [],
         returns: []
       });
@@ -305,15 +319,26 @@ const ProductionSummary = () => {
     
     if (!customerEntries.has(key)) {
       const originalDetails = customerDetailsMap.get(returnItem.customernumber || '');
+      // If there's a replacement and it exists in system, use replacement details
+      const finalDetails = replacementDetails.customernumber ? 
+        customerDetailsMap.get(replacementDetails.customernumber) || originalDetails :
+        originalDetails;
+        
+      console.log(`Processing return for ${returnItem.customername}:`, {
+        originalDetails,
+        replacementDetails,
+        finalDetails
+      });
+      
       customerEntries.set(key, {
         customername: replacementDetails.customername,
         address: replacementDetails.address || '',
         city: replacementDetails.city || '',
         customernumber: replacementDetails.customernumber || returnItem.customernumber,
-        mobile: replacementDetails.mobile,
-        phone: replacementDetails.phone,
-        supplydetails: replacementDetails.supplydetails,
-        shotefnumber: originalDetails?.shotefnumber,
+        mobile: finalDetails?.mobile || replacementDetails.mobile,
+        phone: finalDetails?.phone || replacementDetails.phone,
+        supplydetails: finalDetails?.supplydetails || replacementDetails.supplydetails,
+        shotefnumber: finalDetails?.shotefnumber,
         orders: [],
         returns: []
       });
