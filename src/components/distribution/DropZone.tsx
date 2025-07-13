@@ -54,7 +54,7 @@ interface Return {
 interface DistributionGroup {
   groups_id: number;
   separation: string;
-  day?: string;
+  days?: string[] | null;
 }
 interface DistributionSchedule {
   schedule_id: number;
@@ -127,10 +127,10 @@ const sortBySirenStatus = <T extends { alert_status?: boolean }>(items: T[]): T[
 };
 
 /**
- * Formats distribution days from {א, ה} format to "ראשון, חמישי"
+ * Formats distribution days from ["ד,ה"] format to "רביעי, חמישי"
  */
-const formatDistributionDays = (dayString: string | undefined): string => {
-  if (!dayString) return '';
+const formatDistributionDays = (daysArray: string[] | null | undefined): string => {
+  if (!daysArray || !Array.isArray(daysArray)) return '';
   
   const dayMap: Record<string, string> = {
     'א': 'ראשון',
@@ -141,14 +141,17 @@ const formatDistributionDays = (dayString: string | undefined): string => {
     'ו': 'שישי'
   };
   
-  // Remove curly braces and split by comma
-  const cleanedDays = dayString.replace(/[{}]/g, '').trim();
-  if (!cleanedDays) return '';
+  // Process each array entry which might contain multiple days
+  const allDays: string[] = [];
+  daysArray.forEach(dayEntry => {
+    // Each dayEntry might be multiple letters separated by commas
+    const individualDays = dayEntry.split(',').map(d => d.trim());
+    allDays.push(...individualDays);
+  });
   
-  // Split by comma, map to full names, and join back
-  return cleanedDays
-    .split(',')
-    .map(day => dayMap[day.trim()] || day.trim())
+  // Map to full names and join
+  return allDays
+    .map(day => dayMap[day] || day)
     .join(', ');
 };
 
@@ -527,7 +530,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
               מזהה לוח זמנים: {scheduleId}
               {selectedGroup && (
                 <div className="font-medium text-primary" dir="rtl">
-                  ימי הפצה: {formatDistributionDays(selectedGroup.day)}
+                  ימי הפצה: {formatDistributionDays(selectedGroup.days)}
                 </div>
               )}
               {selectedDriver && (
