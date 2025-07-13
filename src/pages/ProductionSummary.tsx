@@ -387,8 +387,8 @@ const ProductionSummary = () => {
     return a.customername.localeCompare(b.customername, 'he');
   });
 
-  // Calculate total unique customers (נקודות)
-  const totalPoints = sortedCustomers.length;
+  // Calculate total unique customers (נקודות) - include פלקסמור if exists
+  const totalPoints = sortedCustomers.length + (customerReplacements?.some(r => r.correctcustomer === 'פלקסמור מסחר בע"מ') ? 1 : 0);
 
   // Helper function to get agent number for a customer
   const getCustomerAgent = (customer: CustomerEntry) => {
@@ -572,11 +572,14 @@ const ProductionSummary = () => {
             <CardContent className="p-4">
               <h3 className="text-lg font-bold mb-2">* נוסף לקוח:</h3>
               <div className="bg-muted p-3 rounded">
-                <div className="grid grid-cols-4 gap-2 text-sm">
+                <div className="grid grid-cols-6 gap-2 text-sm">
                   <div><strong>שם לקוח:</strong> פלקסמור מסחר בע"מ</div>
                   <div><strong>הזמנה:</strong> {customerReplacements.find(r => r.correctcustomer === 'פלקסמור מסחר בע"מ')?.ordernumber}</div>
                   <div><strong>עיר:</strong> {customerReplacements.find(r => r.correctcustomer === 'פלקסמור מסחר בע"מ')?.city || ''}</div>
                   <div><strong>כתובת:</strong> {customerReplacements.find(r => r.correctcustomer === 'פלקסמור מסחר בע"מ')?.customerData?.address || ''}</div>
+                  <div><strong>נייד:</strong> </div>
+                  <div><strong>טלפון:</strong> </div>
+                  <div><strong>זמני אספקה:</strong> </div>
                 </div>
               </div>
             </CardContent>
