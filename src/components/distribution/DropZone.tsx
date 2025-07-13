@@ -31,7 +31,6 @@ interface Order {
   ezor2?: string;
   day1?: string;
   day2?: string;
-  message_alert?: boolean;
 }
 
 interface Return {
@@ -47,7 +46,6 @@ interface Return {
   hour?: string;
   remark?: string;
   alert_status?: boolean;
-  message_alert?: boolean;
 }
 
 interface DistributionGroup {
@@ -99,9 +97,6 @@ interface DropZoneProps {
   onSirenToggle?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
   // new prop for pin toggle functionality
   onTogglePin?: (zoneNumber: number) => void;
-  // new props for message badge
-  messageSubjectMap?: Record<string, string>;
-  onMessageAlertUpdate?: () => void;
 }
 
 /**
@@ -156,9 +151,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
   dualActiveOrderReturnCustomers = [],
   customerSupplyMap = {},
   onSirenToggle,
-  onTogglePin,
-  messageSubjectMap = {},
-  onMessageAlertUpdate
+  onTogglePin
 }) => {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [scheduleId, setScheduleId] = useState<number | null>(null);
@@ -552,8 +545,6 @@ export const DropZone: React.FC<DropZoneProps> = ({
             dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
             customerSupplyMap={customerSupplyMap}
             onSirenToggle={onSirenToggle}
-            messageSubject={messageSubjectMap[`order-${order.ordernumber}`]}
-            onMessageAlertUpdate={onMessageAlertUpdate}
           />
         ))}
         {sortedReturns.map(returnItem => (
@@ -566,8 +557,6 @@ export const DropZone: React.FC<DropZoneProps> = ({
             dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
             customerSupplyMap={customerSupplyMap}
             onSirenToggle={onSirenToggle}
-            messageSubject={messageSubjectMap[`return-${returnItem.returnnumber}`]}
-            onMessageAlertUpdate={onMessageAlertUpdate}
           />
         ))}
         {assignedOrders.length === 0 && assignedReturns.length === 0 && (
