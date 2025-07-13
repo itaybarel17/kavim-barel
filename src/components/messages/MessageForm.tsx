@@ -94,18 +94,48 @@ export const MessageForm: React.FC = () => {
         schedule_id: data.schedule_id || null
       };
 
-      const { error } = await supabase.from('messages').insert(messageData);
-      if (error) throw error;
+      // Insert the message first
+      const { error: messageError } = await supabase.from('messages').insert(messageData);
+      if (messageError) throw messageError;
+
+      // If message has order/return association, update alert_status
+      if (data.ordernumber) {
+        const { error: orderError } = await supabase
+          .from('mainorder')
+          .update({ alert_status: true })
+          .eq('ordernumber', data.ordernumber);
+        if (orderError) console.warn('Failed to update order alert_status:', orderError);
+      }
+
+      if (data.returnnumber) {
+        const { error: returnError } = await supabase
+          .from('mainreturns')
+          .update({ alert_status: true })
+          .eq('returnnumber', data.returnnumber);
+        if (returnError) console.warn('Failed to update return alert_status:', returnError);
+      }
     },
     onSuccess: () => {
       form.reset();
       setSelectedItem(null);
       setAssociationError("");
       queryClient.invalidateQueries({ queryKey: ['messages'] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['returns'] });
+      
       toast({
-        title: "הודעה נשלחה",
-        description: "ההודעה נשלחה בהצלחה למערכת"
+        title: "הודעה נשלחה בהצלחה!",
+        description: "ההודעה נשלחה למערכת והתווית עודכנה",
+        duration: 3000,
       });
+
+      // Navigate to existing messages tab after 1 second
+      setTimeout(() => {
+        const messagesTab = document.querySelector('[data-value="messages"]') as HTMLElement;
+        if (messagesTab) {
+          messagesTab.click();
+        }
+      }, 1000);
     },
     onError: (error) => {
       console.error('Error creating message:', error);

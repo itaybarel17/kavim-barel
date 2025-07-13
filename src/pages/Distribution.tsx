@@ -343,6 +343,23 @@ const Distribution = () => {
     }
   });
 
+  // Fetch cancellation messages specifically for red X overlay
+  const { data: cancellationData = [] } = useQuery({
+    queryKey: ['cancellation-messages'],
+    queryFn: async () => {
+      console.log('Fetching cancellation messages...');
+      const { data, error } = await supabase
+        .from('messages')
+        .select('ordernumber, returnnumber')
+        .eq('subject', 'לבטל הזמנה')
+        .or('ordernumber.not.is.null,returnnumber.not.is.null');
+      
+      if (error) throw error;
+      console.log('Cancellation messages fetched:', data);
+      return data;
+    }
+  });
+
   // Create message mapping for quick lookup
   const messageMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -356,6 +373,20 @@ const Distribution = () => {
     });
     return map;
   }, [messageData]);
+
+  // Create cancellation mapping for red X overlay
+  const cancellationMap = useMemo(() => {
+    const map: Set<string> = new Set();
+    cancellationData.forEach(msg => {
+      if (msg.ordernumber) {
+        map.add(`order-${msg.ordernumber}`);
+      }
+      if (msg.returnnumber) {
+        map.add(`return-${msg.returnnumber}`);
+      }
+    });
+    return map;
+  }, [cancellationData]);
 
   // Update zone-schedule mapping when schedules change
   useEffect(() => {
@@ -823,6 +854,7 @@ const Distribution = () => {
           onSirenToggle={handleSirenToggle}
           messageMap={messageMap}
           onMessageBadgeClick={handleMessageBadgeClick}
+          cancellationMap={cancellationMap}
         />
 
         {/* Mobile: single column, Tablet: 2 columns, Desktop: 4 columns */}
@@ -848,6 +880,7 @@ const Distribution = () => {
               onTogglePin={handleTogglePin}
               messageMap={messageMap}
               onMessageBadgeClick={handleMessageBadgeClick}
+              cancellationMap={cancellationMap}
             />
           )}
         </div>

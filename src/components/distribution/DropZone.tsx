@@ -102,6 +102,9 @@ interface DropZoneProps {
   // message props
   messageMap?: Record<string, string>;
   onMessageBadgeClick?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
+  
+  // cancellation map for red X overlay
+  cancellationMap?: Set<string>;
 }
 
 /**
@@ -158,7 +161,8 @@ export const DropZone: React.FC<DropZoneProps> = ({
   onSirenToggle,
   onTogglePin,
   messageMap = {},
-  onMessageBadgeClick
+  onMessageBadgeClick,
+  cancellationMap = new Set()
 }) => {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [scheduleId, setScheduleId] = useState<number | null>(null);
@@ -554,6 +558,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
             onSirenToggle={onSirenToggle}
             messageSubject={messageMap[`order-${order.ordernumber}`]}
             onMessageBadgeClick={onMessageBadgeClick}
+            hasCancellationMessage={cancellationMap.has(`order-${order.ordernumber}`)}
           />
         ))}
         {sortedReturns.map(returnItem => (
@@ -568,6 +573,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
             onSirenToggle={onSirenToggle}
             messageSubject={messageMap[`return-${returnItem.returnnumber}`]}
             onMessageBadgeClick={onMessageBadgeClick}
+            hasCancellationMessage={cancellationMap.has(`return-${returnItem.returnnumber}`)}
           />
         ))}
         {assignedOrders.length === 0 && assignedReturns.length === 0 && (
