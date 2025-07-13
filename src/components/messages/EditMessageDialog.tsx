@@ -27,7 +27,7 @@ export const EditMessageDialog: React.FC<EditMessageDialogProps> = ({
   onMessageUpdated
 }) => {
   const [content, setContent] = useState(message.content || '');
-  const [tagagent, setTagagent] = useState(message.tagagent || '');
+  const [tagagent, setTagagent] = useState(message.tagagent || 'none');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -48,7 +48,7 @@ export const EditMessageDialog: React.FC<EditMessageDialogProps> = ({
   // Reset form when message changes
   useEffect(() => {
     setContent(message.content || '');
-    setTagagent(message.tagagent || '');
+    setTagagent(message.tagagent || 'none');
   }, [message]);
 
   const handleSave = async () => {
@@ -58,7 +58,7 @@ export const EditMessageDialog: React.FC<EditMessageDialogProps> = ({
         .from('messages')
         .update({
           content: content.trim() || null,
-          tagagent: tagagent || null
+          tagagent: tagagent === 'none' ? null : tagagent
         })
         .eq('messages_id', message.messages_id);
 
@@ -117,7 +117,7 @@ export const EditMessageDialog: React.FC<EditMessageDialogProps> = ({
                 <SelectValue placeholder="בחר סוכן לתיוג..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">ללא תיוג</SelectItem>
+                <SelectItem value="none">ללא תיוג</SelectItem>
                 {agents.map((agent) => (
                   <SelectItem key={agent.agentnumber} value={agent.agentnumber}>
                     {agent.agentname} ({agent.agentnumber})
