@@ -87,7 +87,7 @@ export const NavBar: React.FC = () => {
                     onClick={() => setMobileMenuOpen(false)}
                     className={`block w-full text-right px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 ${
                       isActive 
-                        ? `bg-gradient-to-r from-${color}-500 to-${color}-600 text-white border-2 border-${color}-400 shadow-xl ring-4 ring-${color}-300/50 transform scale-105`
+                        ? `bg-gradient-to-r from-${color}-500 to-${color}-600 text-primary-foreground border-2 border-${color}-400 shadow-xl ring-4 ring-${color}-300/50 transform scale-105`
                         : `text-primary hover:bg-muted hover:text-primary border border-transparent hover:shadow-md hover:scale-102`
                     }`}
                   >
