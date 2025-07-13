@@ -239,16 +239,36 @@ export interface CustomerReplacement {
  * Gets customer replacement map for orders and returns with "Order on another customer" messages
  */
 export const getCustomerReplacementMap = (
-  orderReplacements: CustomerReplacement[]
+  orderReplacements: CustomerReplacement[],
+  customerDetails?: any[]
 ): Map<string, CustomerReplacement> => {
   const map = new Map<string, CustomerReplacement>();
   
   orderReplacements.forEach(replacement => {
+    // Check if the replacement customer exists in the system
+    const customerExists = customerDetails?.find(customer => 
+      customer.customername === replacement.correctcustomer
+    );
+    
+    const enrichedReplacement = {
+      ...replacement,
+      existsInSystem: !!customerExists,
+      customerData: customerExists ? {
+        customername: customerExists.customername,
+        address: customerExists.address || '',
+        city: customerExists.city || '',
+        mobile: customerExists.mobile,
+        phone: customerExists.phone,
+        supplydetails: customerExists.supplydetails,
+        customernumber: customerExists.customernumber,
+      } : undefined
+    };
+    
     if (replacement.ordernumber) {
-      map.set(`order-${replacement.ordernumber}`, replacement);
+      map.set(`order-${replacement.ordernumber}`, enrichedReplacement);
     }
     if (replacement.returnnumber) {
-      map.set(`return-${replacement.returnnumber}`, replacement);
+      map.set(`return-${replacement.returnnumber}`, enrichedReplacement);
     }
   });
   
@@ -298,18 +318,25 @@ export const getReplacementCustomerDetails = (
       // Customer doesn't exist - use only name and city from message
       return {
         customername: replacement.correctcustomer,
-        address: '', // Remove address
-        city: replacement.city || item.city,
-        // Remove phone details and supply details
+        address: '', // Empty address
+        city: replacement.city || item.city || '',
+        mobile: undefined, // Empty mobile
+        phone: undefined, // Empty phone
+        supplydetails: undefined, // Empty supply details
+        customernumber: undefined, // No customer number
       };
     }
   }
   
   // No replacement - return original data
   return {
-    customername: item.customername,
-    address: item.address,
-    city: item.city,
+    customername: item.customername || '',
+    address: item.address || '',
+    city: item.city || '',
+    mobile: undefined,
+    phone: undefined,
+    supplydetails: undefined,
+    customernumber: item.customernumber,
   };
 };
 

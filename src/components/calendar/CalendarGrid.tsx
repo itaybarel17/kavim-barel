@@ -40,6 +40,7 @@ interface CalendarGridProps {
     agentname: string;
   };
   onRefreshData?: () => void;
+  customerReplacementMap?: Map<string, any>;
 }
 
 // Helper functions for day mapping
@@ -81,6 +82,7 @@ const CalendarDay: React.FC<{
     agentnumber: string;
     agentname: string;
   };
+  customerReplacementMap?: Map<string, any>;
 }> = ({
   date,
   schedulesForDate,
@@ -90,7 +92,8 @@ const CalendarDay: React.FC<{
   returns,
   onDropToDate,
   onProductionDialogOpen,
-  currentUser
+  currentUser,
+  customerReplacementMap
 }) => {
   // Only admin can drop
   const isAdmin = currentUser?.agentnumber === "4";
@@ -160,7 +163,7 @@ const CalendarDay: React.FC<{
             </Button>}
         </div>
         <div className="space-y-2">
-          {schedulesForDate.map(schedule => <CalendarCard key={schedule.schedule_id} scheduleId={schedule.schedule_id} groupId={schedule.groups_id} distributionGroups={distributionGroups} drivers={drivers} orders={orders} returns={returns} driverId={schedule.driver_id} showAllCustomers={true} isCalendarMode={true} schedule={schedule} currentUser={currentUser} />)}
+          {schedulesForDate.map(schedule => <CalendarCard key={schedule.schedule_id} scheduleId={schedule.schedule_id} groupId={schedule.groups_id} distributionGroups={distributionGroups} drivers={drivers} orders={orders} returns={returns} driverId={schedule.driver_id} showAllCustomers={true} isCalendarMode={true} schedule={schedule} currentUser={currentUser} customerReplacementMap={customerReplacementMap} />)}
         </div>
       </Card>
     </div>
@@ -175,7 +178,8 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
   returns,
   onDropToDate,
   currentUser,
-  onRefreshData
+  onRefreshData,
+  customerReplacementMap
 }) => {
   const [productionDialogOpen, setProductionDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -267,6 +271,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
               onDropToDate={onDropToDate}
               onProductionDialogOpen={handleProductionDialogOpen}
               currentUser={currentUser}
+              customerReplacementMap={customerReplacementMap}
             />
           </div>
         ))}
@@ -286,6 +291,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
               onDropToDate={onDropToDate}
               onProductionDialogOpen={handleProductionDialogOpen}
               currentUser={currentUser}
+              customerReplacementMap={customerReplacementMap}
             />
           </div>
         ))}

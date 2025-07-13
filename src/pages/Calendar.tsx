@@ -157,6 +157,50 @@ const Calendar = () => {
   // Apply user permissions filtering
   const returns = filterReturnsByUser(allReturns);
 
+  // Fetch order replacement details for "הזמנה על לקוח אחר" messages
+  const { data: orderReplacementData = [] } = useQuery({
+    queryKey: ['order-replacement-details'],
+    queryFn: async () => {
+      console.log('Fetching order replacement details...');
+      const { data, error } = await supabase
+        .from('messages')
+        .select(`
+          ordernumber,
+          returnnumber,
+          correctcustomer,
+          city
+        `)
+        .eq('subject', 'הזמנה על לקוח אחר')
+        .or('ordernumber.not.is.null,returnnumber.not.is.null');
+      
+      if (error) throw error;
+      console.log('Order replacement details fetched:', data);
+      return data;
+    }
+  });
+
+  // Fetch customer details for replacement validation
+  const { data: customerDetails = [] } = useQuery({
+    queryKey: ['customer-details-for-replacement'],
+    queryFn: async () => {
+      console.log('Fetching customer details for replacement...');
+      const { data, error } = await supabase
+        .from('customerlist')
+        .select('customernumber, customername, address, city, mobile, phone, supplydetails');
+      
+      if (error) throw error;
+      console.log('Customer details for replacement fetched:', data);
+      return data;
+    }
+  });
+
+  // Create customer replacement map
+  const orderOnAnotherCustomerDetails = useMemo(() => {
+    if (orderReplacementData.length === 0) return new Map();
+    const { getCustomerReplacementMap } = require('@/utils/scheduleUtils');
+    return getCustomerReplacementMap(orderReplacementData, customerDetails);
+  }, [orderReplacementData, customerDetails]);
+
   // Fetch customer supply details
   const {
     data: customerSupplyData = [],
@@ -613,7 +657,7 @@ const Calendar = () => {
       />
 
       {/* Horizontal Kanban */}
-      <HorizontalKanban distributionSchedules={filteredSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={filteredOrders} returns={filteredReturns} onUpdateDestinations={updateDestinationsCount} onDropToKanban={currentUser?.agentnumber === "4" ? handleDropToKanban : undefined} currentUser={currentUser} />
+      <HorizontalKanban distributionSchedules={filteredSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={filteredOrders} returns={filteredReturns} onUpdateDestinations={updateDestinationsCount} onDropToKanban={currentUser?.agentnumber === "4" ? handleDropToKanban : undefined} currentUser={currentUser} customerReplacementMap={orderOnAnotherCustomerDetails} />
 
       {/* Calendar Navigation */}
       <div className="flex items-center justify-center gap-4 mb-6">
@@ -633,7 +677,7 @@ const Calendar = () => {
       </div>
 
       {/* Calendar Grid */}
-      <CalendarGrid currentWeekStart={currentWeekStart} distributionSchedules={filteredSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={filteredOrders} returns={filteredReturns} onDropToDate={currentUser?.agentnumber === "4" ? handleDropToDate : undefined} currentUser={currentUser} onRefreshData={handleRefreshData} />
+      <CalendarGrid currentWeekStart={currentWeekStart} distributionSchedules={filteredSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={filteredOrders} returns={filteredReturns} onDropToDate={currentUser?.agentnumber === "4" ? handleDropToDate : undefined} currentUser={currentUser} onRefreshData={handleRefreshData} customerReplacementMap={orderOnAnotherCustomerDetails} />
     </div>
   );
 };

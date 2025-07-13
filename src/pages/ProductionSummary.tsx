@@ -282,12 +282,12 @@ const ProductionSummary = () => {
       const originalDetails = customerDetailsMap.get(order.customernumber || '');
       customerEntries.set(key, {
         customername: replacementDetails.customername,
-        address: replacementDetails.address,
-        city: replacementDetails.city,
+        address: replacementDetails.address || '',
+        city: replacementDetails.city || '',
         customernumber: replacementDetails.customernumber || order.customernumber,
-        mobile: replacementDetails.mobile || (replacementDetails.address ? undefined : originalDetails?.mobile),
-        phone: replacementDetails.phone || (replacementDetails.address ? undefined : originalDetails?.phone),
-        supplydetails: replacementDetails.supplydetails || (replacementDetails.address ? undefined : originalDetails?.supplydetails),
+        mobile: replacementDetails.mobile,
+        phone: replacementDetails.phone,
+        supplydetails: replacementDetails.supplydetails,
         shotefnumber: originalDetails?.shotefnumber,
         orders: [],
         returns: []
@@ -305,12 +305,12 @@ const ProductionSummary = () => {
       const originalDetails = customerDetailsMap.get(returnItem.customernumber || '');
       customerEntries.set(key, {
         customername: replacementDetails.customername,
-        address: replacementDetails.address,
-        city: replacementDetails.city,
+        address: replacementDetails.address || '',
+        city: replacementDetails.city || '',
         customernumber: replacementDetails.customernumber || returnItem.customernumber,
-        mobile: replacementDetails.mobile || (replacementDetails.address ? undefined : originalDetails?.mobile),
-        phone: replacementDetails.phone || (replacementDetails.address ? undefined : originalDetails?.phone),
-        supplydetails: replacementDetails.supplydetails || (replacementDetails.address ? undefined : originalDetails?.supplydetails),
+        mobile: replacementDetails.mobile,
+        phone: replacementDetails.phone,
+        supplydetails: replacementDetails.supplydetails,
         shotefnumber: originalDetails?.shotefnumber,
         orders: [],
         returns: []
