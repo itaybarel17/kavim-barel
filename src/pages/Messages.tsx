@@ -27,7 +27,7 @@ export default function Messages() {
   const isAdmin = user?.agentnumber === "4";
 
   // Fetch messages with agent-based filtering
-  const { data: messages, isLoading } = useQuery({
+  const { data: messages, isLoading, refetch } = useQuery({
     queryKey: ['messages', filters, user?.agentnumber],
     queryFn: async () => {
       console.log('Fetching messages with filters:', filters, 'for agent:', user?.agentnumber);
@@ -201,6 +201,7 @@ export default function Messages() {
                 isAdmin={isAdmin}
                 onMarkAsHandled={handleMarkAsHandled}
                 onDeleteMessage={handleDeleteMessage}
+                onMessageUpdated={() => refetch()}
                 deletingMessageId={deletingMessageId}
               />
             </CardContent>

@@ -28,6 +28,7 @@ type MessageListProps = {
   isAdmin: boolean;
   onMarkAsHandled: (messageId: number, isHandled: boolean) => void;
   onDeleteMessage: (messageId: number) => void;
+  onMessageUpdated: () => void;
   deletingMessageId?: number;
 };
 
@@ -38,6 +39,7 @@ export const MessageList: React.FC<MessageListProps> = ({
   isAdmin,
   onMarkAsHandled,
   onDeleteMessage,
+  onMessageUpdated,
   deletingMessageId
 }) => {
   if (isLoading) {
@@ -72,6 +74,7 @@ export const MessageList: React.FC<MessageListProps> = ({
           isAdmin={isAdmin}
           onMarkAsHandled={onMarkAsHandled}
           onDeleteMessage={onDeleteMessage}
+          onMessageUpdated={onMessageUpdated}
           isDeleting={deletingMessageId === message.messages_id}
         />
       ))}

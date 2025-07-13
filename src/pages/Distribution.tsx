@@ -334,8 +334,9 @@ const Distribution = () => {
       console.log('Fetching order/return messages...');
       const { data, error } = await supabase
         .from('messages')
-        .select('ordernumber, returnnumber, subject, content, tagagent, agentnumber')
-        .or('ordernumber.not.is.null,returnnumber.not.is.null');
+        .select('ordernumber, returnnumber, subject, content, tagagent, agentnumber, created_at')
+        .or('ordernumber.not.is.null,returnnumber.not.is.null')
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
       console.log('Order/return messages fetched:', data);
@@ -382,9 +383,10 @@ const Distribution = () => {
     return map;
   }, [agentData]);
 
-  // Create message mapping for quick lookup
+  // Create message mapping for quick lookup - support up to 2 messages per order/return
   const messageMap = useMemo(() => {
-    const map: Record<string, { subject: string; content?: string; tagAgent?: string; agentName?: string }> = {};
+    const map: Record<string, Array<{ subject: string; content?: string; tagAgent?: string; agentName?: string }>> = {};
+    
     messageData.forEach(msg => {
       const messageInfo = {
         subject: msg.subject,
@@ -394,12 +396,22 @@ const Distribution = () => {
       };
       
       if (msg.ordernumber) {
-        map[`order-${msg.ordernumber}`] = messageInfo;
+        const key = `order-${msg.ordernumber}`;
+        if (!map[key]) map[key] = [];
+        map[key].push(messageInfo);
       }
       if (msg.returnnumber) {
-        map[`return-${msg.returnnumber}`] = messageInfo;
+        const key = `return-${msg.returnnumber}`;
+        if (!map[key]) map[key] = [];
+        map[key].push(messageInfo);
       }
     });
+    
+    // Keep only the 2 most recent messages for each order/return
+    Object.keys(map).forEach(key => {
+      map[key] = map[key].slice(0, 2);
+    });
+    
     return map;
   }, [messageData, agentNameMap]);
 

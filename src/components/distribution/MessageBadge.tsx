@@ -34,7 +34,20 @@ export const MessageBadge: React.FC<MessageBadgeProps> = ({
     }
   };
 
+  // Get matching color for info icon
+  const getInfoIconColor = (subject: string) => {
+    switch (subject) {
+      case 'לבטל הזמנה':
+        return 'text-red-600 hover:text-red-700';
+      case 'לדחות':
+        return 'text-red-600 hover:text-red-700';
+      default:
+        return 'text-orange-500 hover:text-orange-600';
+    }
+  };
+
   const colorClasses = getSubjectColors(subject);
+  const iconColorClasses = getInfoIconColor(subject);
 
   const handleInfoClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -55,7 +68,7 @@ export const MessageBadge: React.FC<MessageBadgeProps> = ({
           {subject}
         </Badge>
         <Info 
-          className="h-3 w-3 text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+          className={cn("h-3 w-3 cursor-pointer transition-colors", iconColorClasses)}
           onClick={handleInfoClick}
         />
       </div>
@@ -63,13 +76,8 @@ export const MessageBadge: React.FC<MessageBadgeProps> = ({
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
+            <DialogTitle>
               פרטי הודעה
-              <DialogClose asChild>
-                <button className="h-4 w-4 opacity-70 hover:opacity-100 transition-opacity">
-                  <X className="h-4 w-4" />
-                </button>
-              </DialogClose>
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">

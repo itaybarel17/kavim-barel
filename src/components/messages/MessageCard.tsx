@@ -5,8 +5,9 @@ import { he } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Check, X, User, Tag, FileText, RotateCcw, Trash2, Warehouse } from "lucide-react";
+import { Check, X, User, Tag, FileText, RotateCcw, Trash2, Warehouse, Edit } from "lucide-react";
 import { DeleteMessageDialog } from "./DeleteMessageDialog";
+import { EditMessageDialog } from "./EditMessageDialog";
 
 type Message = {
   messages_id: number;
@@ -32,6 +33,7 @@ type MessageCardProps = {
   isAdmin: boolean;
   onMarkAsHandled: (messageId: number, isHandled: boolean) => void;
   onDeleteMessage: (messageId: number) => void;
+  onMessageUpdated: () => void;
   isDeleting?: boolean;
 };
 
@@ -56,9 +58,11 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   isAdmin,
   onMarkAsHandled,
   onDeleteMessage,
+  onMessageUpdated,
   isDeleting = false
 }) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   const messageDateTime = format(new Date(message.created_at), "dd/MM/yyyy HH:mm", {
     locale: he
@@ -66,6 +70,9 @@ export const MessageCard: React.FC<MessageCardProps> = ({
 
   // Check if user can delete this message
   const canDelete = isAdmin || message.agentnumber === currentUserNumber;
+  
+  // Check if user can edit this message
+  const canEdit = isAdmin || message.agentnumber === currentUserNumber;
 
   // Check if user can mark as handled
   const canMarkAsHandled = () => {
@@ -199,6 +206,19 @@ export const MessageCard: React.FC<MessageCardProps> = ({
               </>
             )}
 
+            {canEdit && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowEditDialog(true)}
+                disabled={isDeleting}
+                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+              >
+                <Edit className="w-4 h-4 mr-1" />
+                ערוך
+              </Button>
+            )}
+
             {canDelete && (
               <Button
                 size="sm"
@@ -220,6 +240,18 @@ export const MessageCard: React.FC<MessageCardProps> = ({
         onClose={() => setShowDeleteDialog(false)}
         onConfirm={handleDeleteConfirm}
         isLoading={isDeleting}
+      />
+
+      <EditMessageDialog
+        isOpen={showEditDialog}
+        onClose={() => setShowEditDialog(false)}
+        message={{
+          messages_id: message.messages_id,
+          subject: message.subject || '',
+          content: message.content,
+          tagagent: message.tagagent
+        }}
+        onMessageUpdated={onMessageUpdated}
       />
     </>
   );

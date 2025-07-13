@@ -79,8 +79,8 @@ interface OrderCardProps {
   // new prop for siren functionality
   onSirenToggle?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
   
-  // message props
-  messageInfo?: { subject: string; content?: string; tagAgent?: string; agentName?: string };
+  // message props - support up to 2 messages
+  messagesInfo?: Array<{ subject: string; content?: string; tagAgent?: string; agentName?: string }>;
   onMessageBadgeClick?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
 
   // cancellation overlay prop
@@ -94,7 +94,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   dualActiveOrderReturnCustomers = [],
   customerSupplyMap = {},
   onSirenToggle,
-  messageInfo,
+  messagesInfo,
   onMessageBadgeClick,
   hasCancellationMessage = false
 }) => {
@@ -351,44 +351,57 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           )}
         </div>
         
-        {/* שורה חמישית: הסכום ותווית הודעה */}
+        {/* שורה חמישית: הסכום ותווית הודעה ראשונה */}
         <div className="mb-2 flex items-center justify-between">
           <span className="text-xs font-bold">₪{total?.toLocaleString()}</span>
-          {messageInfo && (
+          {messagesInfo && messagesInfo[0] && (
             <MessageBadge
-              subject={messageInfo.subject}
+              subject={messagesInfo[0].subject}
               isBlinking={data.message_alert === true}
               onClick={() => onMessageBadgeClick && onMessageBadgeClick({ type, data })}
-              content={messageInfo.content}
-              tagAgent={messageInfo.tagAgent}
-              agentName={messageInfo.agentName}
+              content={messagesInfo[0].content}
+              tagAgent={messagesInfo[0].tagAgent}
+              agentName={messagesInfo[0].agentName}
             />
           )}
         </div>
         
         <div className="mt-2 space-y-1 flex flex-col">
-          {/* שורה שישית: מספר לקוח + מספר סוכן + אייקונים */}
-          <div className="flex items-center gap-2">
-            {data.customernumber && <>
-                <span className="text-xs text-muted-foreground">
-                  לקוח: {data.customernumber}
-                </span>
-                {data.agentnumber && <span className="text-xs text-muted-foreground">
-                    | סוכן: {data.agentnumber}
-                  </span>}
-                {isCandyPlus && <Badge className="bg-pink-200 text-pink-800 border-pink-300 text-xs font-bold">
-                    קנדי+
-                  </Badge>}
-                {/* prominent icons logic */}
-                {isOrder && isMultiOrderActive && <img src={BlueCustomerIcon} alt="לקוח עם כמה הזמנות פעילות" style={{
-              width: iconSize,
-              height: iconSize
-            }} className="inline align-middle" title="ללקוח זה יש יותר מהזמנה אחת פעילה" />}
-                {isDualActiveOrderReturn && <img src={RedCustomerIcon} alt="לקוח עם החזרה וגם הזמנה פעילים" style={{
-              width: iconSize,
-              height: iconSize
-            }} className="inline align-middle" title="יש ללקוח זה הזמנה והחזרה פעילות" />}
-              </>}
+          {/* שורה שישית: מספר לקוח + מספר סוכן + אייקונים + תווית הודעה שנייה */}
+          <div className="flex items-center gap-2 justify-between">
+            <div className="flex items-center gap-2">
+              {data.customernumber && <>
+                  <span className="text-xs text-muted-foreground">
+                    לקוח: {data.customernumber}
+                  </span>
+                  {data.agentnumber && <span className="text-xs text-muted-foreground">
+                      | סוכן: {data.agentnumber}
+                    </span>}
+                  {isCandyPlus && <Badge className="bg-pink-200 text-pink-800 border-pink-300 text-xs font-bold">
+                      קנדי+
+                    </Badge>}
+                  {/* prominent icons logic */}
+                  {isOrder && isMultiOrderActive && <img src={BlueCustomerIcon} alt="לקוח עם כמה הזמנות פעילות" style={{
+                width: iconSize,
+                height: iconSize
+              }} className="inline align-middle" title="ללקוח זה יש יותר מהזמנה אחת פעילה" />}
+                  {isDualActiveOrderReturn && <img src={RedCustomerIcon} alt="לקוח עם החזרה וגם הזמנה פעילים" style={{
+                width: iconSize,
+                height: iconSize
+              }} className="inline align-middle" title="יש ללקוח זה הזמנה והחזרה פעילות" />}
+                </>}
+            </div>
+            {/* תווית הודעה שנייה */}
+            {messagesInfo && messagesInfo[1] && (
+              <MessageBadge
+                subject={messagesInfo[1].subject}
+                isBlinking={data.message_alert === true}
+                onClick={() => onMessageBadgeClick && onMessageBadgeClick({ type, data })}
+                content={messagesInfo[1].content}
+                tagAgent={messagesInfo[1].tagAgent}
+                agentName={messagesInfo[1].agentName}
+              />
+            )}
           </div>
           
           {/* שורה שביעית: הערת סוכן */}
