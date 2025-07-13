@@ -85,20 +85,87 @@ const ScheduleMap: React.FC = () => {
         new Set(orderData.map(item => item.customername))
       );
 
+      // City name mappings for fallback
+      const cityNameMappings: Record<string, string> = {
+        'פ"ת': 'פתח תקווה',
+        'ת"א': 'תל אביב',
+        'י-ם': 'ירושלים'
+      };
+
+      // First try to get customers with existing coordinates
       const { data: customerList, error } = await supabase
         .from('customerlist')
         .select('customername, city, address, lat, lng')
-        .in('customername', uniqueCustomers)
-        .not('lat', 'is', null)
-        .not('lng', 'is', null);
+        .in('customername', uniqueCustomers);
 
       if (error) {
         console.error('Error fetching customer coordinates:', error);
         return;
       }
 
+      // Get city coordinates for fallback
+      const { data: cityCoordinates, error: cityError } = await supabase
+        .from('cities')
+        .select('city, lat, lng');
+
+      if (cityError) {
+        console.error('Error fetching city coordinates:', cityError);
+      }
+
+      const cityCoordMap = new Map();
+      cityCoordinates?.forEach(city => {
+        if (city.lat && city.lng) {
+          cityCoordMap.set(city.city, { lat: city.lat, lng: city.lng });
+        }
+      });
+
+      // Process customers to ensure all have coordinates
+      const processedCustomers: Customer[] = [];
+      
+      for (const customerName of uniqueCustomers) {
+        const orderDataItem = orderData.find(item => item.customername === customerName);
+        if (!orderDataItem) continue;
+
+        // Find customer in customerlist
+        const customerRecord = customerList?.find(c => c.customername === customerName);
+        
+        let customer: Customer;
+        
+        if (customerRecord?.lat && customerRecord?.lng) {
+          // Use existing precise coordinates
+          customer = {
+            customername: customerRecord.customername,
+            city: customerRecord.city || orderDataItem.city,
+            address: customerRecord.address || orderDataItem.address,
+            lat: customerRecord.lat,
+            lng: customerRecord.lng
+          };
+        } else {
+          // Try to get city coordinates as fallback
+          const cityName = customerRecord?.city || orderDataItem.city;
+          const mappedCityName = cityNameMappings[cityName] || cityName;
+          const cityCoords = cityCoordMap.get(mappedCityName) || cityCoordMap.get(cityName);
+          
+          if (cityCoords) {
+            customer = {
+              customername: customerName,
+              city: cityName,
+              address: customerRecord?.address || orderDataItem.address || 'כתובת לא זמינה',
+              lat: cityCoords.lat,
+              lng: cityCoords.lng
+            };
+          } else {
+            // Skip customers without any coordinates
+            console.warn(`No coordinates found for customer: ${customerName} in city: ${cityName}`);
+            continue;
+          }
+        }
+        
+        processedCustomers.push(customer);
+      }
+
       // Sort customers by city alphabetically
-      const sortedCustomers = (customerList || []).sort((a, b) => 
+      const sortedCustomers = processedCustomers.sort((a, b) => 
         a.city.localeCompare(b.city, 'he')
       );
 
