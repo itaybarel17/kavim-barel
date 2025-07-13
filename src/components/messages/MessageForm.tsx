@@ -313,7 +313,7 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
   // Filter subject options based on user permissions
   const availableSubjectOptions = SUBJECT_OPTIONS.filter(option => {
     if (option.value === "מחסן") {
-      return isAdmin; // Only admin can see warehouse option
+      return user?.agentnumber === "4"; // Only agent 4 can see warehouse option
     }
     return true;
   });
@@ -424,6 +424,7 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
                         <CustomerSelector 
                           value={field.value || ""} 
                           onChange={field.onChange}
+                          userAgentNumber={user?.agentnumber}
                           onCustomerChange={(customer, isSystem) => {
                             setSelectedCustomer(customer);
                             setIsSystemCustomer(isSystem);

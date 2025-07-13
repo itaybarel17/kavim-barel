@@ -13,6 +13,7 @@ interface CustomerSelectorProps {
   value: string;
   onChange: (value: string) => void;
   onCustomerChange?: (customer: Customer | null, isSystemCustomer: boolean) => void;
+  userAgentNumber?: string;
 }
 
 interface Customer {
@@ -22,22 +23,28 @@ interface Customer {
   address: string | null;
 }
 
-export function CustomerSelector({ value, onChange, onCustomerChange }: CustomerSelectorProps) {
+export function CustomerSelector({ value, onChange, onCustomerChange, userAgentNumber }: CustomerSelectorProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isSystemCustomer, setIsSystemCustomer] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
 
   // Fetch customers from database
   const { data: customers, isLoading } = useQuery({
-    queryKey: ['customers', searchTerm],
+    queryKey: ['customers', searchTerm, userAgentNumber],
     queryFn: async () => {
       if (!searchTerm.trim() || !isSystemCustomer) return [];
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('customerlist')
-        .select('customernumber, customername, city, address')
-        .or(`customername.ilike.%${searchTerm}%,customernumber.ilike.%${searchTerm}%`)
-        .limit(10);
+        .select('customernumber, customername, city, address, agentnumber')
+        .or(`customername.ilike.%${searchTerm}%,customernumber.ilike.%${searchTerm}%`);
+      
+      // Filter by agent - agent 4 can see all customers, others see only their own
+      if (userAgentNumber && userAgentNumber !== "4") {
+        query = query.eq('agentnumber', userAgentNumber);
+      }
+      
+      const { data, error } = await query.limit(10);
       
       if (error) throw error;
       return data as Customer[];
