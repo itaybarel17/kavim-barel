@@ -56,6 +56,7 @@ interface DistributionGroup {
   groups_id: number;
   separation: string;
   days?: string[] | null;
+  day?: string | null;
 }
 interface DistributionSchedule {
   schedule_id: number;
@@ -409,7 +410,9 @@ export const DropZone: React.FC<DropZoneProps> = ({
   // Debug logging for distribution days
   console.log('Selected group ID:', selectedGroupId);
   console.log('Selected group object:', selectedGroup);
+  console.log('Selected group days:', selectedGroup?.days);
   console.log('Distribution groups:', distributionGroups);
+  console.log('formatDistributionDays result:', formatDistributionDays(selectedGroup?.days));
   
   return (
     <Card ref={drop} className={`min-h-[300px] transition-colors relative ${isOver && currentZoneState.scheduleId ? 'border-primary bg-primary/5' : 'border-border'} ${!currentZoneState.scheduleId && isOver ? 'border-red-300 bg-red-50' : ''}`}>
@@ -501,11 +504,11 @@ export const DropZone: React.FC<DropZoneProps> = ({
           {scheduleId ? (
             <div className="text-sm text-muted-foreground">
               מזהה לוח זמנים: {scheduleId}
-              {selectedGroup && (
-                <div className="font-medium text-primary" dir="rtl">
-                  ימי הפצה: {formatDistributionDays(selectedGroup.days)}
-                </div>
-              )}
+               {selectedGroup && (
+                 <div className="font-medium text-primary" dir="rtl">
+                   ימי הפצה: {formatDistributionDays(selectedGroup.day || selectedGroup.days)}
+                 </div>
+               )}
               {selectedDriver && (
                 <div className="font-medium text-secondary-foreground">
                   נהג נבחר: {selectedDriver.nahag}
