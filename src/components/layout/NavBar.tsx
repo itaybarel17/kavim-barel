@@ -88,7 +88,7 @@ export const NavBar: React.FC = () => {
                     className={`block w-full text-right px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 ${
                       isActive 
                         ? `bg-gradient-to-r from-${color}-500 to-${color}-600 text-white border-2 border-${color}-400 shadow-xl ring-4 ring-${color}-300/50 transform scale-105`
-                        : `text-foreground hover:bg-muted hover:text-foreground border border-transparent hover:shadow-md hover:scale-102`
+                        : `text-primary hover:bg-muted hover:text-primary border border-transparent hover:shadow-md hover:scale-102`
                     }`}
                   >
                     {label}
@@ -98,7 +98,7 @@ export const NavBar: React.FC = () => {
               
               <div className="pt-4 border-t border-border">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm text-muted-foreground">{user.agentname}</span>
+                  <span className="text-sm text-primary font-medium">{user.agentname}</span>
                 </div>
                 <Button
                   variant="outline"
