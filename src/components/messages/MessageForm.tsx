@@ -125,17 +125,20 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
 
   const createMessageMutation = useMutation({
     mutationFn: async (data: MessageFormData) => {
+      // Define subjects that require mandatory association
+      const mandatoryAssociationSubjects = ["לבטל הזמנה", "לדחות", "שינוי מוצרים", "הנחות", "הזמנה על לקוח אחר", "אספקה"];
+      
       // Validate association based on subject
       if (data.subject === "אספקה" || data.subject === "מחסן") {
         // Supply/warehouse can be associated with both orders/returns OR schedules
-        if (data.subject === "אספקה" && !selectedItem) {
-          throw new Error("חובה לשייך הזמנה, החזרה או קו הפצה להודעת אספקה");
+        if (mandatoryAssociationSubjects.includes(data.subject!) && !selectedItem) {
+          throw new Error("חובה לשייך הזמנה, החזרה או קו הפצה להודעת " + data.subject);
         }
         // Warehouse messages don't require association
-      } else if (data.subject) {
-        // Other subjects must be associated with orders/returns only
+      } else if (data.subject && mandatoryAssociationSubjects.includes(data.subject)) {
+        // Subjects that require mandatory association must be associated with orders/returns only
         if (!selectedItem) {
-          throw new Error("חובה לשייך הזמנה או החזרה להודעה");
+          throw new Error("חובה לשייך הזמנה או החזרה להודעת " + data.subject);
         }
         if (selectedItem.type === "schedules") {
           throw new Error("לא ניתן לשייך קו הפצה להודעה זו");
@@ -304,7 +307,8 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
   
   // Check if association should be required and what type
   const shouldShowBothAssociation = selectedSubject === "אספקה" || selectedSubject === "מחסן";
-  const isAssociationRequired = selectedSubject === "אספקה";
+  const mandatoryAssociationSubjects = ["לבטל הזמנה", "לדחות", "שינוי מוצרים", "הנחות", "הזמנה על לקוח אחר", "אספקה"];
+  const isAssociationRequired = selectedSubject ? mandatoryAssociationSubjects.includes(selectedSubject) : false;
 
   // Filter subject options based on user permissions
   const availableSubjectOptions = SUBJECT_OPTIONS.filter(option => {
