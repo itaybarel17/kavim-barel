@@ -55,8 +55,8 @@ interface Return {
 interface DistributionGroup {
   groups_id: number;
   separation: string;
-  days?: string[] | null;
-  day?: string | null;
+  days?: any; // JSONB array
+  day?: string | null; // Text field
 }
 interface DistributionSchedule {
   schedule_id: number;
