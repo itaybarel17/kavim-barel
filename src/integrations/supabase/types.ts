@@ -431,6 +431,7 @@ export type Database = {
           invoicedate: string | null
           invoicenumber: number | null
           melaketID: number | null
+          message_alert: boolean | null
           mistake_melaket: string | null
           office_mistake: string | null
           ordercancel: string | null
@@ -478,6 +479,7 @@ export type Database = {
           invoicedate?: string | null
           invoicenumber?: number | null
           melaketID?: number | null
+          message_alert?: boolean | null
           mistake_melaket?: string | null
           office_mistake?: string | null
           ordercancel?: string | null
@@ -525,6 +527,7 @@ export type Database = {
           invoicedate?: string | null
           invoicenumber?: number | null
           melaketID?: number | null
+          message_alert?: boolean | null
           mistake_melaket?: string | null
           office_mistake?: string | null
           ordercancel?: string | null
@@ -576,6 +579,7 @@ export type Database = {
           done_return: string | null
           hour: string | null
           icecream: string | null
+          message_alert: boolean | null
           remark: string | null
           return_reason: Json | null
           returncancel: string | null
@@ -597,6 +601,7 @@ export type Database = {
           done_return?: string | null
           hour?: string | null
           icecream?: string | null
+          message_alert?: boolean | null
           remark?: string | null
           return_reason?: Json | null
           returncancel?: string | null
@@ -618,6 +623,7 @@ export type Database = {
           done_return?: string | null
           hour?: string | null
           icecream?: string | null
+          message_alert?: boolean | null
           remark?: string | null
           return_reason?: Json | null
           returncancel?: string | null

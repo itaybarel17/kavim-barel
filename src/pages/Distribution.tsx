@@ -40,6 +40,7 @@ interface Order {
   day2?: string;
   end_picking_time?: string | null;
   hashavshevet?: string | null;
+  message_alert?: boolean | null;
 }
 interface Return {
   returnnumber: number;
@@ -57,6 +58,7 @@ interface Return {
   done_return?: string | null;
   returncancel?: string | null;
   alert_status?: boolean;
+  message_alert?: boolean | null;
 }
 interface DistributionGroup {
   groups_id: number;
@@ -144,7 +146,7 @@ const Distribution = () => {
       const {
         data,
         error
-      } = await supabase.from('mainorder').select('ordernumber, customername, address, city, totalorder, schedule_id, icecream, customernumber, agentnumber, orderdate, invoicenumber, totalinvoice, hour, remark, alert_status, ezor1, ezor2, day1, day2, end_picking_time, hashavshevet').or('icecream.is.null,icecream.eq.').is('done_mainorder', null).is('ordercancel', null) // Exclude deleted orders
+      } = await supabase.from('mainorder').select('ordernumber, customername, address, city, totalorder, schedule_id, icecream, customernumber, agentnumber, orderdate, invoicenumber, totalinvoice, hour, remark, alert_status, ezor1, ezor2, day1, day2, end_picking_time, hashavshevet, message_alert').or('icecream.is.null,icecream.eq.').is('done_mainorder', null).is('ordercancel', null) // Exclude deleted orders
       .order('ordernumber', {
         ascending: false
       });
@@ -166,7 +168,7 @@ const Distribution = () => {
       const {
         data,
         error
-      } = await supabase.from('mainreturns').select('returnnumber, customername, address, city, totalreturn, schedule_id, icecream, customernumber, agentnumber, returndate, hour, remark, alert_status').or('icecream.is.null,icecream.eq.').is('done_return', null).is('returncancel', null) // Exclude deleted returns
+      } = await supabase.from('mainreturns').select('returnnumber, customername, address, city, totalreturn, schedule_id, icecream, customernumber, agentnumber, returndate, hour, remark, alert_status, message_alert').or('icecream.is.null,icecream.eq.').is('done_return', null).is('returncancel', null) // Exclude deleted returns
       .order('returnnumber', {
         ascending: false
       });
@@ -326,6 +328,36 @@ const Distribution = () => {
     },
     enabled: currentUser?.agentnumber === "4"
   });
+
+  // Fetch messages for orders and returns
+  const { data: messageData = [] } = useQuery({
+    queryKey: ['order-return-messages'],
+    queryFn: async () => {
+      console.log('Fetching order/return messages...');
+      const { data, error } = await supabase
+        .from('messages')
+        .select('ordernumber, returnnumber, subject')
+        .or('ordernumber.not.is.null,returnnumber.not.is.null');
+      
+      if (error) throw error;
+      console.log('Order/return messages fetched:', data);
+      return data;
+    }
+  });
+
+  // Create message mapping for quick lookup
+  const messageMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    messageData.forEach(msg => {
+      if (msg.ordernumber) {
+        map[`order-${msg.ordernumber}`] = msg.subject;
+      }
+      if (msg.returnnumber) {
+        map[`return-${msg.returnnumber}`] = msg.subject;
+      }
+    });
+    return map;
+  }, [messageData]);
 
   // Update zone-schedule mapping when schedules change
   useEffect(() => {
@@ -645,6 +677,50 @@ const Distribution = () => {
     }
   };
 
+  // Handle message badge click
+  const handleMessageBadgeClick = async (item: {
+    type: 'order' | 'return';
+    data: Order | Return;
+  }) => {
+    try {
+      console.log('Message badge clicked for item:', item);
+      
+      if (item.type === 'order') {
+        const { error } = await supabase
+          .from('mainorder')
+          .update({ message_alert: false })
+          .eq('ordernumber', (item.data as Order).ordernumber);
+        
+        if (error) {
+          console.error('Error updating order message_alert:', error);
+          return;
+        }
+        
+        // Update local data
+        (item.data as Order).message_alert = false;
+        refetchOrders();
+      } else {
+        const { error } = await supabase
+          .from('mainreturns')
+          .update({ message_alert: false })
+          .eq('returnnumber', (item.data as Return).returnnumber);
+        
+        if (error) {
+          console.error('Error updating return message_alert:', error);
+          return;
+        }
+        
+        // Update local data
+        (item.data as Return).message_alert = false;
+        refetchReturns();
+      }
+      
+      console.log('Message alert status updated successfully');
+    } catch (error) {
+      console.error('Error updating message alert:', error);
+    }
+  };
+
   // Filter unassigned items (those without schedule_id or with schedule_id pointing to produced schedules)
   const unassignedOrders = orders.filter(order => !order.schedule_id || !distributionSchedules.some(schedule => schedule.schedule_id === order.schedule_id));
   const unassignedReturns = returns.filter(returnItem => !returnItem.schedule_id || !distributionSchedules.some(schedule => schedule.schedule_id === returnItem.schedule_id));
@@ -744,11 +820,13 @@ const Distribution = () => {
           unassignedReturns={unassignedReturns} 
           onDragStart={setDraggedItem} 
           onDropToUnassigned={handleDropToUnassigned} 
-          onDeleteItem={handleDeleteItem} 
-          multiOrderActiveCustomerList={multiOrderActiveCustomerList} 
-          dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} 
-          customerSupplyMap={customerSupplyMap} 
-          onSirenToggle={handleSirenToggle} 
+          onDeleteItem={handleDeleteItem}
+          multiOrderActiveCustomerList={multiOrderActiveCustomerList}
+          dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
+          customerSupplyMap={customerSupplyMap}
+          onSirenToggle={handleSirenToggle}
+          messageMap={messageMap}
+          onMessageBadgeClick={handleMessageBadgeClick}
         />
 
         {/* Mobile: single column, Tablet: 2 columns, Desktop: 4 columns */}
@@ -760,18 +838,20 @@ const Distribution = () => {
               distributionGroups={distributionGroups} 
               distributionSchedules={distributionSchedules} 
               drivers={drivers} 
-              onDrop={handleDrop} 
-              orders={orders} 
-              returns={returns} 
-              onScheduleDeleted={handleScheduleDeleted} 
-              onScheduleCreated={handleScheduleCreated} 
-              onRemoveFromZone={handleRemoveFromZone} 
+              onDrop={handleDrop}
+              orders={orders}
+              returns={returns}
+              onScheduleDeleted={handleScheduleDeleted}
+              onScheduleCreated={handleScheduleCreated}
+              onRemoveFromZone={handleRemoveFromZone}
               getZoneState={getZoneState}
-              multiOrderActiveCustomerList={multiOrderActiveCustomerList} 
-              dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} 
-              customerSupplyMap={customerSupplyMap} 
+              multiOrderActiveCustomerList={multiOrderActiveCustomerList}
+              dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
+              customerSupplyMap={customerSupplyMap}
               onSirenToggle={handleSirenToggle}
               onTogglePin={handleTogglePin}
+              messageMap={messageMap}
+              onMessageBadgeClick={handleMessageBadgeClick}
             />
           )}
         </div>

@@ -4,8 +4,9 @@ import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Package, Monitor } from 'lucide-react';
+import { Package, Monitor, X } from 'lucide-react';
 import { SirenButton } from './SirenButton';
+import { MessageBadge } from './MessageBadge';
 import { supabase } from '@/integrations/supabase/client';
 
 // Path for prominent customer blue/red icons
@@ -35,6 +36,7 @@ interface Order {
   ezor2?: string;
   day1?: string;
   day2?: string;
+  message_alert?: boolean | null;
 }
 interface Return {
   returnnumber: number;
@@ -51,6 +53,7 @@ interface Return {
   hour?: string;
   remark?: string;
   alert_status?: boolean;
+  message_alert?: boolean | null;
 }
 interface OrderCardProps {
   type: 'order' | 'return';
@@ -75,6 +78,10 @@ interface OrderCardProps {
   
   // new prop for siren functionality
   onSirenToggle?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
+  
+  // message props
+  messageSubject?: string;
+  onMessageBadgeClick?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
 }
 export const OrderCard: React.FC<OrderCardProps> = ({
   type,
@@ -83,7 +90,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
   customerSupplyMap = {},
-  onSirenToggle
+  onSirenToggle,
+  messageSubject,
+  onMessageBadgeClick
 }) => {
   // Initialize state from data
   useEffect(() => {
@@ -330,9 +339,16 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           )}
         </div>
         
-        {/* שורה חמישית: הסכום */}
-        <div className="mb-2">
+        {/* שורה חמישית: הסכום ותווית הודעה */}
+        <div className="mb-2 flex items-center justify-between">
           <span className="text-xs font-bold">₪{total?.toLocaleString()}</span>
+          {messageSubject && (
+            <MessageBadge
+              subject={messageSubject}
+              isBlinking={data.message_alert === true}
+              onClick={() => onMessageBadgeClick && onMessageBadgeClick({ type, data })}
+            />
+          )}
         </div>
         
         <div className="mt-2 space-y-1 flex flex-col">
