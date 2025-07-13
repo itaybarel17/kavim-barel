@@ -3,6 +3,7 @@ import { useDrop } from 'react-dnd';
 import { Card } from '@/components/ui/card';
 import { CalendarCard } from './CalendarCard';
 import { AgentFilter } from './AgentFilter';
+import { ShowMyActivityToggle } from './ShowMyActivityToggle';
 import { getUniqueCustomersForSchedule } from '@/utils/scheduleUtils';
 import type { OrderWithSchedule, ReturnWithSchedule } from '@/utils/scheduleUtils';
 interface DistributionGroup {
@@ -49,6 +50,8 @@ interface HorizontalKanbanProps {
   agents?: { agentnumber: string; agentname: string }[];
   selectedAgent?: string;
   onAgentChange?: (agent: string) => void;
+  showOnlyMyActivity?: boolean;
+  onShowMyActivityChange?: (checked: boolean) => void;
 }
 export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
   distributionSchedules,
@@ -64,7 +67,9 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
   customerReplacementMap,
   agents = [],
   selectedAgent = '4',
-  onAgentChange
+  onAgentChange,
+  showOnlyMyActivity = false,
+  onShowMyActivityChange
 }) => {
   // Filter schedules by agent (admin sees all)
   const isAdmin = currentUser?.agentnumber === "4";
@@ -189,6 +194,12 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
             agents={agents}
             selectedAgent={selectedAgent}
             onAgentChange={onAgentChange}
+          />
+        )}
+        {!isAdmin && onShowMyActivityChange && (
+          <ShowMyActivityToggle
+            checked={showOnlyMyActivity}
+            onCheckedChange={onShowMyActivityChange}
           />
         )}
       </div>

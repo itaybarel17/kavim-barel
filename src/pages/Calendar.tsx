@@ -93,26 +93,41 @@ const Calendar = () => {
   
   // Agent filter state - default to "משרד" (agent 4)
   const [selectedAgent, setSelectedAgent] = useState('4');
+  
+  // Show only my activity state for non-admin agents
+  const [showOnlyMyActivity, setShowOnlyMyActivity] = useState(false);
 
   // Set up realtime subscriptions
   useRealtimeSubscription();
 
-  // Helper function to filter orders based on user permissions
+  // Helper function to filter orders based on user permissions and show my activity toggle
   const filterOrdersByUser = (orders: Order[]) => {
     // Agent 99 can only see their own orders
     if (currentUser?.agentnumber === '99') {
       return orders.filter(order => order.agentnumber === '99');
     }
+    
+    // For non-admin agents with "show only my activity" enabled
+    if (currentUser?.agentnumber !== '4' && showOnlyMyActivity) {
+      return orders.filter(order => order.agentnumber === currentUser?.agentnumber);
+    }
+    
     // All other agents can see everything
     return orders;
   };
 
-  // Helper function to filter returns based on user permissions
+  // Helper function to filter returns based on user permissions and show my activity toggle
   const filterReturnsByUser = (returns: Return[]) => {
     // Agent 99 can only see their own returns
     if (currentUser?.agentnumber === '99') {
       return returns.filter(returnItem => returnItem.agentnumber === '99');
     }
+    
+    // For non-admin agents with "show only my activity" enabled
+    if (currentUser?.agentnumber !== '4' && showOnlyMyActivity) {
+      return returns.filter(returnItem => returnItem.agentnumber === currentUser?.agentnumber);
+    }
+    
     // All other agents can see everything
     return returns;
   };
@@ -136,7 +151,7 @@ const Calendar = () => {
     }
   });
 
-  // Apply user permissions filtering
+  // Apply user permissions and toggle filtering
   const orders = filterOrdersByUser(allOrders);
 
   // Fetch all returns (including unassigned ones for the unassigned area)
@@ -158,7 +173,7 @@ const Calendar = () => {
     }
   });
 
-  // Apply user permissions filtering
+  // Apply user permissions and toggle filtering
   const returns = filterReturnsByUser(allReturns);
 
   // Fetch order replacement details for "הזמנה על לקוח אחר" messages
@@ -735,6 +750,8 @@ const Calendar = () => {
         agents={agents}
         selectedAgent={selectedAgent}
         onAgentChange={setSelectedAgent}
+        showOnlyMyActivity={showOnlyMyActivity}
+        onShowMyActivityChange={setShowOnlyMyActivity}
       />
 
       {/* Calendar Navigation */}
