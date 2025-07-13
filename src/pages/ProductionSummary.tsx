@@ -280,10 +280,20 @@ const ProductionSummary = () => {
   orders.forEach(order => {
     const replacementDetails = getReplacementCustomerDetails(order, replacementMap);
     
+    // Debug logging for replacement
+    if (order.ordernumber === 345126) {
+      console.log('Order 345126 - Original:', order.customername, order.city);
+      console.log('Order 345126 - Replacement details:', replacementDetails);
+      console.log('Order 345126 - Replacement map has:', replacementMap.size, 'entries');
+      console.log('Order 345126 - Replacement map:', Array.from(replacementMap.entries()));
+    }
+    
     // If there's a replacement, use the new customer key and show new customer with original order
     const key = replacementDetails.customername !== order.customername 
       ? `${replacementDetails.customername}-${replacementDetails.city}`
       : `${order.customername}-${order.city}`;
+    
+    console.log(`Processing order ${order.ordernumber} - Key: ${key}, IsReplacement: ${replacementDetails.customername !== order.customername}`);
     
     if (!customerEntries.has(key)) {
       const originalDetails = customerDetailsMap.get(order.customernumber || '');
