@@ -279,8 +279,11 @@ const ProductionSummary = () => {
   // Process orders with customer replacement
   orders.forEach(order => {
     const replacementDetails = getReplacementCustomerDetails(order, replacementMap);
-    // Use original customer data for key but replacement details for display
-    const key = `${order.customername}-${order.city}`;
+    
+    // If there's a replacement, use the new customer key and show new customer with original order
+    const key = replacementDetails.customername !== order.customername 
+      ? `${replacementDetails.customername}-${replacementDetails.city}`
+      : `${order.customername}-${order.city}`;
     
     if (!customerEntries.has(key)) {
       const originalDetails = customerDetailsMap.get(order.customernumber || '');
@@ -322,8 +325,11 @@ const ProductionSummary = () => {
   // Process returns with customer replacement
   returns.forEach(returnItem => {
     const replacementDetails = getReplacementCustomerDetails(returnItem, replacementMap);
-    // Use original customer data for key but replacement details for display
-    const key = `${returnItem.customername}-${returnItem.city}`;
+    
+    // If there's a replacement, use the new customer key and show new customer with original return
+    const key = replacementDetails.customername !== returnItem.customername 
+      ? `${replacementDetails.customername}-${replacementDetails.city}`
+      : `${returnItem.customername}-${returnItem.city}`;
     
     if (!customerEntries.has(key)) {
       const originalDetails = customerDetailsMap.get(returnItem.customernumber || '');
