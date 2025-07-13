@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export type RelatedItem = {
   type: "orders" | "returns";
@@ -49,6 +50,7 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
   allowedTypes = ["orders", "returns", "schedules"]
 }) => {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState("");
   const [searchType, setSearchType] = useState<SearchType>(allowedTypes[0] || "orders");
   const [isOpen, setIsOpen] = useState(false);
@@ -494,7 +496,7 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
             setIsOpen(false);
           }
         }}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className={isMobile ? "w-28 text-xs" : "w-40"}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -522,7 +524,7 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
           />
           
           {isOpen && (searchResults?.length > 0 || isLoading) && (
-            <Card className="absolute top-full left-0 right-0 z-50 mt-1 max-h-64 overflow-y-auto">
+            <Card className={`absolute top-full left-0 right-0 z-50 mt-1 overflow-y-auto ${isMobile ? "max-h-80" : "max-h-64"}`}>
               <CardContent className="p-2">
                 {isLoading ? (
                   <div className="p-2 text-center text-gray-500">חיפוש...</div>
