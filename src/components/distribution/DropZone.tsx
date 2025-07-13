@@ -11,6 +11,7 @@ import { OrderCard } from './OrderCard';
 import { pdf } from '@react-pdf/renderer';
 import { ZonePDFDocument } from './ZonePDFDocument';
 import { ScheduleResetConfirmDialog } from './ScheduleResetConfirmDialog';
+import { ImportantMessageBadge } from './ImportantMessageBadge';
 import { getAreaColor, getMainAreaFromSeparation } from '@/utils/areaColors';
 
 interface Order {
@@ -108,6 +109,10 @@ interface DropZoneProps {
   
   // "order on another customer" details map
   orderOnAnotherCustomerDetails?: Map<string, any>;
+  
+  // schedule message props
+  scheduleMessageMap?: Record<string, { subject: string; content?: string; tagAgent?: string; agentName?: string }>;
+  onScheduleImportantMessageClick?: (scheduleId: number) => void;
 }
 
 /**
@@ -166,7 +171,9 @@ export const DropZone: React.FC<DropZoneProps> = ({
   messageMap = {},
   onMessageBadgeClick,
   cancellationMap = new Set(),
-  orderOnAnotherCustomerDetails = new Map()
+  orderOnAnotherCustomerDetails = new Map(),
+  scheduleMessageMap = {},
+  onScheduleImportantMessageClick
 }) => {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [scheduleId, setScheduleId] = useState<number | null>(null);
@@ -525,6 +532,17 @@ export const DropZone: React.FC<DropZoneProps> = ({
               {selectedDriver && (
                 <div className="font-medium text-secondary-foreground">
                   נהג נבחר: {selectedDriver.nahag}
+                </div>
+              )}
+              {/* Important Message Badge */}
+              {scheduleId && scheduleMessageMap[`schedule-${scheduleId}`] && onScheduleImportantMessageClick && (
+                <div className="flex justify-center mt-2 mb-2">
+                  <ImportantMessageBadge
+                    onClick={() => onScheduleImportantMessageClick(scheduleId)}
+                    content={scheduleMessageMap[`schedule-${scheduleId}`]?.content}
+                    tagAgent={scheduleMessageMap[`schedule-${scheduleId}`]?.tagAgent}
+                    agentName={scheduleMessageMap[`schedule-${scheduleId}`]?.agentName}
+                  />
                 </div>
               )}
               {scheduleId && (

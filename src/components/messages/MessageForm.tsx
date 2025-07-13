@@ -207,6 +207,12 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
             .update({ message_alert: true })
             .eq('returnnumber', item.id);
           if (returnError) console.warn('Failed to update return message_alert:', returnError);
+        } else if (item.type === "schedules") {
+          const { error: scheduleError } = await supabase
+            .from('distribution_schedule')
+            .update({ message_alert: true })
+            .eq('schedule_id', item.id);
+          if (scheduleError) console.warn('Failed to update schedule message_alert:', scheduleError);
         }
       }
     },

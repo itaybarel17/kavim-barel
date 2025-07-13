@@ -70,6 +70,7 @@ interface DistributionSchedule {
   driver_id?: number;
   distribution_date?: string;
   isPinned?: boolean;
+  message_alert?: boolean;
 }
 interface Driver {
   id: number;
@@ -229,7 +230,7 @@ const Distribution = () => {
       const {
         data,
         error
-      } = await supabase.from('distribution_schedule').select('schedule_id, groups_id, create_at_schedule, driver_id, distribution_date, isPinned').is('done_schedule', null); // Only get active schedules, not produced ones
+      } = await supabase.from('distribution_schedule').select('schedule_id, groups_id, create_at_schedule, driver_id, distribution_date, isPinned, message_alert').is('done_schedule', null); // Only get active schedules, not produced ones
 
       if (error) throw error;
       console.log('Active distribution schedules fetched:', data);
@@ -570,6 +571,25 @@ const Distribution = () => {
     }
   });
 
+  // Fetch schedule messages - messages associated only with schedules
+  const { data: scheduleMessages = [] } = useQuery({
+    queryKey: ['schedule-messages'],
+    queryFn: async () => {
+      console.log('Fetching schedule messages...');
+      const { data, error } = await supabase
+        .from('messages')
+        .select('schedule_id, subject, content, tagagent, agentnumber, created_at')
+        .not('schedule_id', 'is', null)
+        .is('ordernumber', null)
+        .is('returnnumber', null)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      console.log('Schedule messages fetched:', data);
+      return data;
+    }
+  });
+
   // Create agent name mapping
   const agentNameMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -624,6 +644,26 @@ const Distribution = () => {
     });
     return map;
   }, [cancellationData]);
+
+  // Create schedule message mapping for quick lookup
+  const scheduleMessageMap = useMemo(() => {
+    const map: Record<string, { subject: string; content?: string; tagAgent?: string; agentName?: string }> = {};
+    
+    scheduleMessages.forEach(msg => {
+      if (msg.schedule_id) {
+        const messageInfo = {
+          subject: msg.subject,
+          content: msg.content,
+          tagAgent: msg.tagagent,
+          agentName: msg.tagagent ? agentNameMap[msg.tagagent] : undefined
+        };
+        
+        map[`schedule-${msg.schedule_id}`] = messageInfo;
+      }
+    });
+    
+    return map;
+  }, [scheduleMessages, agentNameMap]);
 
   // Update zone-schedule mapping when schedules change
   useEffect(() => {
@@ -985,6 +1025,32 @@ const Distribution = () => {
     }
   };
 
+  // Handle schedule important message badge click
+  const handleScheduleImportantMessageClick = async (scheduleId: number) => {
+    try {
+      console.log('Schedule important message clicked for schedule:', scheduleId);
+      
+      // Toggle message_alert in distribution_schedule
+      const currentSchedule = distributionSchedules.find(s => s.schedule_id === scheduleId);
+      const currentAlert = currentSchedule?.message_alert;
+      
+      const { error } = await supabase
+        .from('distribution_schedule')
+        .update({ message_alert: !currentAlert })
+        .eq('schedule_id', scheduleId);
+      
+      if (error) {
+        console.error('Error updating schedule message_alert:', error);
+        return;
+      }
+      
+      refetchSchedules();
+      console.log('Schedule message alert status updated successfully');
+    } catch (error) {
+      console.error('Error updating schedule message alert:', error);
+    }
+  };
+
   // Filter unassigned items (those without schedule_id or with schedule_id pointing to produced schedules)
   const unassignedOrders = orders.filter(order => !order.schedule_id || !distributionSchedules.some(schedule => schedule.schedule_id === order.schedule_id));
   const unassignedReturns = returns.filter(returnItem => !returnItem.schedule_id || !distributionSchedules.some(schedule => schedule.schedule_id === returnItem.schedule_id));
@@ -1040,6 +1106,13 @@ const Distribution = () => {
     return unassignedHasSiren || assignedHasSiren;
   }, [unassignedOrders, unassignedReturns, orders, returns, distributionSchedules]);
 
+  // Check if there are any schedule messages with important alerts
+  const hasScheduleImportantMessages = useMemo(() => {
+    return distributionSchedules.some(schedule => 
+      schedule.message_alert && scheduleMessageMap[`schedule-${schedule.schedule_id}`]
+    );
+  }, [distributionSchedules, scheduleMessageMap]);
+
   // Periodic refresh for horizontal kanban every minute
   useEffect(() => {
     const refreshInterval = setInterval(() => {
@@ -1069,6 +1142,11 @@ const Distribution = () => {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
             <h1 className="text-3xl font-bold text-gray-700">ממשק הפצה</h1>
+            {hasScheduleImportantMessages && (
+              <span className="text-sm bg-purple-100 text-purple-800 px-2 py-1 rounded-full border border-purple-300">
+                יש הודעות חשובות בלוחות זמנים
+              </span>
+            )}
             <CustomerMessageBanner messages={customerMessages} />
           </div>
           <CentralAlertBanner isVisible={hasGlobalActiveSiren} />
@@ -1123,6 +1201,8 @@ const Distribution = () => {
               onMessageBadgeClick={handleMessageBadgeClick}
               cancellationMap={cancellationMap}
               orderOnAnotherCustomerDetails={orderOnAnotherCustomerDetails}
+              scheduleMessageMap={scheduleMessageMap}
+              onScheduleImportantMessageClick={handleScheduleImportantMessageClick}
             />
           )}
         </div>

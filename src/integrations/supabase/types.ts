@@ -268,6 +268,7 @@ export type Database = {
           europallet_return: number | null
           groups_id: number | null
           isPinned: boolean | null
+          message_alert: boolean | null
           nahag_name: string | null
           note: string | null
           schedule_id: number
@@ -283,6 +284,7 @@ export type Database = {
           europallet_return?: number | null
           groups_id?: number | null
           isPinned?: boolean | null
+          message_alert?: boolean | null
           nahag_name?: string | null
           note?: string | null
           schedule_id?: number
@@ -298,6 +300,7 @@ export type Database = {
           europallet_return?: number | null
           groups_id?: number | null
           isPinned?: boolean | null
+          message_alert?: boolean | null
           nahag_name?: string | null
           note?: string | null
           schedule_id?: number
