@@ -493,15 +493,16 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 )}
               </div>
             ) : (
-              // Customer doesn't exist - show only name and city
+              // Customer doesn't exist - show manual customer name, city and area from cities table
               <div className="space-y-1 text-xs">
                 <div className="font-medium">{orderOnAnotherCustomerDetails.correctCustomer}</div>
                 <div>{orderOnAnotherCustomerDetails.city}</div>
                 <div className="text-red-600 mt-1">לא נמצא במערכת</div>
-                {orderOnAnotherCustomerDetails.newArea && (
+                {/* Show area from cities table */}
+                {manualCustomerArea && (
                   <div className="mt-2">
-                    <Badge className={`text-xs ${getAreaColor(orderOnAnotherCustomerDetails.newArea)}`}>
-                      {orderOnAnotherCustomerDetails.newArea}
+                    <Badge className={`text-xs ${getAreaColor(manualCustomerArea)}`}>
+                      {manualCustomerArea}
                     </Badge>
                   </div>
                 )}
