@@ -1,6 +1,7 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { Button } from '@/components/ui/button';
@@ -8,14 +9,22 @@ import { ReportHeader } from '@/components/zone-report/ReportHeader';
 import { CombinedItemsList } from '@/components/zone-report/CombinedItemsList';
 import { SummarySection } from '@/components/zone-report/SummarySection';
 import { ActionButtons } from '@/components/zone-report/ActionButtons';
+import { supabase } from '@/integrations/supabase/client';
 import {
   ZoneReportData,
   sortOrdersByLocationAndCustomer,
   sortReturnsByLocationAndCustomer,
   createNumberedOrdersList,
   createCombinedItemsList,
-  calculateTotals
+  calculateTotals,
+  Order,
+  Return
 } from '@/components/zone-report/utils';
+import {
+  getReplacementCustomerDetails,
+  getCustomerReplacementMap,
+  type CustomerReplacement
+} from '@/utils/scheduleUtils';
 
 const ZoneReport = () => {
   const { zoneId } = useParams();
@@ -42,13 +51,103 @@ const ZoneReport = () => {
   // Properly destructure customerSupplyMap with default empty object
   const { zoneNumber, scheduleId, groupName, driverName, orders, returns, customerSupplyMap = {} } = reportData;
 
-  // Process data with sorting and numbering
-  const sortedOrders = sortOrdersByLocationAndCustomer(orders);
-  const sortedReturns = sortReturnsByLocationAndCustomer(returns);
+  // Fetch customer replacement data
+  const { data: customerReplacements = [] } = useQuery({
+    queryKey: ['customer-replacements-zone', scheduleId],
+    queryFn: async () => {
+      if (!scheduleId || (!orders.length && !returns.length)) return [];
+      
+      const orderNumbers = orders.map(o => o.ordernumber);
+      const returnNumbers = returns.map(r => r.returnnumber);
+      
+      if (orderNumbers.length === 0 && returnNumbers.length === 0) return [];
+      
+      // Get all "order on another customer" messages for these orders/returns
+      const { data: messages, error } = await supabase
+        .from('messages')
+        .select('ordernumber, returnnumber, correctcustomer, city')
+        .eq('subject', 'הזמנה על לקוח אחר')
+        .not('correctcustomer', 'is', null)
+        .or(`ordernumber.in.(${orderNumbers.join(',')}),returnnumber.in.(${returnNumbers.join(',')})`);
+      
+      if (error) throw error;
+      if (!messages || messages.length === 0) return [];
+      
+      // Get customer details for all replacement customers
+      const correctCustomerNames = [...new Set(messages.map(m => m.correctcustomer).filter(Boolean))];
+      
+      const { data: existingCustomers, error: customerError } = await supabase
+        .from('customerlist')
+        .select('customername, customernumber, address, city, mobile, phone, supplydetails')
+        .in('customername', correctCustomerNames);
+      
+      if (customerError) throw customerError;
+      
+      // Create customer lookup map
+      const customerMap = new globalThis.Map(existingCustomers?.map(c => [c.customername, c]) || []);
+      
+      // Build replacement data
+      const replacements: CustomerReplacement[] = messages.map(msg => ({
+        ordernumber: msg.ordernumber,
+        returnnumber: msg.returnnumber,
+        correctcustomer: msg.correctcustomer,
+        city: msg.city,
+        existsInSystem: customerMap.has(msg.correctcustomer),
+        customerData: customerMap.get(msg.correctcustomer) ? {
+          customername: customerMap.get(msg.correctcustomer)!.customername,
+          customernumber: customerMap.get(msg.correctcustomer)!.customernumber,
+          address: customerMap.get(msg.correctcustomer)!.address,
+          city: customerMap.get(msg.correctcustomer)!.city,
+          mobile: customerMap.get(msg.correctcustomer)!.mobile,
+          phone: customerMap.get(msg.correctcustomer)!.phone,
+          supplydetails: customerMap.get(msg.correctcustomer)!.supplydetails,
+        } : undefined
+      }));
+      
+      return replacements;
+    },
+    enabled: !!scheduleId && (orders.length > 0 || returns.length > 0)
+  });
+
+  // Create replacement map
+  const replacementMap = useMemo(() => {
+    return getCustomerReplacementMap(customerReplacements);
+  }, [customerReplacements]);
+
+  // Apply customer replacements to orders and returns
+  const processedOrders = useMemo(() => {
+    return orders.map(order => {
+      const replacementDetails = getReplacementCustomerDetails(order, replacementMap);
+      return {
+        ...order,
+        customername: replacementDetails.customername,
+        address: replacementDetails.address || order.address,
+        city: replacementDetails.city || order.city,
+        customernumber: replacementDetails.customernumber || order.customernumber
+      };
+    });
+  }, [orders, replacementMap]);
+
+  const processedReturns = useMemo(() => {
+    return returns.map(returnItem => {
+      const replacementDetails = getReplacementCustomerDetails(returnItem, replacementMap);
+      return {
+        ...returnItem,
+        customername: replacementDetails.customername,
+        address: replacementDetails.address || returnItem.address,
+        city: replacementDetails.city || returnItem.city,
+        customernumber: replacementDetails.customernumber || returnItem.customernumber
+      };
+    });
+  }, [returns, replacementMap]);
+
+  // Process data with sorting and numbering using processed orders/returns
+  const sortedOrders = sortOrdersByLocationAndCustomer(processedOrders);
+  const sortedReturns = sortReturnsByLocationAndCustomer(processedReturns);
   const numberedOrders = createNumberedOrdersList(sortedOrders);
   const numberedOrdersCount = numberedOrders.filter(order => order.displayIndex).length;
   const combinedItems = createCombinedItemsList(numberedOrders, sortedReturns);
-  const { totalOrdersAmount, totalReturnsAmount, netTotal } = calculateTotals(orders, returns);
+  const { totalOrdersAmount, totalReturnsAmount, netTotal } = calculateTotals(processedOrders, processedReturns);
 
   const handleExportToPDF = async () => {
     if (!reportRef.current) return;
