@@ -63,6 +63,7 @@ interface Return {
 interface DistributionGroup {
   groups_id: number;
   separation: string;
+  days?: any; // JSONB array
 }
 interface DistributionSchedule {
   schedule_id: number;
@@ -217,7 +218,7 @@ const Distribution = () => {
       const {
         data,
         error
-      } = await supabase.from('distribution_groups').select('groups_id, separation, day');
+      } = await supabase.from('distribution_groups').select('groups_id, separation, day, days');
       if (error) throw error;
       console.log('Distribution groups fetched:', data);
       return data as DistributionGroup[];
