@@ -92,7 +92,7 @@ interface OrderCardProps {
     city: string;
     newArea?: string;
     existsInSystem: boolean;
-    customerDetails?: {
+    customerData?: {
       customername: string;
       customernumber: string;
       address: string;
@@ -452,15 +452,15 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           <div className="bg-white border border-gray-300 rounded-lg p-3 shadow-lg max-w-[200px] text-center">
             <h4 className="font-bold text-sm text-blue-800 mb-2">לקוח חדש:</h4>
             
-            {orderOnAnotherCustomerDetails.existsInSystem && orderOnAnotherCustomerDetails.customerDetails ? (
+            {orderOnAnotherCustomerDetails.existsInSystem && orderOnAnotherCustomerDetails.customerData ? (
               // Customer exists in database - show full details
               <div className="space-y-1 text-xs">
-                <div className="font-medium">{orderOnAnotherCustomerDetails.customerDetails.customername}</div>
-                <div>{orderOnAnotherCustomerDetails.customerDetails.address}</div>
-                <div>{orderOnAnotherCustomerDetails.customerDetails.city}</div>
-                <div className="text-gray-600">לקוח: {orderOnAnotherCustomerDetails.customerDetails.customernumber}</div>
-                {orderOnAnotherCustomerDetails.customerDetails.supplydetails && (
-                  <div className="text-gray-600">אספקה: {orderOnAnotherCustomerDetails.customerDetails.supplydetails}</div>
+                <div className="font-medium">{orderOnAnotherCustomerDetails.customerData.customername}</div>
+                <div>{orderOnAnotherCustomerDetails.customerData.address}</div>
+                <div>{orderOnAnotherCustomerDetails.customerData.city}</div>
+                <div className="text-gray-600">לקוח: {orderOnAnotherCustomerDetails.customerData.customernumber}</div>
+                {orderOnAnotherCustomerDetails.customerData.supplydetails && (
+                  <div className="text-gray-600">אספקה: {orderOnAnotherCustomerDetails.customerData.supplydetails}</div>
                 )}
                 {orderOnAnotherCustomerDetails.newArea && (
                   <div className="mt-2">
