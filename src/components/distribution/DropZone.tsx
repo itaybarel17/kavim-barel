@@ -108,8 +108,8 @@ interface DropZoneProps {
   // cancellation map for red X overlay
   cancellationMap?: Set<string>;
   
-  // "order on another customer" details map
-  orderOnAnotherCustomerDetails?: Map<string, any>;
+  // customer replacement map for "order on another customer" functionality
+  customerReplacementMap?: Map<string, any>;
   
   // schedule message props
   scheduleMessageMap?: Record<string, { subject: string; content?: string; tagAgent?: string; agentName?: string }>;
@@ -172,7 +172,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
   messageMap = {},
   onMessageBadgeClick,
   cancellationMap = new Set(),
-  orderOnAnotherCustomerDetails = new Map(),
+  customerReplacementMap = new Map(),
   scheduleMessageMap = {},
   onScheduleImportantMessageClick
 }) => {
@@ -583,7 +583,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
             messagesInfo={messageMap[`order-${order.ordernumber}`]}
             onMessageBadgeClick={onMessageBadgeClick}
             hasCancellationMessage={cancellationMap.has(`order-${order.ordernumber}`)}
-            orderOnAnotherCustomerDetails={orderOnAnotherCustomerDetails.get(`order-${order.ordernumber}`)}
+            orderOnAnotherCustomerDetails={customerReplacementMap.get(`order-${order.ordernumber}`)}
           />
         ))}
         {sortedReturns.map(returnItem => (
@@ -599,7 +599,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
             messagesInfo={messageMap[`return-${returnItem.returnnumber}`]}
             onMessageBadgeClick={onMessageBadgeClick}
             hasCancellationMessage={cancellationMap.has(`return-${returnItem.returnnumber}`)}
-            orderOnAnotherCustomerDetails={orderOnAnotherCustomerDetails.get(`return-${returnItem.returnnumber}`)}
+            orderOnAnotherCustomerDetails={customerReplacementMap.get(`return-${returnItem.returnnumber}`)}
           />
         ))}
         {assignedOrders.length === 0 && assignedReturns.length === 0 && (

@@ -74,8 +74,8 @@ interface UnassignedAreaProps {
   // cancellation map for red X overlay
   cancellationMap?: Set<string>;
   
-  // "order on another customer" details map
-  orderOnAnotherCustomerDetails?: Map<string, any>;
+  // customer replacement map for "order on another customer" functionality
+  customerReplacementMap?: Map<string, any>;
 }
 export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
   unassignedOrders,
@@ -90,7 +90,7 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
   messageMap = {},
   onMessageBadgeClick,
   cancellationMap = new Set(),
-  orderOnAnotherCustomerDetails = new Map()
+  customerReplacementMap = new Map()
 }) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{
@@ -147,7 +147,7 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
               messagesInfo={messageMap[`order-${order.ordernumber}`]}
               onMessageBadgeClick={onMessageBadgeClick}
               hasCancellationMessage={cancellationMap.has(`order-${order.ordernumber}`)}
-              orderOnAnotherCustomerDetails={orderOnAnotherCustomerDetails.get(`order-${order.ordernumber}`)}
+              orderOnAnotherCustomerDetails={customerReplacementMap.get(`order-${order.ordernumber}`)}
             />
             {onDeleteItem && (
               <button
@@ -173,7 +173,7 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
               messagesInfo={messageMap[`return-${returnItem.returnnumber}`]}
               onMessageBadgeClick={onMessageBadgeClick}
               hasCancellationMessage={cancellationMap.has(`return-${returnItem.returnnumber}`)}
-              orderOnAnotherCustomerDetails={orderOnAnotherCustomerDetails.get(`return-${returnItem.returnnumber}`)}
+              orderOnAnotherCustomerDetails={customerReplacementMap.get(`return-${returnItem.returnnumber}`)}
             />
             {onDeleteItem && (
               <button

@@ -14,6 +14,7 @@ import { CentralAlertBanner } from '@/components/distribution/CentralAlertBanner
 import { useIsMobile } from '@/hooks/use-mobile';
 import { WarehouseMessageBanner } from '@/components/distribution/WarehouseMessageBanner';
 import { CustomerMessageBanner } from '@/components/distribution/CustomerMessageBanner';
+import { getCustomerReplacementMap, getReplacementCustomerDetails } from '@/utils/scheduleUtils';
 
 interface Order {
   ordernumber: number;
@@ -78,7 +79,12 @@ interface Driver {
 }
 interface CustomerSupply {
   customernumber: string;
+  customername?: string;
   supplydetails?: string;
+  address?: string;
+  city?: string;
+  mobile?: string;
+  phone?: string;
 }
 
 const Distribution = () => {
@@ -193,10 +199,10 @@ const Distribution = () => {
       const {
         data,
         error
-      } = await supabase.from('customerlist').select('customernumber, supplydetails');
+      } = await supabase.from('customerlist').select('customernumber, customername, supplydetails, address, city, mobile, phone');
       if (error) throw error;
       console.log('Customer supply data fetched:', data);
-      return data as CustomerSupply[];
+      return data;
     }
   });
 
@@ -449,13 +455,10 @@ const Distribution = () => {
     }
   });
 
-  // 5. Fetch "order on another customer" details
-  const { data: orderOnAnotherCustomerDetails = new Map(), isLoading: isOrderDetailsLoading } = useQuery({
-    queryKey: ['order-on-another-customer-details'],
+  // 5. Fetch "order on another customer" details using standardized functions
+  const { data: orderReplacements = [] } = useQuery({
+    queryKey: ['order-replacements'],
     queryFn: async () => {
-      const details = new Map();
-      
-      // Get all "order on another customer" messages
       const { data: messages, error } = await supabase
         .from('messages')
         .select('ordernumber, returnnumber, correctcustomer, city')
@@ -463,83 +466,23 @@ const Distribution = () => {
         .not('correctcustomer', 'is', null);
 
       if (error) throw error;
-      if (!messages || messages.length === 0) return details;
-
-      // Get all correct customer names to check which exist in DB
-      const correctCustomerNames = [...new Set(messages.map(m => m.correctcustomer).filter(Boolean))];
       
-      const { data: existingCustomers, error: customerError } = await supabase
-        .from('customerlist')
-        .select('customername, customernumber, address, city, mobile, phone, supplydetails')
-        .in('customername', correctCustomerNames);
-
-      if (customerError) throw customerError;
-
-      // Create customer lookup map
-      const customerMap = new Map(existingCustomers?.map(c => [c.customername, c]) || []);
-
-      // Get all cities we need to check (from messages where city is specified, or from existing customers)
-      const allCities = new Set<string>();
+      // Transform messages to include existsInSystem field
+      const transformedMessages = (messages || []).map(msg => ({
+        ...msg,
+        existsInSystem: customerSupplyData.some(customer => 
+          customer.customername === msg.correctcustomer
+        )
+      }));
       
-      messages.forEach(msg => {
-        const existingCustomer = customerMap.get(msg.correctcustomer);
-        if (existingCustomer && existingCustomer.city) {
-          // If customer exists in system, use their city from customerlist
-          allCities.add(existingCustomer.city);
-        } else if (msg.city) {
-          // If customer doesn't exist, use city from message
-          allCities.add(msg.city);
-        }
-      });
-
-      // Get area information for all relevant cities
-      const { data: cityAreas, error: cityError } = await supabase
-        .from('cities')
-        .select('city, area')
-        .in('city', Array.from(allCities));
-
-      if (cityError) throw cityError;
-
-      const cityAreaMap = new Map(cityAreas?.map(c => [c.city, c.area]) || []);
-
-      // Process each message
-      messages.forEach(msg => {
-        const existingCustomer = customerMap.get(msg.correctcustomer);
-        
-        // Determine which city to use for area calculation
-        const effectiveCity = existingCustomer?.city || msg.city;
-        const newArea = cityAreaMap.get(effectiveCity);
-
-        const replacementData = {
-          ordernumber: msg.ordernumber,
-          returnnumber: msg.returnnumber,
-          correctcustomer: msg.correctcustomer,
-          city: effectiveCity,
-          existsInSystem: !!existingCustomer,
-          customerData: existingCustomer ? {
-            customername: existingCustomer.customername,
-            customernumber: existingCustomer.customernumber,
-            address: existingCustomer.address,
-            city: existingCustomer.city,
-            mobile: existingCustomer.mobile,
-            phone: existingCustomer.phone,
-            supplydetails: existingCustomer.supplydetails,
-          } : undefined,
-          newArea
-        };
-        
-        if (msg.ordernumber) {
-          details.set(`order-${msg.ordernumber}`, replacementData);
-        }
-        
-        if (msg.returnnumber) {
-          details.set(`return-${msg.returnnumber}`, replacementData);
-        }
-      });
-
-      return details;
+      return transformedMessages;
     }
   });
+
+  // Get customer replacement map using standardized function
+  const customerReplacementMap = useMemo(() => {
+    return getCustomerReplacementMap(orderReplacements, customerSupplyData);
+  }, [orderReplacements, customerSupplyData]);
 
   // Fetch messages for orders and returns
   const { data: messageData = [] } = useQuery({
@@ -1190,7 +1133,7 @@ const Distribution = () => {
           messageMap={messageMap}
           onMessageBadgeClick={handleMessageBadgeClick}
           cancellationMap={cancellationMap}
-          orderOnAnotherCustomerDetails={orderOnAnotherCustomerDetails}
+          customerReplacementMap={customerReplacementMap}
         />
 
         {/* Mobile: single column, Tablet: 2 columns, Desktop: 4 columns */}
@@ -1217,7 +1160,7 @@ const Distribution = () => {
               messageMap={messageMap}
               onMessageBadgeClick={handleMessageBadgeClick}
               cancellationMap={cancellationMap}
-              orderOnAnotherCustomerDetails={orderOnAnotherCustomerDetails}
+              customerReplacementMap={customerReplacementMap}
               scheduleMessageMap={scheduleMessageMap}
               onScheduleImportantMessageClick={handleScheduleImportantMessageClick}
             />
