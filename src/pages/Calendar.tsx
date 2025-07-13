@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription';
@@ -595,7 +593,8 @@ const Calendar = () => {
         </div>
       </div>;
   }
-  return <div className="min-h-screen p-6 bg-[#52a0e4]/15">
+  return (
+    <div className="min-h-screen p-6 bg-[#52a0e4]/15">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold text-gray-700">לוח שנה</h1>
         <div className="flex gap-2">
@@ -635,6 +634,7 @@ const Calendar = () => {
 
       {/* Calendar Grid */}
       <CalendarGrid currentWeekStart={currentWeekStart} distributionSchedules={filteredSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={filteredOrders} returns={filteredReturns} onDropToDate={currentUser?.agentnumber === "4" ? handleDropToDate : undefined} currentUser={currentUser} onRefreshData={handleRefreshData} />
-    </div>;
+    </div>
+  );
 };
 export default Calendar;
