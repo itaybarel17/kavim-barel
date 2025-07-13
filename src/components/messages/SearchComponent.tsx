@@ -488,7 +488,7 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
+      <div className="flex">
         <Select value={searchType} onValueChange={(value: SearchType) => {
           if (allowedTypes.includes(value)) {
             setSearchType(value);
@@ -496,7 +496,7 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
             setIsOpen(false);
           }
         }}>
-          <SelectTrigger className={isMobile ? "w-28 text-xs" : "w-40"}>
+          <SelectTrigger className={isMobile ? "w-24 text-xs rounded-r-none border-r-0" : "w-32 rounded-r-none border-r-0"}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -511,7 +511,6 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
             )}
           </SelectContent>
         </Select>
-        
         <div className="relative flex-1" ref={dropdownRef}>
           <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
           <Input
@@ -519,7 +518,7 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
             placeholder={getSearchPlaceholder()}
             value={searchTerm}
             onChange={(e) => handleInputChange(e.target.value)}
-            className="pl-10 text-sm w-full"
+            className="pl-10 text-sm w-full rounded-l-none"
             onFocus={() => setIsOpen(searchTerm.length >= 1)}
           />
           
