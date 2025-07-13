@@ -91,7 +91,7 @@ interface OrderCardProps {
     correctCustomer: string;
     city: string;
     newArea?: string;
-    customerExists: boolean;
+    existsInSystem: boolean;
     customerDetails?: {
       customername: string;
       customernumber: string;
@@ -452,7 +452,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           <div className="bg-white border border-gray-300 rounded-lg p-3 shadow-lg max-w-[200px] text-center">
             <h4 className="font-bold text-sm text-blue-800 mb-2">לקוח חדש:</h4>
             
-            {orderOnAnotherCustomerDetails.customerExists && orderOnAnotherCustomerDetails.customerDetails ? (
+            {orderOnAnotherCustomerDetails.existsInSystem && orderOnAnotherCustomerDetails.customerDetails ? (
               // Customer exists in database - show full details
               <div className="space-y-1 text-xs">
                 <div className="font-medium">{orderOnAnotherCustomerDetails.customerDetails.customername}</div>
