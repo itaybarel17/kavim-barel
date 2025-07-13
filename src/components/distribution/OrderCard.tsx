@@ -465,7 +465,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       {/* White overlay for "order on another customer" details */}
       {hasOrderOnAnotherCustomer && orderOnAnotherCustomerDetails && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-          <div className="bg-white border border-gray-300 rounded-lg p-3 shadow-lg max-w-[200px] text-center">
+          <div className="bg-white border border-gray-300 rounded-lg p-2 shadow-lg max-w-[180px] text-center">
             <h4 className="font-bold text-sm text-blue-800 mb-2">לקוח חדש:</h4>
             
             {orderOnAnotherCustomerDetails.existsInSystem && orderOnAnotherCustomerDetails.customerData ? (
@@ -487,7 +487,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 {/* Delivery time - only new customer's supply details */}
                 {orderOnAnotherCustomerDetails.customerData.supplydetails && (
                   <div className="text-gray-600">
-                    <span className="font-medium">זמן אספקה: </span>
                     {orderOnAnotherCustomerDetails.customerData.supplydetails}
                   </div>
                 )}

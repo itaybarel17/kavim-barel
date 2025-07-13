@@ -157,19 +157,13 @@ const ProductionSummary = () => {
       
       console.log('Fetching customer replacement data for schedule:', scheduleId);
       
-      // Get all order and return numbers for this schedule
-      const orderNumbers = orders.map(o => o.ordernumber);
-      const returnNumbers = returns.map(r => r.returnnumber);
-      
-      if (orderNumbers.length === 0 && returnNumbers.length === 0) return [];
-      
-      // Get all "order on another customer" messages for these orders/returns
+      // Get all "order on another customer" messages that target this schedule
       const { data: messages, error } = await supabase
         .from('messages')
-        .select('ordernumber, returnnumber, correctcustomer, city')
+        .select('ordernumber, returnnumber, correctcustomer, city, schedule_id')
         .eq('subject', 'הזמנה על לקוח אחר')
-        .not('correctcustomer', 'is', null)
-        .or(`ordernumber.in.(${orderNumbers.join(',')}),returnnumber.in.(${returnNumbers.join(',')})`);
+        .eq('schedule_id', parseInt(scheduleId))
+        .not('correctcustomer', 'is', null);
       
       if (error) throw error;
       if (!messages || messages.length === 0) return [];
