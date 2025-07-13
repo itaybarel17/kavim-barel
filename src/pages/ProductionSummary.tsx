@@ -188,35 +188,23 @@ const ProductionSummary = () => {
       if (error) throw error;
       if (!messages || messages.length === 0) return [];
       
-      // Get customer details for all replacement customers
-      const correctCustomerNames = [...new Set(messages.map(m => m.correctcustomer).filter(Boolean))];
-      
-      const { data: existingCustomers, error: customerError } = await supabase
-        .from('customerlist')
-        .select('customername, customernumber, address, city, mobile, phone, supplydetails')
-        .in('customername', correctCustomerNames);
-      
-      if (customerError) throw customerError;
-      
-      // Create customer lookup map
-      const customerMap = new globalThis.Map(existingCustomers?.map(c => [c.customername, c]) || []);
-      
-      // Build replacement data
+      // Build replacement data using only basic info from messages (white box data)
+      // No need to fetch from customerlist - use only what's in the message
       const replacements: CustomerReplacement[] = messages.map(msg => ({
         ordernumber: msg.ordernumber,
         returnnumber: msg.returnnumber,
         correctcustomer: msg.correctcustomer,
         city: msg.city,
-        existsInSystem: customerMap.has(msg.correctcustomer),
-        customerData: customerMap.get(msg.correctcustomer) ? {
-          customername: customerMap.get(msg.correctcustomer)!.customername,
-          customernumber: customerMap.get(msg.correctcustomer)!.customernumber,
-          address: customerMap.get(msg.correctcustomer)!.address,
-          city: customerMap.get(msg.correctcustomer)!.city,
-          mobile: customerMap.get(msg.correctcustomer)!.mobile,
-          phone: customerMap.get(msg.correctcustomer)!.phone,
-          supplydetails: customerMap.get(msg.correctcustomer)!.supplydetails,
-        } : undefined
+        existsInSystem: false, // Always false since we're not checking customerlist
+        customerData: {
+          customername: msg.correctcustomer,
+          customernumber: undefined, // Leave blank as requested
+          address: '', // Leave blank as requested  
+          city: msg.city,
+          mobile: undefined, // Leave blank as requested
+          phone: undefined, // Leave blank as requested
+          supplydetails: undefined, // Leave blank as requested
+        }
       }));
       
       console.log('Customer replacements:', replacements);
