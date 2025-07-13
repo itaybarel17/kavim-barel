@@ -284,10 +284,18 @@ const ProductionSummary = () => {
     
     if (!customerEntries.has(key)) {
       const originalDetails = customerDetailsMap.get(order.customernumber || '');
-      // If there's a replacement and it exists in system, use replacement details
-      const finalDetails = replacementDetails.customernumber ? 
-        customerDetailsMap.get(replacementDetails.customernumber) || originalDetails :
-        originalDetails;
+      // If there's a replacement, check if it exists in system
+      let finalDetails;
+      if (replacementDetails.customernumber) {
+        // If replacement customer has customernumber, use its details
+        finalDetails = customerDetailsMap.get(replacementDetails.customernumber);
+      } else if (replacementDetails.customername !== order.customername) {
+        // If replacement customer name is different but no customernumber, leave details empty
+        finalDetails = undefined;
+      } else {
+        // No replacement, use original details
+        finalDetails = originalDetails;
+      }
         
       console.log(`Processing order for ${order.customername}:`, {
         originalDetails,
@@ -319,10 +327,18 @@ const ProductionSummary = () => {
     
     if (!customerEntries.has(key)) {
       const originalDetails = customerDetailsMap.get(returnItem.customernumber || '');
-      // If there's a replacement and it exists in system, use replacement details
-      const finalDetails = replacementDetails.customernumber ? 
-        customerDetailsMap.get(replacementDetails.customernumber) || originalDetails :
-        originalDetails;
+      // If there's a replacement, check if it exists in system
+      let finalDetails;
+      if (replacementDetails.customernumber) {
+        // If replacement customer has customernumber, use its details
+        finalDetails = customerDetailsMap.get(replacementDetails.customernumber);
+      } else if (replacementDetails.customername !== returnItem.customername) {
+        // If replacement customer name is different but no customernumber, leave details empty
+        finalDetails = undefined;
+      } else {
+        // No replacement, use original details
+        finalDetails = originalDetails;
+      }
         
       console.log(`Processing return for ${returnItem.customername}:`, {
         originalDetails,
