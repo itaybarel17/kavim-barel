@@ -24,7 +24,7 @@ interface RelatedItemsDialogProps {
     id: number;
     title: string;
     subtitle: string;
-  };
+  } | null;
   onConfirm: (selectedRelatedItems: RelatedItem[]) => void;
 }
 
@@ -83,14 +83,16 @@ export const RelatedItemsDialog: React.FC<RelatedItemsDialogProps> = ({
         </DialogHeader>
         
         <div className="space-y-4">
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800 mb-2">
-              <strong>נבחר:</strong> {selectedItem.title}
-            </p>
-            <p className="text-sm text-blue-700">
-              {selectedItem.subtitle}
-            </p>
-          </div>
+          {selectedItem && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800 mb-2">
+                <strong>נבחר:</strong> {selectedItem.title}
+              </p>
+              <p className="text-sm text-blue-700">
+                {selectedItem.subtitle}
+              </p>
+            </div>
+          )}
 
           <div className="space-y-3">
             <h3 className="font-semibold text-base">
