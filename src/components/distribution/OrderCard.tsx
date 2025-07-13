@@ -459,14 +459,30 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 <div>{orderOnAnotherCustomerDetails.customerData.address}</div>
                 <div>{orderOnAnotherCustomerDetails.customerData.city}</div>
                 <div className="text-gray-600">לקוח: {orderOnAnotherCustomerDetails.customerData.customernumber}</div>
-                {orderOnAnotherCustomerDetails.customerData.supplydetails && (
-                  <div className="text-gray-600">אספקה: {orderOnAnotherCustomerDetails.customerData.supplydetails}</div>
+                
+                {/* Original area from order */}
+                {((data as Order).ezor1 || (data as Order).ezor2) && (
+                  <div className="text-gray-600">
+                    <span className="font-medium">אזור מקורי: </span>
+                    {(data as Order).ezor1?.replace(/[\[\]]/g, '')}{(data as Order).ezor2 && (data as Order).ezor2 !== (data as Order).ezor1 ? `, ${(data as Order).ezor2}` : ''}
+                  </div>
                 )}
+                
+                {/* New area from message */}
                 {orderOnAnotherCustomerDetails.newArea && (
                   <div className="mt-2">
+                    <div className="text-blue-600 font-medium mb-1">אזור חדש:</div>
                     <Badge className={`text-xs ${getAreaColor(orderOnAnotherCustomerDetails.newArea)}`}>
                       {orderOnAnotherCustomerDetails.newArea}
                     </Badge>
+                  </div>
+                )}
+                
+                {/* Delivery time - new customer's supply details or original order time */}
+                {(orderOnAnotherCustomerDetails.customerData.supplydetails || data.hour) && (
+                  <div className="text-gray-600">
+                    <span className="font-medium">זמן אספקה: </span>
+                    {orderOnAnotherCustomerDetails.customerData.supplydetails || (data.hour ? data.hour.substring(0, 5) : '')}
                   </div>
                 )}
               </div>
