@@ -62,6 +62,7 @@ interface DistributionSchedule {
   create_at_schedule: string;
   driver_id?: number;
   distribution_date?: string;
+  message_alert?: boolean;
 }
 interface Driver {
   id: number;
@@ -542,6 +543,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
                     content={scheduleMessageMap[`schedule-${scheduleId}`]?.content}
                     tagAgent={scheduleMessageMap[`schedule-${scheduleId}`]?.tagAgent}
                     agentName={scheduleMessageMap[`schedule-${scheduleId}`]?.agentName}
+                    shouldBlink={distributionSchedules.find(s => s.schedule_id === scheduleId)?.message_alert === true}
                   />
                 </div>
               )}

@@ -9,13 +9,15 @@ interface ImportantMessageBadgeProps {
   content?: string;
   tagAgent?: string;
   agentName?: string;
+  shouldBlink?: boolean;
 }
 
 export const ImportantMessageBadge: React.FC<ImportantMessageBadgeProps> = ({
   onClick,
   content,
   tagAgent,
-  agentName
+  agentName,
+  shouldBlink = true
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -31,7 +33,7 @@ export const ImportantMessageBadge: React.FC<ImportantMessageBadgeProps> = ({
           className={cn(
             'cursor-pointer transition-all duration-200 px-2 py-1 text-xs font-bold border-2 shadow-md hover:shadow-lg active:scale-95',
             'bg-purple-600 text-white border-purple-700 hover:bg-purple-700',
-            'animate-pulse-slow shadow-lg'
+            shouldBlink && 'animate-pulse-slow shadow-lg'
           )}
           onClick={onClick}
         >
