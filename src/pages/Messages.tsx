@@ -57,7 +57,7 @@ export default function Messages() {
       // Admin (agent 4) sees all messages - no additional filtering
 
       if (filters.subject) {
-        query = query.eq('subject', filters.subject as "לבטל הזמנה" | "לדחות" | "שינוי מוצרים" | "הנחות" | "אספקה" | "לקוח אחר" | "קו הפצה");
+        query = query.eq('subject', filters.subject as "לבטל הזמנה" | "לדחות" | "שינוי מוצרים" | "הנחות" | "אספקה" | "הזמנה על לקוח אחר" | "מחסן");
       }
       
       if (filters.isHandled !== "") {

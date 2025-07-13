@@ -20,11 +20,12 @@ type MessageFiltersProps = {
 
 const SUBJECT_OPTIONS = [
   { value: "all", label: "כל הנושאים" },
-  { value: "לבטל", label: "לבטל" },
+  { value: "לבטל הזמנה", label: "לבטל הזמנה" },
   { value: "לדחות", label: "לדחות" },
+  { value: "שינוי מוצרים", label: "שינוי מוצרים" },
   { value: "הנחות", label: "הנחות" },
   { value: "אספקה", label: "אספקה" },
-  { value: "לקוח אחר", label: "לקוח אחר" },
+  { value: "הזמנה על לקוח אחר", label: "הזמנה על לקוח אחר" },
   { value: "מחסן", label: "מחסן" }
 ];
 

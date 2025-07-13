@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SearchComponent } from "./SearchComponent";
+import { SubjectSelector } from "./SubjectSelector";
+import { CustomerSelector } from "./CustomerSelector";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -21,13 +23,12 @@ const SUBJECT_OPTIONS = [
   { value: "שינוי מוצרים", label: "שינוי מוצרים" },
   { value: "הנחות", label: "הנחות" },
   { value: "אספקה", label: "אספקה" },
-  { value: "לקוח אחר", label: "לקוח אחר" },
-  { value: "קו הפצה", label: "קו הפצה" },
+  { value: "הזמנה על לקוח אחר", label: "הזמנה על לקוח אחר" },
   { value: "מחסן", label: "מחסן" }
 ] as const;
 
 type MessageFormData = {
-  subject?: "לבטל הזמנה" | "לדחות" | "שינוי מוצרים" | "הנחות" | "אספקה" | "לקוח אחר" | "קו הפצה" | "מחסן";
+  subject?: "לבטל הזמנה" | "לדחות" | "שינוי מוצרים" | "הנחות" | "אספקה" | "הזמנה על לקוח אחר" | "מחסן";
   content: string;
   tagagent?: string;
   correctcustomer?: string;
@@ -69,20 +70,13 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
   React.useEffect(() => {
     if (selectedSubject) {
       // Clear "correct customer" if not "order for another customer"
-      if (selectedSubject !== "לקוח אחר") {
+      if (selectedSubject !== "הזמנה על לקוח אחר") {
         form.setValue("correctcustomer", "");
       }
       
-      // Clear associations that don't match the subject
-      if (selectedSubject === "אספקה" || selectedSubject === "מחסן" || selectedSubject === "קו הפצה") {
-        // For supply/warehouse - can only associate with schedules
-        if (selectedItem && selectedItem.type !== "schedules") {
-          setSelectedItem(null);
-          form.setValue("ordernumber", undefined);
-          form.setValue("returnnumber", undefined);
-          form.setValue("schedule_id", undefined);
-        }
-      } else {
+      // For supply/warehouse - can associate with both orders/returns AND schedules
+      // Only clear if user is switching to incompatible types
+      if (selectedSubject !== "אספקה" && selectedSubject !== "מחסן") {
         // For other subjects - cannot associate with schedules
         if (selectedItem && selectedItem.type === "schedules") {
           setSelectedItem(null);
@@ -110,14 +104,12 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
   const createMessageMutation = useMutation({
     mutationFn: async (data: MessageFormData) => {
       // Validate association based on subject
-      if (data.subject === "אספקה" || data.subject === "מחסן" || data.subject === "קו הפצה") {
-        // Supply/warehouse/distribution can only be associated with schedules (and it's optional for warehouse)
-        if (selectedItem && selectedItem.type !== "schedules") {
-          throw new Error("הודעות אספקה, מחסן וקו הפצה יכולות להיות משוייכות רק לקווי הפצה");
+      if (data.subject === "אספקה" || data.subject === "מחסן") {
+        // Supply/warehouse can be associated with both orders/returns OR schedules
+        if (data.subject === "אספקה" && !selectedItem) {
+          throw new Error("חובה לשייך הזמנה, החזרה או קו הפצה להודעת אספקה");
         }
-        if ((data.subject === "אספקה" || data.subject === "קו הפצה") && !selectedItem) {
-          throw new Error("חובה לשייך קו הפצה להודעת אספקה וקו הפצה");
-        }
+        // Warehouse messages don't require association
       } else if (data.subject) {
         // Other subjects must be associated with orders/returns only
         if (!selectedItem) {
@@ -228,11 +220,11 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
   };
 
   // Check if "correct customer" field should be shown
-  const shouldShowCorrectCustomer = selectedSubject === "לקוח אחר";
+  const shouldShowCorrectCustomer = selectedSubject === "הזמנה על לקוח אחר";
   
   // Check if association should be required and what type
-  const shouldShowScheduleAssociation = selectedSubject === "אספקה" || selectedSubject === "מחסן" || selectedSubject === "קו הפצה";
-  const isAssociationRequired = selectedSubject !== "מחסן";
+  const shouldShowBothAssociation = selectedSubject === "אספקה" || selectedSubject === "מחסן";
+  const isAssociationRequired = selectedSubject === "אספקה";
 
   // Filter subject options based on user permissions
   const availableSubjectOptions = SUBJECT_OPTIONS.filter(option => {
@@ -248,12 +240,12 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           
           {/* 1. נושא ההודעה - ראשון ובולט */}
-          <Card className="border-2 border-blue-200 bg-blue-50">
+          <Card className="border-2 border-primary/20 bg-primary/5">
             <CardHeader className="pb-3">
-              <CardTitle className="text-xl text-blue-900 flex items-center gap-2">
-                <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">1</span>
+              <CardTitle className="text-xl text-primary flex items-center gap-2">
+                <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">1</span>
                 נושא ההודעה
-                <span className="text-sm font-normal text-blue-700">(חובה - קובע את שלבי המילוי הבאים)</span>
+                <span className="text-sm font-normal text-muted-foreground">(חובה - קובע את שלבי המילוי הבאים)</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -263,20 +255,10 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
                 rules={{ required: "נושא ההודעה נדרש" }}
                 render={({ field }) => (
                   <FormItem>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="text-lg h-12 border-2">
-                          <SelectValue placeholder="בחר נושא ההודעה..." />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {availableSubjectOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value} className="text-lg py-3">
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SubjectSelector 
+                      value={field.value || ""} 
+                      onChange={field.onChange} 
+                    />
                     <FormMessage />
                   </FormItem>
                 )}
@@ -287,13 +269,13 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
           {/* 2. שיוך להזמנה/החזרה/קו הפצה - מותנה בנושא */}
           {selectedSubject && (
             <div className="animate-fade-in">
-              <Card className={associationError ? "border-red-300 bg-red-50" : "border-2 border-green-200 bg-green-50"}>
+              <Card className={associationError ? "border-destructive/30 bg-destructive/5" : "border-2 border-accent/50 bg-accent/10"}>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg text-green-900 flex items-center gap-2">
-                    <span className="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">2</span>
-                    {shouldShowScheduleAssociation ? "שיוך לקו הפצה" : "שיוך להזמנה או החזרה"}
-                    {isAssociationRequired && <span className="text-sm font-normal text-red-600">(חובה)</span>}
-                    {!isAssociationRequired && <span className="text-sm font-normal text-green-700">(אופציונלי)</span>}
+                  <CardTitle className="text-lg text-foreground flex items-center gap-2">
+                    <span className="bg-accent text-accent-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">2</span>
+                    {shouldShowBothAssociation ? "שיוך להזמנה, החזרה או קו הפצה" : "שיוך להזמנה או החזרה"}
+                    {isAssociationRequired && <span className="text-sm font-normal text-destructive">(חובה)</span>}
+                    {!isAssociationRequired && <span className="text-sm font-normal text-muted-foreground">(אופציונלי)</span>}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -301,10 +283,10 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
                     onSelect={handleSearchSelect}
                     selectedItem={selectedItem}
                     onClear={handleSearchClear}
-                    allowedTypes={shouldShowScheduleAssociation ? ["schedules"] : ["orders", "returns"]}
+                    allowedTypes={shouldShowBothAssociation ? ["orders", "returns", "schedules"] : ["orders", "returns"]}
                   />
                   {associationError && (
-                    <div className="mt-2 text-sm text-red-600 font-medium">
+                    <div className="mt-2 text-sm text-destructive font-medium">
                       {associationError}
                     </div>
                   )}
@@ -316,12 +298,12 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
           {/* 3. לקוח נכון - רק עבור "הזמנה על לקוח אחר" */}
           {shouldShowCorrectCustomer && (
             <div className="animate-fade-in">
-              <Card className="border-2 border-amber-200 bg-amber-50">
+              <Card className="border-2 border-warning/30 bg-warning/10">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg text-amber-900 flex items-center gap-2">
-                    <span className="bg-amber-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">3</span>
+                  <CardTitle className="text-lg text-foreground flex items-center gap-2">
+                    <span className="bg-warning text-warning-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">3</span>
                     לקוח נכון
-                    <span className="text-sm font-normal text-amber-700">(נדרש עבור הזמנה על לקוח אחר)</span>
+                    <span className="text-sm font-normal text-muted-foreground">(נדרש עבור הזמנה על לקוח אחר)</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -331,13 +313,10 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
                     rules={{ required: "יש למלא את שם הלקוח הנכון" }}
                     render={({ field }) => (
                       <FormItem>
-                        <FormControl>
-                          <Input 
-                            placeholder="שם הלקוח הנכון..." 
-                            className="text-lg h-12 border-2"
-                            {...field} 
-                          />
-                        </FormControl>
+                        <CustomerSelector 
+                          value={field.value || ""} 
+                          onChange={field.onChange} 
+                        />
                         <FormMessage />
                       </FormItem>
                     )}
@@ -420,7 +399,7 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
             <Alert className="border-blue-200 bg-blue-50">
               <AlertCircle className="h-4 w-4 text-blue-600" />
               <AlertDescription className="text-blue-800">
-                <strong>הודעת מחסן:</strong> הודעה פנימית למשרד. שיוך לקו הפצה הוא אופציונלי.
+                <strong>הודעת מחסן:</strong> הודעה פנימית למשרד. שיוך הוא אופציונלי.
               </AlertDescription>
             </Alert>
           )}
@@ -429,7 +408,7 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
             <Alert className="border-green-200 bg-green-50">
               <AlertCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
-                <strong>הודעת אספקה:</strong> חובה לשייך לקו הפצה.
+                <strong>הודעת אספקה:</strong> חובה לשייך להזמנה, החזרה או קו הפצה.
               </AlertDescription>
             </Alert>
           )}
