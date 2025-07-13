@@ -256,6 +256,7 @@ export const getCustomerReplacementMap = (
     
     const enrichedReplacement = {
       ...replacement,
+      correctCustomer: replacement.correctcustomer, // Fix casing mismatch for TypeScript interface
       existsInSystem: !!customerExists,
       customerData: customerExists ? {
         customername: customerExists.customername,
