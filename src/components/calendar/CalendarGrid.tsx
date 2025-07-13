@@ -62,7 +62,11 @@ const getAreasForDay = (distributionGroups: DistributionGroup[], dayNumber: numb
     if (!group.days || !Array.isArray(group.days)) return false;
     
     // Check if any of the days match our target day
-    return group.days.some(day => getDayNumberFromHebrew(day) === dayNumber);
+    return group.days.some(dayEntry => {
+      // Each dayEntry might be a single letter or multiple letters separated by commas
+      const individualDays = dayEntry.split(',').map(d => d.trim());
+      return individualDays.some(day => getDayNumberFromHebrew(day) === dayNumber);
+    });
   });
 };
 const CalendarDay: React.FC<{
