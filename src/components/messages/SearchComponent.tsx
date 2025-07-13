@@ -512,13 +512,13 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
           </SelectContent>
         </Select>
         <div className="relative flex-1" ref={dropdownRef}>
-          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+          <Search className={`absolute top-3 h-4 w-4 text-gray-400 ${isMobile ? "left-2" : "left-3"}`} />
           <Input
             ref={inputRef}
             placeholder={isMobile ? "חפש מספר/שם לקוח" : getSearchPlaceholder()}
             value={searchTerm}
             onChange={(e) => handleInputChange(e.target.value)}
-            className="pl-10 text-sm w-full rounded-l-none"
+            className={`text-sm w-full rounded-l-none ${isMobile ? "pl-8 text-right" : "pl-10"}`}
             onFocus={() => setIsOpen(searchTerm.length >= 1)}
           />
           
