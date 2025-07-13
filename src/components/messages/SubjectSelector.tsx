@@ -3,6 +3,7 @@ import { MessageSquare, Package, AlertTriangle, Users, Truck, Archive, Building 
 interface SubjectSelectorProps {
   value: string;
   onChange: (value: string) => void;
+  userAgentNumber?: string;
 }
 
 const SUBJECT_OPTIONS = [
@@ -50,7 +51,7 @@ const SUBJECT_OPTIONS = [
   }
 ];
 
-export function SubjectSelector({ value, onChange }: SubjectSelectorProps) {
+export function SubjectSelector({ value, onChange, userAgentNumber }: SubjectSelectorProps) {
   return (
     <div className="space-y-3">
       <label className="text-sm font-medium text-foreground">
@@ -60,6 +61,11 @@ export function SubjectSelector({ value, onChange }: SubjectSelectorProps) {
         {SUBJECT_OPTIONS.map((option) => {
           const Icon = option.icon;
           const isSelected = value === option.value;
+          const isWarehouseForNonAgent4 = option.value === "מחסן" && userAgentNumber !== "4";
+          
+          if (isWarehouseForNonAgent4) {
+            return null; // Hide warehouse button for non-agent-4 users
+          }
           
           return (
             <button

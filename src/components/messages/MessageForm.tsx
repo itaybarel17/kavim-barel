@@ -310,21 +310,6 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
   const mandatoryAssociationSubjects = ["לבטל הזמנה", "לדחות", "שינוי מוצרים", "הנחות", "הזמנה על לקוח אחר", "אספקה"];
   const isAssociationRequired = selectedSubject ? mandatoryAssociationSubjects.includes(selectedSubject) : false;
 
-  // Filter subject options based on user permissions
-  const availableSubjectOptions = SUBJECT_OPTIONS.filter(option => {
-    if (option.value === "מחסן") {
-      console.log("Debugging warehouse permission:", {
-        userObject: user,
-        agentnumber: user?.agentnumber,
-        agentnumberType: typeof user?.agentnumber,
-        stringValue: String(user?.agentnumber),
-        isAgent4: String(user?.agentnumber) === "4"
-      });
-      // Convert to string to handle both string and number cases
-      return String(user?.agentnumber) === "4";
-    }
-    return true;
-  });
 
   return (
     <div className="space-y-6">
@@ -349,7 +334,8 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
                   <FormItem>
                     <SubjectSelector 
                       value={field.value || ""} 
-                      onChange={field.onChange} 
+                      onChange={field.onChange}
+                      userAgentNumber={user?.agentnumber}
                     />
                     <FormMessage />
                   </FormItem>
