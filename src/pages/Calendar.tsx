@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription';
@@ -12,6 +10,7 @@ import { CalendarGrid } from '@/components/calendar/CalendarGrid';
 import { HorizontalKanban } from '@/components/calendar/HorizontalKanban';
 import { ViewOnlyUnassignedArea } from '@/components/calendar/ViewOnlyUnassignedArea';
 import { useAuth } from '@/context/AuthContext';
+
 interface Order {
   ordernumber: number;
   customername: string;
@@ -35,6 +34,7 @@ interface Order {
   done_mainorder?: string | null;
   ordercancel?: string | null;
 }
+
 interface Return {
   returnnumber: number;
   customername: string;
@@ -53,12 +53,14 @@ interface Return {
   done_return?: string | null;
   returncancel?: string | null;
 }
+
 interface DistributionGroup {
   groups_id: number;
   separation: string;
   day: string;
   agents?: any; // JSONB in DB, יכול להיות string[] או string
 }
+
 interface DistributionSchedule {
   schedule_id: number;
   groups_id: number;
@@ -69,6 +71,7 @@ interface DistributionSchedule {
   dis_number?: number;
   done_schedule?: string;
 }
+
 interface Driver {
   id: number;
   nahag: string;
@@ -78,11 +81,13 @@ interface CustomerSupply {
   customernumber: string;
   supplydetails?: string;
 }
+
 const Calendar = () => {
   const navigate = useNavigate();
   const {
     user: currentUser
   } = useAuth();
+
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
     const today = new Date();
     const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
@@ -637,4 +642,5 @@ const Calendar = () => {
       <CalendarGrid currentWeekStart={currentWeekStart} distributionSchedules={filteredSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={filteredOrders} returns={filteredReturns} onDropToDate={currentUser?.agentnumber === "4" ? handleDropToDate : undefined} currentUser={currentUser} onRefreshData={handleRefreshData} />
     </div>;
 };
+
 export default Calendar;
