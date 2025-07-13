@@ -362,7 +362,7 @@ const Distribution = () => {
         const orderNums = orderMessages.map(o => o.ordernumber);
         const { data: orderMessageSubjects, error: orderMsgError } = await supabase
           .from('messages')
-          .select('subject, ordernumber')
+          .select('subject, ordernumber, correctcustomer, city')
           .in('ordernumber', orderNums)
           .neq('subject', 'מחסן')
           .order('created_at', { ascending: false });
@@ -397,7 +397,7 @@ const Distribution = () => {
         const returnNums = returnMessages.map(r => r.returnnumber);
         const { data: returnMessageSubjects, error: returnMsgError } = await supabase
           .from('messages')
-          .select('subject, returnnumber')
+          .select('subject, returnnumber, correctcustomer, city')
           .in('returnnumber', returnNums)
           .neq('subject', 'מחסן')
           .order('created_at', { ascending: false });
@@ -445,6 +445,64 @@ const Distribution = () => {
 
       console.log('Customer messages with message_alert=true:', result);
       return result.filter(msg => msg.customername && msg.city);
+    }
+  });
+
+  // 5. Fetch "order on another customer" details
+  const { data: orderOnAnotherCustomerDetails = new Map(), isLoading: isOrderDetailsLoading } = useQuery({
+    queryKey: ['order-on-another-customer-details'],
+    queryFn: async () => {
+      const details = new Map();
+      
+      // Get all "order on another customer" messages
+      const { data: messages, error } = await supabase
+        .from('messages')
+        .select('ordernumber, returnnumber, correctcustomer, city')
+        .eq('subject', 'הזמנה על לקוח אחר')
+        .not('correctcustomer', 'is', null);
+
+      if (error) throw error;
+      if (!messages || messages.length === 0) return details;
+
+      // Get all correct customer names to check which exist in DB
+      const correctCustomerNames = [...new Set(messages.map(m => m.correctcustomer).filter(Boolean))];
+      
+      const { data: existingCustomers, error: customerError } = await supabase
+        .from('customerlist')
+        .select('customername, customernumber, address, city, supplydetails')
+        .in('customername', correctCustomerNames);
+
+      if (customerError) throw customerError;
+
+      // Get area information for the cities
+      const cities = [...new Set(messages.map(m => m.city).filter(Boolean))];
+      const { data: cityAreas, error: cityError } = await supabase
+        .from('cities')
+        .select('city, area')
+        .in('city', cities);
+
+      if (cityError) throw cityError;
+
+      // Create maps for quick lookup
+      const customerMap = new Map(existingCustomers?.map(c => [c.customername, c]) || []);
+      const cityAreaMap = new Map(cityAreas?.map(c => [c.city, c.area]) || []);
+
+      // Process each message
+      messages.forEach(msg => {
+        const key = msg.ordernumber ? `order-${msg.ordernumber}` : `return-${msg.returnnumber}`;
+        const existingCustomer = customerMap.get(msg.correctcustomer);
+        const newArea = cityAreaMap.get(msg.city);
+
+        details.set(key, {
+          correctCustomer: msg.correctcustomer,
+          city: msg.city,
+          newArea,
+          customerExists: !!existingCustomer,
+          customerDetails: existingCustomer || null
+        });
+      });
+
+      return details;
     }
   });
 
@@ -1020,6 +1078,7 @@ const Distribution = () => {
           messageMap={messageMap}
           onMessageBadgeClick={handleMessageBadgeClick}
           cancellationMap={cancellationMap}
+          orderOnAnotherCustomerDetails={orderOnAnotherCustomerDetails}
         />
 
         {/* Mobile: single column, Tablet: 2 columns, Desktop: 4 columns */}
@@ -1046,6 +1105,7 @@ const Distribution = () => {
               messageMap={messageMap}
               onMessageBadgeClick={handleMessageBadgeClick}
               cancellationMap={cancellationMap}
+              orderOnAnotherCustomerDetails={orderOnAnotherCustomerDetails}
             />
           )}
         </div>

@@ -661,6 +661,7 @@ export type Database = {
       messages: {
         Row: {
           agentnumber: string | null
+          city: string | null
           content: string | null
           correctcustomer: string | null
           created_at: string
@@ -675,6 +676,7 @@ export type Database = {
         }
         Insert: {
           agentnumber?: string | null
+          city?: string | null
           content?: string | null
           correctcustomer?: string | null
           created_at?: string
@@ -689,6 +691,7 @@ export type Database = {
         }
         Update: {
           agentnumber?: string | null
+          city?: string | null
           content?: string | null
           correctcustomer?: string | null
           created_at?: string

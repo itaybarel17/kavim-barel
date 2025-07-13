@@ -105,6 +105,9 @@ interface DropZoneProps {
   
   // cancellation map for red X overlay
   cancellationMap?: Set<string>;
+  
+  // "order on another customer" details map
+  orderOnAnotherCustomerDetails?: Map<string, any>;
 }
 
 /**
@@ -162,7 +165,8 @@ export const DropZone: React.FC<DropZoneProps> = ({
   onTogglePin,
   messageMap = {},
   onMessageBadgeClick,
-  cancellationMap = new Set()
+  cancellationMap = new Set(),
+  orderOnAnotherCustomerDetails = new Map()
 }) => {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [scheduleId, setScheduleId] = useState<number | null>(null);
@@ -559,6 +563,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
             messagesInfo={messageMap[`order-${order.ordernumber}`]}
             onMessageBadgeClick={onMessageBadgeClick}
             hasCancellationMessage={cancellationMap.has(`order-${order.ordernumber}`)}
+            orderOnAnotherCustomerDetails={orderOnAnotherCustomerDetails.get(`order-${order.ordernumber}`)}
           />
         ))}
         {sortedReturns.map(returnItem => (
@@ -574,6 +579,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
             messagesInfo={messageMap[`return-${returnItem.returnnumber}`]}
             onMessageBadgeClick={onMessageBadgeClick}
             hasCancellationMessage={cancellationMap.has(`return-${returnItem.returnnumber}`)}
+            orderOnAnotherCustomerDetails={orderOnAnotherCustomerDetails.get(`return-${returnItem.returnnumber}`)}
           />
         ))}
         {assignedOrders.length === 0 && assignedReturns.length === 0 && (

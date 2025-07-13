@@ -85,6 +85,21 @@ interface OrderCardProps {
 
   // cancellation overlay prop
   hasCancellationMessage?: boolean;
+  
+  // "order on another customer" overlay details
+  orderOnAnotherCustomerDetails?: {
+    correctCustomer: string;
+    city: string;
+    newArea?: string;
+    customerExists: boolean;
+    customerDetails?: {
+      customername: string;
+      customernumber: string;
+      address: string;
+      city: string;
+      supplydetails?: string;
+    };
+  };
 }
 export const OrderCard: React.FC<OrderCardProps> = ({
   type,
@@ -96,7 +111,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   onSirenToggle,
   messagesInfo,
   onMessageBadgeClick,
-  hasCancellationMessage = false
+  hasCancellationMessage = false,
+  orderOnAnotherCustomerDetails
 }) => {
   // Initialize state from data
   useEffect(() => {
@@ -153,6 +169,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   // Smart icon logic
   const isMultiOrderActive = multiOrderActiveCustomerList.some(cust => cust.name === data.customername && cust.city === data.city);
   const isDualActiveOrderReturn = dualActiveOrderReturnCustomers.some(cust => cust.name === data.customername && cust.city === data.city);
+
+  // Check if this is an "order on another customer" case
+  const hasOrderOnAnotherCustomer = !!orderOnAnotherCustomerDetails;
 
 
   // Size for prominent icon
@@ -231,7 +250,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           <X className="w-12 h-12 text-red-600 bg-white rounded-full p-2 shadow-lg border-2 border-red-600" />
         </div>
       )}
-      <CardContent className="p-4 bg-[#e8f6fb]">
+      <CardContent className={`p-4 bg-[#e8f6fb] relative ${hasOrderOnAnotherCustomer ? 'blur-[1px]' : ''}`}>
         {/* שורה ראשונה: מספר הזמנה/החזרה + תאריך + שעה + כפתור ארגז קרטון */}
         <div className="flex justify-between items-start mb-2">
           <span className={`text-sm font-semibold flex items-center gap-2 ${isOrder ? 'text-blue-600' : 'text-red-600'}`}>
@@ -426,5 +445,48 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             {totalInvoice && <div>סה"כ: ₪{totalInvoice.toLocaleString('he-IL')}</div>}
           </div>}
       </CardContent>
+      
+      {/* White overlay for "order on another customer" details */}
+      {hasOrderOnAnotherCustomer && orderOnAnotherCustomerDetails && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+          <div className="bg-white border border-gray-300 rounded-lg p-3 shadow-lg max-w-[200px] text-center">
+            <h4 className="font-bold text-sm text-blue-800 mb-2">לקוח חדש:</h4>
+            
+            {orderOnAnotherCustomerDetails.customerExists && orderOnAnotherCustomerDetails.customerDetails ? (
+              // Customer exists in database - show full details
+              <div className="space-y-1 text-xs">
+                <div className="font-medium">{orderOnAnotherCustomerDetails.customerDetails.customername}</div>
+                <div>{orderOnAnotherCustomerDetails.customerDetails.address}</div>
+                <div>{orderOnAnotherCustomerDetails.customerDetails.city}</div>
+                <div className="text-gray-600">לקוח: {orderOnAnotherCustomerDetails.customerDetails.customernumber}</div>
+                {orderOnAnotherCustomerDetails.customerDetails.supplydetails && (
+                  <div className="text-gray-600">אספקה: {orderOnAnotherCustomerDetails.customerDetails.supplydetails}</div>
+                )}
+                {orderOnAnotherCustomerDetails.newArea && (
+                  <div className="mt-2">
+                    <Badge className={`text-xs ${getAreaColor(orderOnAnotherCustomerDetails.newArea)}`}>
+                      {orderOnAnotherCustomerDetails.newArea}
+                    </Badge>
+                  </div>
+                )}
+              </div>
+            ) : (
+              // Customer doesn't exist - show only name and city
+              <div className="space-y-1 text-xs">
+                <div className="font-medium">{orderOnAnotherCustomerDetails.correctCustomer}</div>
+                <div>{orderOnAnotherCustomerDetails.city}</div>
+                <div className="text-red-600 mt-1">לא נמצא במערכת</div>
+                {orderOnAnotherCustomerDetails.newArea && (
+                  <div className="mt-2">
+                    <Badge className={`text-xs ${getAreaColor(orderOnAnotherCustomerDetails.newArea)}`}>
+                      {orderOnAnotherCustomerDetails.newArea}
+                    </Badge>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </Card>;
 };

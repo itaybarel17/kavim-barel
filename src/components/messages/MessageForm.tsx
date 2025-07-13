@@ -34,6 +34,7 @@ type MessageFormData = {
   content: string;
   tagagent?: string;
   correctcustomer?: string;
+  city?: string;
   ordernumber?: number;
   returnnumber?: number;
   schedule_id?: number;
@@ -74,9 +75,10 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
   // Clear irrelevant fields when subject changes
   React.useEffect(() => {
     if (selectedSubject) {
-      // Clear "correct customer" if not "order for another customer"
+      // Clear "correct customer" and "city" if not "order for another customer"
       if (selectedSubject !== "הזמנה על לקוח אחר") {
         form.setValue("correctcustomer", "");
+        form.setValue("city", "");
       }
       
       // For supply/warehouse - can associate with both orders/returns AND schedules
@@ -101,6 +103,19 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
         .from('agents')
         .select('agentnumber, agentname')
         .order('agentname');
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  // Fetch cities for the city selector
+  const { data: cities } = useQuery({
+    queryKey: ['cities'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('cities')
+        .select('city')
+        .order('city');
       if (error) throw error;
       return data;
     }
@@ -132,6 +147,7 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
         agentnumber: user?.agentnumber,
         tagagent: data.tagagent === "none" ? null : data.tagagent || null,
         correctcustomer: data.correctcustomer || null,
+        city: data.city || null,
         ordernumber: data.ordernumber || null,
         returnnumber: data.returnnumber || null,
         schedule_id: data.schedule_id || null
@@ -156,6 +172,7 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
           agentnumber: user?.agentnumber,
           tagagent: data.tagagent === "none" ? null : data.tagagent || null,
           correctcustomer: data.correctcustomer || null,
+          city: data.city || null,
           ordernumber: item.type === "orders" ? item.id : null,
           returnnumber: item.type === "returns" ? item.id : null,
           schedule_id: null,
@@ -398,14 +415,51 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
                         />
                         <FormMessage />
                       </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
-            </div>
-          )}
+                     )}
+                   />
+                 </CardContent>
+               </Card>
 
-          {/* 4. תייג סוכן */}
+               {/* עיר - תת-שדה של הזמנה על לקוח אחר */}
+               <Card className="border-2 border-warning/20 bg-warning/5 mt-4">
+                 <CardHeader className="pb-3">
+                   <CardTitle className="text-lg text-foreground flex items-center gap-2">
+                     <span className="bg-warning/80 text-warning-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">3.1</span>
+                     עיר
+                     <span className="text-sm font-normal text-muted-foreground">(נדרש לחישוב אזור האספקה החדש)</span>
+                   </CardTitle>
+                 </CardHeader>
+                 <CardContent>
+                   <FormField
+                     control={form.control}
+                     name="city"
+                     rules={{ required: "יש לבחור עיר" }}
+                     render={({ field }) => (
+                       <FormItem>
+                         <Select onValueChange={field.onChange} value={field.value}>
+                           <FormControl>
+                             <SelectTrigger className="h-11">
+                               <SelectValue placeholder="בחר עיר" />
+                             </SelectTrigger>
+                           </FormControl>
+                           <SelectContent>
+                             {cities?.map((city) => (
+                               <SelectItem key={city.city} value={city.city}>
+                                 {city.city}
+                               </SelectItem>
+                             ))}
+                           </SelectContent>
+                         </Select>
+                         <FormMessage />
+                       </FormItem>
+                     )}
+                   />
+                 </CardContent>
+               </Card>
+             </div>
+           )}
+
+           {/* 4. תייג סוכן */}
           {selectedSubject && (
             <div className="animate-fade-in">
               <FormField
