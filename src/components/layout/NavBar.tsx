@@ -28,10 +28,10 @@ export const NavBar: React.FC = () => {
 
   const getNavItemClasses = (path: string, color: string) => {
     const isActive = location.pathname === path;
-    return `px-2 lg:px-3 py-2 text-xs lg:text-sm transition-all duration-300 ${
+    return `px-3 lg:px-4 py-2.5 text-xs lg:text-sm transition-all duration-300 rounded-xl ${
       isActive 
-        ? `bg-gradient-to-r from-${color}-500 to-${color}-600 text-white font-black text-base lg:text-lg border-4 border-${color}-200 shadow-2xl scale-110 ring-4 ring-${color}-200/80 transform-gpu relative z-10`
-        : `bg-gradient-to-r from-${color}-500/80 to-${color}-600/80 text-white/90 font-bold border border-${color}-400/80 hover:from-${color}-500 hover:to-${color}-600 hover:border-${color}-400 hover:text-white hover:shadow-lg hover:scale-105 hover:ring-2 hover:ring-${color}-300/40`
+        ? `bg-gradient-to-br from-${color}-500/90 to-${color}-600/90 backdrop-blur-sm text-white font-bold border-2 border-white/30 shadow-lg scale-105 ring-2 ring-white/20 transform-gpu relative z-10`
+        : `bg-gradient-to-br from-${color}-500/70 to-${color}-600/70 backdrop-blur-sm text-white/90 font-medium border border-white/20 hover:from-${color}-500/85 hover:to-${color}-600/85 hover:border-white/30 hover:text-white hover:shadow-md hover:scale-102 hover:ring-1 hover:ring-white/15`
     }`;
   };
 
@@ -124,7 +124,7 @@ export const NavBar: React.FC = () => {
             מערכת ההפצה
           </Link>
           
-          <div className="flex gap-1 p-1 lg:p-1.5 border border-white/20 rounded-md bg-white/5 backdrop-blur-sm shadow-inner">
+          <div className="flex gap-1.5 p-2 border border-white/20 rounded-2xl bg-white/10 backdrop-blur-sm shadow-inner">
             {navItems.map(({ path, label, color }) => (
               <Link key={path} to={path} className={getNavItemClasses(path, color)}>
                 {label}
