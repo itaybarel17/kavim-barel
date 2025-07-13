@@ -519,7 +519,7 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
             placeholder={getSearchPlaceholder()}
             value={searchTerm}
             onChange={(e) => handleInputChange(e.target.value)}
-            className="pl-10"
+            className="pl-10 text-sm w-full"
             onFocus={() => setIsOpen(searchTerm.length >= 1)}
           />
           
