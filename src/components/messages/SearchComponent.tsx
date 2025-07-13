@@ -66,24 +66,78 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
       const results: SearchResult[] = [];
       
       if (searchType === "orders") {
-        let query = supabase
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Get all orders - both assigned and unassigned that match "waiting" criteria
+        const { data: allOrders, error: allOrdersError } = await supabase
           .from('mainorder')
-          .select('ordernumber, customername, customernumber, orderdate, agentnumber')
+          .select(`
+            ordernumber, 
+            customername, 
+            customernumber, 
+            orderdate, 
+            agentnumber,
+            done_mainorder,
+            schedule_id,
+            distribution_schedule(
+              done_schedule,
+              distribution_date
+            )
+          `)
           .or(`customername.ilike.%${searchTerm}%,customernumber.ilike.%${searchTerm}%,ordernumber.eq.${parseInt(searchTerm) || 0}`)
-          .is('done_mainorder', null)
           .is('ordercancel', null)
-          .limit(8);
+          .is('icecream', null)
+          .limit(20);
+          
+        if (allOrdersError) throw allOrdersError;
+        
+        // Filter based on waiting criteria (same as useWaitingCustomers)
+        const waitingOrders = (allOrders || []).filter(order => {
+          // Unassigned orders (no schedule_id) are waiting if done_mainorder is null
+          if (!order.schedule_id) {
+            return !order.done_mainorder;
+          }
+          
+          // Assigned orders waiting criteria
+          const schedule = order.distribution_schedule;
+          
+          // Criteria 1: done_mainorder is NULL
+          if (!order.done_mainorder) {
+            return true;
+          }
+          
+          // Criteria 2: done_mainorder has timestamp but done_schedule is null and distribution_date is today or later
+          if (order.done_mainorder && !schedule?.done_schedule && schedule?.distribution_date) {
+            const distributionDate = new Date(schedule.distribution_date);
+            distributionDate.setHours(0, 0, 0, 0);
+            
+            // If distribution date is today or later and not yet distributed, it's still waiting
+            if (distributionDate >= today) {
+              return true;
+            }
+          }
+          
+          return false;
+        });
+        
+        let filteredOrders = waitingOrders;
 
         // Filter by agent unless admin
         if (!isAdmin && user?.agentnumber) {
-          query = query.eq('agentnumber', user.agentnumber);
+          if (user.agentnumber === '99') {
+            filteredOrders = filteredOrders.filter(order => order.agentnumber === '99');
+          } else {
+            filteredOrders = filteredOrders.filter(order => 
+              order.agentnumber === user.agentnumber && order.agentnumber !== '99'
+            );
+          }
         }
         
-        const { data, error } = await query;
+        // Limit results
+        filteredOrders = filteredOrders.slice(0, 8);
         
-        if (error) throw error;
-        
-        data?.forEach(item => {
+        filteredOrders.forEach(item => {
           results.push({
             id: item.ordernumber,
             type: "orders",
@@ -93,24 +147,78 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
           });
         });
       } else if (searchType === "returns") {
-        let query = supabase
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Get all returns - both assigned and unassigned that match "waiting" criteria
+        const { data: allReturns, error: allReturnsError } = await supabase
           .from('mainreturns')
-          .select('returnnumber, customername, customernumber, returndate, agentnumber')
+          .select(`
+            returnnumber, 
+            customername, 
+            customernumber, 
+            returndate, 
+            agentnumber,
+            done_return,
+            schedule_id,
+            distribution_schedule(
+              done_schedule,
+              distribution_date
+            )
+          `)
           .or(`customername.ilike.%${searchTerm}%,customernumber.ilike.%${searchTerm}%,returnnumber.eq.${parseInt(searchTerm) || 0}`)
-          .is('done_return', null)
           .is('returncancel', null)
-          .limit(8);
+          .is('icecream', null)
+          .limit(20);
+          
+        if (allReturnsError) throw allReturnsError;
+        
+        // Filter based on waiting criteria (same logic as orders)
+        const waitingReturns = (allReturns || []).filter(returnItem => {
+          // Unassigned returns (no schedule_id) are waiting if done_return is null
+          if (!returnItem.schedule_id) {
+            return !returnItem.done_return;
+          }
+          
+          // Assigned returns waiting criteria
+          const schedule = returnItem.distribution_schedule;
+          
+          // Criteria 1: done_return is NULL
+          if (!returnItem.done_return) {
+            return true;
+          }
+          
+          // Criteria 2: done_return has timestamp but done_schedule is null and distribution_date is today or later
+          if (returnItem.done_return && !schedule?.done_schedule && schedule?.distribution_date) {
+            const distributionDate = new Date(schedule.distribution_date);
+            distributionDate.setHours(0, 0, 0, 0);
+            
+            // If distribution date is today or later and not yet distributed, it's still waiting
+            if (distributionDate >= today) {
+              return true;
+            }
+          }
+          
+          return false;
+        });
+        
+        let filteredReturns = waitingReturns;
 
         // Filter by agent unless admin
         if (!isAdmin && user?.agentnumber) {
-          query = query.eq('agentnumber', user.agentnumber);
+          if (user.agentnumber === '99') {
+            filteredReturns = filteredReturns.filter(returnItem => returnItem.agentnumber === '99');
+          } else {
+            filteredReturns = filteredReturns.filter(returnItem => 
+              returnItem.agentnumber === user.agentnumber && returnItem.agentnumber !== '99'
+            );
+          }
         }
         
-        const { data, error } = await query;
+        // Limit results
+        filteredReturns = filteredReturns.slice(0, 8);
         
-        if (error) throw error;
-        
-        data?.forEach(item => {
+        filteredReturns.forEach(item => {
           results.push({
             id: item.returnnumber,
             type: "returns",

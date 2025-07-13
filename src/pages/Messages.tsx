@@ -162,7 +162,7 @@ export default function Messages() {
         </div>
       </div>
 
-      <Tabs defaultValue="messages" className="w-full">
+      <Tabs defaultValue="new" className="w-full">
         <TabsList className={`grid w-full grid-cols-2 ${isMobile ? 'h-8' : ''}`}>
           <TabsTrigger value="messages" className={isMobile ? 'text-sm' : ''}>הודעות קיימות</TabsTrigger>
           <TabsTrigger value="new" className={isMobile ? 'text-sm' : ''}>הודעה חדשה</TabsTrigger>
