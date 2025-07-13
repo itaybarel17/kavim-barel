@@ -157,9 +157,23 @@ const ProductionSummary = () => {
       
       console.log('Fetching customer replacement data for schedule:', scheduleId);
       
-      // Get all order and return numbers for this schedule
-      const orderNumbers = orders.map(o => o.ordernumber);
-      const returnNumbers = returns.map(r => r.returnnumber);
+      // Get all orders and returns for this schedule directly from the database
+      const [ordersResult, returnsResult] = await Promise.all([
+        supabase
+          .from('mainorder')
+          .select('ordernumber')
+          .or(`schedule_id.eq.${scheduleId},schedule_id_if_changed.cs.["${scheduleId}"]`),
+        supabase
+          .from('mainreturns')
+          .select('returnnumber')
+          .or(`schedule_id.eq.${scheduleId},schedule_id_if_changed.cs.["${scheduleId}"]`)
+      ]);
+      
+      if (ordersResult.error) throw ordersResult.error;
+      if (returnsResult.error) throw returnsResult.error;
+      
+      const orderNumbers = ordersResult.data?.map(o => o.ordernumber) || [];
+      const returnNumbers = returnsResult.data?.map(r => r.returnnumber) || [];
       
       if (orderNumbers.length === 0 && returnNumbers.length === 0) return [];
       
@@ -208,7 +222,7 @@ const ProductionSummary = () => {
       console.log('Customer replacements:', replacements);
       return replacements;
     },
-    enabled: !!scheduleId && !ordersLoading && !returnsLoading && (orders.length > 0 || returns.length > 0)
+    enabled: !!scheduleId
   });
 
   // Create replacement map
