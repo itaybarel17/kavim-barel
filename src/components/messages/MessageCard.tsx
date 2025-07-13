@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { he } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,11 +37,14 @@ type MessageCardProps = {
 
 const getSubjectColor = (subject: string | null) => {
   switch (subject) {
-    case "לבטל": return "bg-red-100 text-red-800";
+    case "לבטל הזמנה": return "bg-red-100 text-red-800";
     case "לדחות": return "bg-yellow-100 text-yellow-800";
+    case "שינוי מוצרים": return "bg-indigo-100 text-indigo-800";
     case "הנחות": return "bg-green-100 text-green-800";
     case "אספקה": return "bg-blue-100 text-blue-800";
-    case "לקוח אחר": return "bg-purple-100 text-purple-800";
+    case "לקוח אחר": return "bg-purple-100 text-purple-800"; // Support old messages
+    case "הזמנה על לקוח אחר": return "bg-purple-100 text-purple-800";
+    case "קו הפצה": return "bg-orange-100 text-orange-800"; // Support old messages
     case "מחסן": return "bg-orange-100 text-orange-800";
     default: return "bg-gray-100 text-gray-800";
   }
@@ -57,8 +60,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
 }) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  const timeAgo = formatDistanceToNow(new Date(message.created_at), {
-    addSuffix: true,
+  const messageDateTime = format(new Date(message.created_at), "dd/MM/yyyy HH:mm", {
     locale: he
   });
 
@@ -112,7 +114,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
             </div>
             
             <div className="text-sm text-gray-500 text-left">
-              {timeAgo}
+              {messageDateTime}
             </div>
           </div>
 

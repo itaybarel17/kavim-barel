@@ -21,13 +21,12 @@ const SUBJECT_OPTIONS = [
   { value: "שינוי מוצרים", label: "שינוי מוצרים" },
   { value: "הנחות", label: "הנחות" },
   { value: "אספקה", label: "אספקה" },
-  { value: "לקוח אחר", label: "לקוח אחר" },
-  { value: "קו הפצה", label: "קו הפצה" },
+  { value: "הזמנה על לקוח אחר", label: "הזמנה על לקוח אחר" },
   { value: "מחסן", label: "מחסן" }
 ] as const;
 
 type MessageFormData = {
-  subject?: "לבטל הזמנה" | "לדחות" | "שינוי מוצרים" | "הנחות" | "אספקה" | "לקוח אחר" | "קו הפצה" | "מחסן";
+  subject?: "לבטל הזמנה" | "לדחות" | "שינוי מוצרים" | "הנחות" | "אספקה" | "הזמנה על לקוח אחר" | "מחסן";
   content: string;
   tagagent?: string;
   correctcustomer?: string;
