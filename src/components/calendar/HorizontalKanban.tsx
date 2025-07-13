@@ -2,6 +2,7 @@ import React from 'react';
 import { useDrop } from 'react-dnd';
 import { Card } from '@/components/ui/card';
 import { CalendarCard } from './CalendarCard';
+import { AgentFilter } from './AgentFilter';
 import { getUniqueCustomersForSchedule } from '@/utils/scheduleUtils';
 import type { OrderWithSchedule, ReturnWithSchedule } from '@/utils/scheduleUtils';
 interface DistributionGroup {
@@ -45,6 +46,9 @@ interface HorizontalKanbanProps {
   }[];
   currentUser?: User;
   customerReplacementMap?: Map<string, any>;
+  agents?: { agentnumber: string; agentname: string }[];
+  selectedAgent?: string;
+  onAgentChange?: (agent: string) => void;
 }
 export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
   distributionSchedules,
@@ -57,7 +61,10 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
   currentUser,
-  customerReplacementMap
+  customerReplacementMap,
+  agents = [],
+  selectedAgent = '4',
+  onAgentChange
 }) => {
   // Filter schedules by agent (admin sees all)
   const isAdmin = currentUser?.agentnumber === "4";
@@ -173,9 +180,18 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
   const unscheduledSchedules = schedulesWithItems.filter(schedule => !schedule.distribution_date).sort((a, b) => a.schedule_id - b.schedule_id);
   return (
     <div ref={drop} className={`mb-8 ${isOver ? 'bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg' : ''}`}>
-      <h2 className="text-lg lg:text-xl font-semibold mb-4 text-gray-700 px-2 lg:px-0">
-        קווי חלוקה
-      </h2>
+      <div className="flex items-center justify-between mb-4 px-2 lg:px-0">
+        <h2 className="text-lg lg:text-xl font-semibold text-gray-700">
+          קווי חלוקה
+        </h2>
+        {isAdmin && onAgentChange && (
+          <AgentFilter
+            agents={agents}
+            selectedAgent={selectedAgent}
+            onAgentChange={onAgentChange}
+          />
+        )}
+      </div>
       {unscheduledSchedules.length > 0 ? (
         <Card className="mb-6 p-3 lg:p-4 mx-2 lg:mx-0">
           <h3 className="text-base lg:text-lg font-medium mb-3 text-gray-700">

@@ -90,6 +90,9 @@ const Calendar = () => {
     sunday.setDate(today.getDate() - dayOfWeek);
     return sunday;
   });
+  
+  // Agent filter state - default to "משרד" (agent 4)
+  const [selectedAgent, setSelectedAgent] = useState('4');
 
   // Set up realtime subscriptions
   useRealtimeSubscription();
@@ -285,12 +288,41 @@ const Calendar = () => {
     }
   });
 
+  // Fetch agents for the filter dropdown
+  const {
+    data: agents = [],
+    isLoading: agentsLoading
+  } = useQuery({
+    queryKey: ['calendar-agents'],
+    queryFn: async () => {
+      console.log('Fetching agents for calendar filter...');
+      const {
+        data,
+        error
+      } = await supabase.from('agents').select('agentnumber, agentname').order('agentname');
+      if (error) throw error;
+      console.log('Calendar agents fetched:', data);
+      return data as { agentnumber: string; agentname: string }[];
+    }
+  });
+
   // AUTHORIZE: Get allowed group ids or schedule ids for this user (except admin "4" sees all)
   // Create map for customer supply lookup
   const customerSupplyMap = customerSupplyData.reduce((map, customer) => {
     map[customer.customernumber] = customer.supplydetails || '';
     return map;
   }, {} as Record<string, string>);
+
+  // Agent filtering functions
+  const filterOrdersByAgent = (orders: Order[]) => {
+    if (selectedAgent === '4') return orders; // "משרד" shows all
+    return orders.filter(order => order.agentnumber === selectedAgent);
+  };
+
+  const filterReturnsByAgent = (returns: Return[]) => {
+    if (selectedAgent === '4') return returns; // "משרד" shows all
+    return returns.filter(returnItem => returnItem.agentnumber === selectedAgent);
+  };
 
   // --- BEGIN CUSTOMER STATUS LOGIC FOR ICONS ---
   // ACTIVE order: done_mainorder == null && ordercancel == null
@@ -302,8 +334,12 @@ const Calendar = () => {
     return !ret.done_return && !ret.returncancel;
   }
 
+  // Apply agent filtering to customer icon calculations
+  const filteredOrdersForIcons = filterOrdersByAgent(orders);
+  const filteredReturnsForIcons = filterReturnsByAgent(returns);
+
   // 1. multi-active-order customers (blue icon)
-  const activeOrders = orders.filter(isOrderActive);
+  const activeOrders = filteredOrdersForIcons.filter(isOrderActive);
   const customerMap: Record<string, Order[]> = {};
   activeOrders.forEach(order => {
     const key = `${order.customername}^^${order.city}`;
@@ -319,7 +355,7 @@ const Calendar = () => {
   });
 
   // 2. customers with BOTH active order and active return (red icon)
-  const activeReturns = returns.filter(isReturnActive);
+  const activeReturns = filteredReturnsForIcons.filter(isReturnActive);
   const orderKeys = new Set(activeOrders.map(o => `${o.customername}^^${o.city}`));
   const returnKeys = new Set(activeReturns.map(r => `${r.customername}^^${r.city}`));
   const dualActiveOrderReturnCustomers: {
@@ -336,17 +372,24 @@ const Calendar = () => {
     }
   });
 
+
   // Calculate unassigned orders and returns with agent filtering
   const unassignedOrders = orders.filter(order => {
     if (!order.schedule_id) {
-      if (currentUser?.agentnumber === "4") return true; // Admin sees all
+      if (currentUser?.agentnumber === "4") {
+        // Admin sees all, but filter by selected agent
+        return selectedAgent === '4' || order.agentnumber === selectedAgent;
+      }
       return order.agentnumber === currentUser?.agentnumber; // Others see only their own
     }
     return false;
   });
   const unassignedReturns = returns.filter(returnItem => {
     if (!returnItem.schedule_id) {
-      if (currentUser?.agentnumber === "4") return true; // Admin sees all
+      if (currentUser?.agentnumber === "4") {
+        // Admin sees all, but filter by selected agent
+        return selectedAgent === '4' || returnItem.agentnumber === selectedAgent;
+      }
       return returnItem.agentnumber === currentUser?.agentnumber; // Others see only their own
     }
     return false;
@@ -435,80 +478,90 @@ const Calendar = () => {
   // Filtered orders + returns. Show only those whose schedule/group is allowed.
   const filteredOrders = useMemo(() => {
     if (!currentUser) return [];
-    if (currentUser.agentnumber === "4") return orders;
-    if (!allowedGroupIds || allowedGroupIds.length === 0) return [];
-    let filteredResults;
-
-    // Special filtering for Agent 99 - check schedule_id directly
-    if (currentUser.agentnumber === "99") {
-      filteredResults = orders.filter(o => {
-        // For Agent 99, check if any of the order's schedule_ids are in allowedGroupIds (which contains schedule_ids for Agent 99)
-        const allScheduleIds = [];
-        if (typeof o.schedule_id === 'number') allScheduleIds.push(o.schedule_id);
-        if (typeof o.schedule_id_if_changed === 'number') allScheduleIds.push(o.schedule_id_if_changed);
-        if (Array.isArray(o.schedule_id_if_changed)) o.schedule_id_if_changed.forEach(sid => {
-          if (typeof sid === 'number') allScheduleIds.push(sid);
+    let baseFiltered = orders;
+    
+    // Apply user permissions first
+    if (currentUser.agentnumber !== "4") {
+      if (!allowedGroupIds || allowedGroupIds.length === 0) return [];
+      
+      // Special filtering for Agent 99 - check schedule_id directly
+      if (currentUser.agentnumber === "99") {
+        baseFiltered = orders.filter(o => {
+          // For Agent 99, check if any of the order's schedule_ids are in allowedGroupIds (which contains schedule_ids for Agent 99)
+          const allScheduleIds = [];
+          if (typeof o.schedule_id === 'number') allScheduleIds.push(o.schedule_id);
+          if (typeof o.schedule_id_if_changed === 'number') allScheduleIds.push(o.schedule_id_if_changed);
+          if (Array.isArray(o.schedule_id_if_changed)) o.schedule_id_if_changed.forEach(sid => {
+            if (typeof sid === 'number') allScheduleIds.push(sid);
+          });
+          return allScheduleIds.some(sid => allowedGroupIds.includes(sid)) && o.agentnumber === '99';
         });
-        return allScheduleIds.some(sid => allowedGroupIds.includes(sid)) && o.agentnumber === '99';
-      });
-    } else {
-      // For other agents, use the original logic with groups_id
-      filteredResults = orders.filter(o => {
-        // Find to which group this order belongs, via its schedule_id or schedule_id_if_changed
-        const allScheduleIds = [];
-        if (typeof o.schedule_id === 'number') allScheduleIds.push(o.schedule_id);
-        if (typeof o.schedule_id_if_changed === 'number') allScheduleIds.push(o.schedule_id_if_changed);
-        if (Array.isArray(o.schedule_id_if_changed)) o.schedule_id_if_changed.forEach(sid => {
-          if (typeof sid === 'number') allScheduleIds.push(sid);
+      } else {
+        // For other agents, use the original logic with groups_id
+        baseFiltered = orders.filter(o => {
+          // Find to which group this order belongs, via its schedule_id or schedule_id_if_changed
+          const allScheduleIds = [];
+          if (typeof o.schedule_id === 'number') allScheduleIds.push(o.schedule_id);
+          if (typeof o.schedule_id_if_changed === 'number') allScheduleIds.push(o.schedule_id_if_changed);
+          if (Array.isArray(o.schedule_id_if_changed)) o.schedule_id_if_changed.forEach(sid => {
+            if (typeof sid === 'number') allScheduleIds.push(sid);
+          });
+          // For each schedule_id in this order, find its group via distributionSchedules
+          const inAllowed = allScheduleIds.some(sid => {
+            const sch = distributionSchedules.find(s => s.schedule_id === sid);
+            return sch && allowedGroupIds.includes(sch.groups_id);
+          });
+          return inAllowed;
         });
-        // For each schedule_id in this order, find its group via distributionSchedules
-        const inAllowed = allScheduleIds.some(sid => {
-          const sch = distributionSchedules.find(s => s.schedule_id === sid);
-          return sch && allowedGroupIds.includes(sch.groups_id);
-        });
-        return inAllowed;
-      });
+      }
     }
-    return filteredResults;
-  }, [orders, allowedGroupIds, currentUser, distributionSchedules]);
+    
+    // Apply agent filter on top of permissions
+    return filterOrdersByAgent(baseFiltered);
+  }, [orders, allowedGroupIds, currentUser, distributionSchedules, selectedAgent, filterOrdersByAgent]);
   const filteredReturns = useMemo(() => {
     if (!currentUser) return [];
-    if (currentUser.agentnumber === "4") return returns;
-    if (!allowedGroupIds || allowedGroupIds.length === 0) return [];
-    let filteredResults;
-
-    // Special filtering for Agent 99 - check schedule_id directly
-    if (currentUser.agentnumber === "99") {
-      filteredResults = returns.filter(o => {
-        // For Agent 99, check if any of the return's schedule_ids are in allowedGroupIds (which contains schedule_ids for Agent 99)
-        const allScheduleIds = [];
-        if (typeof o.schedule_id === 'number') allScheduleIds.push(o.schedule_id);
-        if (typeof o.schedule_id_if_changed === 'number') allScheduleIds.push(o.schedule_id_if_changed);
-        if (Array.isArray(o.schedule_id_if_changed)) o.schedule_id_if_changed.forEach(sid => {
-          if (typeof sid === 'number') allScheduleIds.push(sid);
+    let baseFiltered = returns;
+    
+    // Apply user permissions first
+    if (currentUser.agentnumber !== "4") {
+      if (!allowedGroupIds || allowedGroupIds.length === 0) return [];
+      
+      // Special filtering for Agent 99 - check schedule_id directly
+      if (currentUser.agentnumber === "99") {
+        baseFiltered = returns.filter(o => {
+          // For Agent 99, check if any of the return's schedule_ids are in allowedGroupIds (which contains schedule_ids for Agent 99)
+          const allScheduleIds = [];
+          if (typeof o.schedule_id === 'number') allScheduleIds.push(o.schedule_id);
+          if (typeof o.schedule_id_if_changed === 'number') allScheduleIds.push(o.schedule_id_if_changed);
+          if (Array.isArray(o.schedule_id_if_changed)) o.schedule_id_if_changed.forEach(sid => {
+            if (typeof sid === 'number') allScheduleIds.push(sid);
+          });
+          return allScheduleIds.some(sid => allowedGroupIds.includes(sid)) && o.agentnumber === '99';
         });
-        return allScheduleIds.some(sid => allowedGroupIds.includes(sid)) && o.agentnumber === '99';
-      });
-    } else {
-      // For other agents, use the original logic with groups_id
-      filteredResults = returns.filter(o => {
-        // Find to which group this return belongs, via its schedule_id or schedule_id_if_changed
-        const allScheduleIds = [];
-        if (typeof o.schedule_id === 'number') allScheduleIds.push(o.schedule_id);
-        if (typeof o.schedule_id_if_changed === 'number') allScheduleIds.push(o.schedule_id_if_changed);
-        if (Array.isArray(o.schedule_id_if_changed)) o.schedule_id_if_changed.forEach(sid => {
-          if (typeof sid === 'number') allScheduleIds.push(sid);
+      } else {
+        // For other agents, use the original logic with groups_id
+        baseFiltered = returns.filter(o => {
+          // Find to which group this return belongs, via its schedule_id or schedule_id_if_changed
+          const allScheduleIds = [];
+          if (typeof o.schedule_id === 'number') allScheduleIds.push(o.schedule_id);
+          if (typeof o.schedule_id_if_changed === 'number') allScheduleIds.push(o.schedule_id_if_changed);
+          if (Array.isArray(o.schedule_id_if_changed)) o.schedule_id_if_changed.forEach(sid => {
+            if (typeof sid === 'number') allScheduleIds.push(sid);
+          });
+          // For each schedule_id in this return, find its group via distributionSchedules
+          const inAllowed = allScheduleIds.some(sid => {
+            const sch = distributionSchedules.find(s => s.schedule_id === sid);
+            return sch && allowedGroupIds.includes(sch.groups_id);
+          });
+          return inAllowed;
         });
-        // For each schedule_id in this return, find its group via distributionSchedules
-        const inAllowed = allScheduleIds.some(sid => {
-          const sch = distributionSchedules.find(s => s.schedule_id === sid);
-          return sch && allowedGroupIds.includes(sch.groups_id);
-        });
-        return inAllowed;
-      });
+      }
     }
-    return filteredResults;
-  }, [returns, allowedGroupIds, currentUser, distributionSchedules]);
+    
+    // Apply agent filter on top of permissions
+    return filterReturnsByAgent(baseFiltered);
+  }, [returns, allowedGroupIds, currentUser, distributionSchedules, selectedAgent, filterReturnsByAgent]);
 
   // Update destinations count immediately when orders/returns change
   useEffect(() => {
@@ -667,7 +720,22 @@ const Calendar = () => {
       />
 
       {/* Horizontal Kanban */}
-      <HorizontalKanban distributionSchedules={filteredSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={filteredOrders} returns={filteredReturns} onUpdateDestinations={updateDestinationsCount} onDropToKanban={currentUser?.agentnumber === "4" ? handleDropToKanban : undefined} currentUser={currentUser} customerReplacementMap={orderOnAnotherCustomerDetails} />
+      <HorizontalKanban 
+        distributionSchedules={filteredSchedules} 
+        distributionGroups={distributionGroups} 
+        drivers={drivers} 
+        orders={filteredOrders} 
+        returns={filteredReturns} 
+        onUpdateDestinations={updateDestinationsCount} 
+        onDropToKanban={currentUser?.agentnumber === "4" ? handleDropToKanban : undefined} 
+        currentUser={currentUser} 
+        customerReplacementMap={orderOnAnotherCustomerDetails}
+        multiOrderActiveCustomerList={multiOrderActiveCustomerList}
+        dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
+        agents={agents}
+        selectedAgent={selectedAgent}
+        onAgentChange={setSelectedAgent}
+      />
 
       {/* Calendar Navigation */}
       <div className="flex items-center justify-center gap-4 mb-6">
