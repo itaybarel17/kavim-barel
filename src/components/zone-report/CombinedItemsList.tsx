@@ -2,19 +2,22 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CombinedItem, Order, Return } from './utils';
+import { getReplacementCustomerDetails } from '@/utils/scheduleUtils';
 
 interface CombinedItemsListProps {
   combinedItems: CombinedItem[];
   numberedOrdersCount: number;
   returnsCount: number;
   customerSupplyMap: Record<string, string>;
+  replacementMap?: Map<string, any>;
 }
 
 export const CombinedItemsList: React.FC<CombinedItemsListProps> = ({
   combinedItems,
   numberedOrdersCount,
   returnsCount,
-  customerSupplyMap
+  customerSupplyMap,
+  replacementMap = new Map()
 }) => {
   const renderItem = (item: CombinedItem) => {
     if (item.type === 'returns-header') {
@@ -38,6 +41,11 @@ export const CombinedItemsList: React.FC<CombinedItemsListProps> = ({
     // Get supply details for this customer from customerlist table
     const supplyDetails = data.customernumber ? customerSupplyMap[data.customernumber] : '';
 
+    // Check if this is a manually entered customer (replacement customer that doesn't exist in system)
+    const replacementKey = isOrder ? `order-${order.ordernumber}` : `return-${returnItem.returnnumber}`;
+    const replacementInfo = replacementMap.get(replacementKey);
+    const isManualCustomer = replacementInfo && !replacementInfo.existsInSystem;
+
     // Format hour without seconds
     const formatHour = (hour: string | undefined) => {
       if (!hour) return '';
@@ -55,7 +63,10 @@ export const CombinedItemsList: React.FC<CombinedItemsListProps> = ({
         </div>
         <div className={`text-xs ${isOrder ? 'text-blue-800' : 'text-red-800'}`}>
           <div className="flex items-center justify-between">
-            <span>{data.address}, {data.city}</span>
+            {/* For manual customers, show only city; for system customers, show address and city */}
+            <span>
+              {isManualCustomer ? data.city : `${data.address}, ${data.city}`}
+            </span>
             {data.remark && <span className="text-gray-600 italic text-xs mr-2">
                 <span className="font-bold">הערה: </span>{data.remark}
               </span>}
@@ -66,7 +77,8 @@ export const CombinedItemsList: React.FC<CombinedItemsListProps> = ({
                 {isOrder ? 'הזמנה' : 'החזרה'}: {isOrder ? order.ordernumber : returnItem.returnnumber}
               </span>
               {data.agentnumber && <span>{data.agentnumber}</span>}
-              {data.customernumber && <span>{data.customernumber}</span>}
+              {/* Hide customer number for manual customers */}
+              {data.customernumber && !isManualCustomer && <span>{data.customernumber}</span>}
             </div>
             <div className="flex items-center gap-2">
               <div className="flex flex-col items-end gap-1">

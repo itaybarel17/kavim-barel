@@ -232,6 +232,7 @@ const ZoneReport = () => {
           numberedOrdersCount={numberedOrdersCount}
           returnsCount={returns.length}
           customerSupplyMap={customerSupplyMap}
+          replacementMap={replacementMap}
         />
 
         <SummarySection

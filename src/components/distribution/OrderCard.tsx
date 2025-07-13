@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import BlueCustomerIcon from '/blue-customer.svg';
 import RedCustomerIcon from '/red-customer.svg';
 import { getAreaColor } from '@/utils/areaColors';
+import { getCityArea } from '@/utils/scheduleUtils';
 interface Order {
   ordernumber: number;
   customername: string;
@@ -172,6 +173,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
   // Check if this is an "order on another customer" case
   const hasOrderOnAnotherCustomer = !!orderOnAnotherCustomerDetails;
+  
+  // State for manual customer area lookup
+  const [manualCustomerArea, setManualCustomerArea] = useState<string>('');
 
 
   // Size for prominent icon
@@ -240,6 +244,18 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     (data as Order).hashavshevet = newValue;
     setHashavshevtState(newValue);
   };
+
+  // Fetch area for manual customers (when they don't exist in system)
+  useEffect(() => {
+    const fetchManualCustomerArea = async () => {
+      if (hasOrderOnAnotherCustomer && !orderOnAnotherCustomerDetails?.existsInSystem) {
+        const area = await getCityArea(orderOnAnotherCustomerDetails?.city || '');
+        setManualCustomerArea(area);
+      }
+    };
+    
+    fetchManualCustomerArea();
+  }, [hasOrderOnAnotherCustomer, orderOnAnotherCustomerDetails]);
 
   return <Card ref={drag} className={`min-w-[250px] cursor-move relative ${isDragging ? 'opacity-50' : ''} ${isOrder ? 'border-blue-200 bg-blue-50' : 'border-red-200 bg-red-50'} ${hasInvoiceNumber ? 'ring-2 ring-green-300' : ''} ${isCandyPlus ? 'ring-2 ring-pink-300 border-pink-200' : ''} ${data.alert_status ? 'ring-2 ring-red-500 shadow-lg shadow-red-200' : ''}`}>
       {/* Red X overlay for cancellation */}

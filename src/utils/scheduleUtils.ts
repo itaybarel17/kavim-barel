@@ -1,4 +1,8 @@
 // Utility functions for handling schedule IDs with fallback logic
+import { supabase } from '@/integrations/supabase/client';
+
+// Cache for city area lookups to avoid repeated queries
+const cityAreaCache = new Map<string, string>();
 
 interface OrderWithSchedule {
   ordernumber: number;
@@ -273,6 +277,40 @@ export const getCustomerReplacementMap = (
   });
   
   return map;
+};
+
+/**
+ * Gets the area for a city from the cities table
+ */
+export const getCityArea = async (cityName: string): Promise<string> => {
+  if (!cityName) return '';
+  
+  // Check cache first
+  if (cityAreaCache.has(cityName)) {
+    return cityAreaCache.get(cityName)!;
+  }
+  
+  try {
+    const { data, error } = await supabase
+      .from('cities')
+      .select('area')
+      .eq('city', cityName)
+      .single();
+    
+    if (error || !data) {
+      // Cache empty result to avoid repeated queries
+      cityAreaCache.set(cityName, '');
+      return '';
+    }
+    
+    const area = data.area || '';
+    cityAreaCache.set(cityName, area);
+    return area;
+  } catch (error) {
+    console.error('Error fetching city area:', error);
+    cityAreaCache.set(cityName, '');
+    return '';
+  }
 };
 
 /**
