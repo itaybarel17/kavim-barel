@@ -21,6 +21,7 @@ interface Order {
   ezor2?: string;
   day1?: string;
   day2?: string;
+  message_alert?: boolean;
 }
 interface Return {
   returnnumber: number;
@@ -35,6 +36,7 @@ interface Return {
   hour?: string;
   remark?: string;
   alert_status?: boolean;
+  message_alert?: boolean;
 }
 interface UnassignedAreaProps {
   unassignedOrders: Order[];
@@ -65,6 +67,10 @@ interface UnassignedAreaProps {
   
   // new prop for siren functionality
   onSirenToggle?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
+  
+  // new props for message badge
+  messageSubjectMap?: Record<string, string>;
+  onMessageAlertUpdate?: () => void;
 }
 export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
   unassignedOrders,
@@ -75,7 +81,9 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
   customerSupplyMap = {},
-  onSirenToggle
+  onSirenToggle,
+  messageSubjectMap = {},
+  onMessageAlertUpdate
 }) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{
@@ -128,7 +136,9 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
               multiOrderActiveCustomerList={multiOrderActiveCustomerList} 
               dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} 
               customerSupplyMap={customerSupplyMap} 
-              onSirenToggle={onSirenToggle} 
+              onSirenToggle={onSirenToggle}
+              messageSubject={messageSubjectMap[`order-${order.ordernumber}`]}
+              onMessageAlertUpdate={onMessageAlertUpdate}
             />
             {onDeleteItem && (
               <button
@@ -150,7 +160,9 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
               multiOrderActiveCustomerList={multiOrderActiveCustomerList} 
               dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} 
               customerSupplyMap={customerSupplyMap} 
-              onSirenToggle={onSirenToggle} 
+              onSirenToggle={onSirenToggle}
+              messageSubject={messageSubjectMap[`return-${returnItem.returnnumber}`]}
+              onMessageAlertUpdate={onMessageAlertUpdate}
             />
             {onDeleteItem && (
               <button

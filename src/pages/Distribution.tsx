@@ -40,6 +40,7 @@ interface Order {
   day2?: string;
   end_picking_time?: string | null;
   hashavshevet?: string | null;
+  message_alert?: boolean;
 }
 interface Return {
   returnnumber: number;
@@ -57,6 +58,7 @@ interface Return {
   done_return?: string | null;
   returncancel?: string | null;
   alert_status?: boolean;
+  message_alert?: boolean;
 }
 interface DistributionGroup {
   groups_id: number;
@@ -77,6 +79,12 @@ interface Driver {
 interface CustomerSupply {
   customernumber: string;
   supplydetails?: string;
+}
+
+interface Message {
+  ordernumber?: number;
+  returnnumber?: number;
+  subject: string;
 }
 
 const Distribution = () => {
@@ -144,7 +152,7 @@ const Distribution = () => {
       const {
         data,
         error
-      } = await supabase.from('mainorder').select('ordernumber, customername, address, city, totalorder, schedule_id, icecream, customernumber, agentnumber, orderdate, invoicenumber, totalinvoice, hour, remark, alert_status, ezor1, ezor2, day1, day2, end_picking_time, hashavshevet').or('icecream.is.null,icecream.eq.').is('done_mainorder', null).is('ordercancel', null) // Exclude deleted orders
+      } = await supabase.from('mainorder').select('ordernumber, customername, address, city, totalorder, schedule_id, icecream, customernumber, agentnumber, orderdate, invoicenumber, totalinvoice, hour, remark, alert_status, ezor1, ezor2, day1, day2, end_picking_time, hashavshevet, message_alert').or('icecream.is.null,icecream.eq.').is('done_mainorder', null).is('ordercancel', null) // Exclude deleted orders
       .order('ordernumber', {
         ascending: false
       });
@@ -166,7 +174,7 @@ const Distribution = () => {
       const {
         data,
         error
-      } = await supabase.from('mainreturns').select('returnnumber, customername, address, city, totalreturn, schedule_id, icecream, customernumber, agentnumber, returndate, hour, remark, alert_status').or('icecream.is.null,icecream.eq.').is('done_return', null).is('returncancel', null) // Exclude deleted returns
+      } = await supabase.from('mainreturns').select('returnnumber, customername, address, city, totalreturn, schedule_id, icecream, customernumber, agentnumber, returndate, hour, remark, alert_status, message_alert').or('icecream.is.null,icecream.eq.').is('done_return', null).is('returncancel', null) // Exclude deleted returns
       .order('returnnumber', {
         ascending: false
       });
@@ -254,9 +262,39 @@ const Distribution = () => {
     }
   });
 
+  // Fetch messages
+  const {
+    data: messages = [],
+    refetch: refetchMessages,
+    isLoading: messagesLoading
+  } = useQuery({
+    queryKey: ['messages'],
+    queryFn: async () => {
+      console.log('Fetching messages...');
+      const {
+        data,
+        error
+      } = await supabase.from('messages').select('ordernumber, returnnumber, subject');
+      if (error) throw error;
+      console.log('Messages fetched:', data);
+      return data as Message[];
+    }
+  });
+
   // Create map for customer supply lookup
   const customerSupplyMap = customerSupplyData.reduce((map, customer) => {
     map[customer.customernumber] = customer.supplydetails || '';
+    return map;
+  }, {} as Record<string, string>);
+
+  // Create map for message subjects
+  const messageSubjectMap = messages.reduce((map, message) => {
+    if (message.ordernumber) {
+      map[`order-${message.ordernumber}`] = message.subject;
+    }
+    if (message.returnnumber) {
+      map[`return-${message.returnnumber}`] = message.subject;
+    }
     return map;
   }, {} as Record<string, string>);
 
@@ -673,7 +711,14 @@ const Distribution = () => {
   console.log('Distribution groups:', distributionGroups.length);
   console.log('Active schedules:', distributionSchedules.length);
   console.log('Sorted drop zones:', dropZones);
-  const isLoading = ordersLoading || returnsLoading || groupsLoading || schedulesLoading || driversLoading || customerSupplyLoading;
+  const isLoading = ordersLoading || returnsLoading || groupsLoading || schedulesLoading || driversLoading || customerSupplyLoading || messagesLoading;
+
+  // Add handler for message alert updates
+  const handleMessageAlertUpdate = () => {
+    refetchOrders();
+    refetchReturns();
+    refetchMessages();
+  };
 
   // Check if there are any items with active sirens anywhere in the system
   const hasGlobalActiveSiren = useMemo(() => {
@@ -748,7 +793,9 @@ const Distribution = () => {
           multiOrderActiveCustomerList={multiOrderActiveCustomerList} 
           dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} 
           customerSupplyMap={customerSupplyMap} 
-          onSirenToggle={handleSirenToggle} 
+          onSirenToggle={handleSirenToggle}
+          messageSubjectMap={messageSubjectMap}
+          onMessageAlertUpdate={handleMessageAlertUpdate}
         />
 
         {/* Mobile: single column, Tablet: 2 columns, Desktop: 4 columns */}
@@ -772,6 +819,8 @@ const Distribution = () => {
               customerSupplyMap={customerSupplyMap} 
               onSirenToggle={handleSirenToggle}
               onTogglePin={handleTogglePin}
+              messageSubjectMap={messageSubjectMap}
+              onMessageAlertUpdate={handleMessageAlertUpdate}
             />
           )}
         </div>
