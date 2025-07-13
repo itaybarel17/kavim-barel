@@ -32,7 +32,7 @@ export const MessageBadge: React.FC<MessageBadgeProps> = ({
       className={cn(
         'cursor-pointer transition-all duration-200 px-2 py-1 text-xs font-bold border-2 shadow-md hover:shadow-lg active:scale-95',
         colorClasses,
-        isBlinking && 'animate-pulse shadow-lg'
+        isBlinking && 'animate-pulse-slow shadow-lg'
       )}
       onClick={onClick}
     >

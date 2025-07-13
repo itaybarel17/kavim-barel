@@ -696,9 +696,8 @@ const Distribution = () => {
           return;
         }
         
-        // Update local data
+        // Force immediate local update
         (item.data as Order).message_alert = false;
-        refetchOrders();
       } else {
         const { error } = await supabase
           .from('mainreturns')
@@ -710,9 +709,8 @@ const Distribution = () => {
           return;
         }
         
-        // Update local data
+        // Force immediate local update
         (item.data as Return).message_alert = false;
-        refetchReturns();
       }
       
       console.log('Message alert status updated successfully');
