@@ -10,6 +10,7 @@ import { CalendarGrid } from '@/components/calendar/CalendarGrid';
 import { HorizontalKanban } from '@/components/calendar/HorizontalKanban';
 import { ViewOnlyUnassignedArea } from '@/components/calendar/ViewOnlyUnassignedArea';
 import { useAuth } from '@/context/AuthContext';
+import { getCustomerReplacementMap } from '@/utils/scheduleUtils';
 interface Order {
   ordernumber: number;
   customername: string;
@@ -197,8 +198,17 @@ const Calendar = () => {
   // Create customer replacement map
   const orderOnAnotherCustomerDetails = useMemo(() => {
     if (orderReplacementData.length === 0) return new Map();
-    const { getCustomerReplacementMap } = require('@/utils/scheduleUtils');
-    return getCustomerReplacementMap(orderReplacementData, customerDetails);
+    
+    // Transform the query data to match CustomerReplacement interface
+    const transformedData = orderReplacementData.map(item => ({
+      ordernumber: item.ordernumber,
+      returnnumber: item.returnnumber,
+      correctcustomer: item.correctcustomer,
+      city: item.city,
+      existsInSystem: false, // Will be determined in getCustomerReplacementMap
+    }));
+    
+    return getCustomerReplacementMap(transformedData, customerDetails);
   }, [orderReplacementData, customerDetails]);
 
   // Fetch customer supply details
