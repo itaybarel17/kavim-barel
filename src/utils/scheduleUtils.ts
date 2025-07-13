@@ -243,15 +243,30 @@ export interface CustomerReplacement {
  * Gets customer replacement map for orders and returns with "Order on another customer" messages
  */
 export const getCustomerReplacementMap = (
-  orderReplacements: CustomerReplacement[]
+  orderReplacements: CustomerReplacement[],
+  customerDetails?: any[]
 ): Map<string, CustomerReplacement> => {
   const map = new Map<string, CustomerReplacement>();
   
   orderReplacements.forEach(replacement => {
-    // Use the existing enriched data from CustomerReplacement
+    // Check if the replacement customer exists in the system
+    const customerExists = customerDetails?.find(customer => 
+      customer.customername === replacement.correctcustomer
+    );
+    
     const enrichedReplacement = {
       ...replacement,
       correctCustomer: replacement.correctcustomer, // Fix casing mismatch for TypeScript interface
+      existsInSystem: !!customerExists,
+      customerData: customerExists ? {
+        customername: customerExists.customername,
+        address: customerExists.address || '',
+        city: customerExists.city_area || customerExists.city || '',
+        mobile: customerExists.mobile,
+        phone: customerExists.phone,
+        supplydetails: customerExists.supplydetails,
+        customernumber: customerExists.customernumber,
+      } : undefined
     };
     
     if (replacement.ordernumber) {

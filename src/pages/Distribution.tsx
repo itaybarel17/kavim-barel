@@ -481,7 +481,7 @@ const Distribution = () => {
 
   // Get customer replacement map using standardized function
   const customerReplacementMap = useMemo(() => {
-    return getCustomerReplacementMap(orderReplacements);
+    return getCustomerReplacementMap(orderReplacements, customerSupplyData);
   }, [orderReplacements, customerSupplyData]);
 
   // Fetch messages for orders and returns
