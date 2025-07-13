@@ -15,21 +15,23 @@ export const NavBar: React.FC = () => {
   const isAdmin = user.agentnumber === "4";
 
   const navItems = [
+    ...(isAdmin ? [
+      { path: "/distribution", label: "הפצה", color: "orange" },
+    ] : []),
     { path: "/calendar", label: "לוח שנה", color: "green" },
     { path: "/messages", label: "הודעות", color: "purple" },
     ...(isAdmin ? [
-      { path: "/lines", label: "קווים", color: "cyan" },
-      { path: "/distribution", label: "הפצה", color: "orange" },
-      { path: "/archive", label: "ארכיון", color: "red" }
+      { path: "/archive", label: "ארכיון", color: "red" },
+      { path: "/lines", label: "קווים", color: "cyan" }
     ] : [])
   ];
 
   const getNavItemClasses = (path: string, color: string) => {
     const isActive = location.pathname === path;
-    return `px-2 lg:px-3 py-2 text-xs lg:text-sm font-bold rounded border transition-all duration-200 ${
+    return `px-2 lg:px-3 py-2 text-xs lg:text-sm font-bold rounded border transition-all duration-300 ${
       isActive 
-        ? `bg-gradient-to-r from-${color}-500 to-${color}-600 text-white border-${color}-400 shadow-lg scale-105 ring-2 ring-${color}-300/50`
-        : `bg-gradient-to-r from-${color}-500/80 to-${color}-600/80 text-white/90 border-${color}-400/80 hover:from-${color}-500 hover:to-${color}-600 hover:border-${color}-400 hover:text-white hover:shadow-sm`
+        ? `bg-gradient-to-r from-${color}-500 to-${color}-600 text-white border-${color}-400 shadow-2xl scale-110 ring-4 ring-${color}-300/70 transform-gpu animate-pulse glow-effect relative z-10`
+        : `bg-gradient-to-r from-${color}-500/80 to-${color}-600/80 text-white/90 border-${color}-400/80 hover:from-${color}-500 hover:to-${color}-600 hover:border-${color}-400 hover:text-white hover:shadow-lg hover:scale-105 hover:ring-2 hover:ring-${color}-300/40`
     }`;
   };
 
@@ -83,10 +85,10 @@ export const NavBar: React.FC = () => {
                     key={path}
                     to={path}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`block w-full text-right px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    className={`block w-full text-right px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 ${
                       isActive 
-                        ? `bg-${color}-100 text-${color}-800 border border-${color}-200 shadow-sm`
-                        : `text-foreground hover:bg-muted hover:text-foreground border border-transparent`
+                        ? `bg-gradient-to-r from-${color}-500 to-${color}-600 text-white border-2 border-${color}-400 shadow-xl ring-4 ring-${color}-300/50 transform scale-105`
+                        : `text-foreground hover:bg-muted hover:text-foreground border border-transparent hover:shadow-md hover:scale-102`
                     }`}
                   >
                     {label}
