@@ -17,9 +17,9 @@ export const CustomerMessageBanner: React.FC<CustomerMessageBannerProps> = ({ me
   if (messages.length === 0) return null;
 
   return (
-    <div className="space-y-1">
+    <div className={`bg-blue-50 border-2 border-blue-200 rounded-lg ${isMobile ? 'p-2' : 'p-3'} shadow-sm`}>
       {messages.map((message, index) => (
-        <div key={index} className={`text-blue-600 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+        <div key={index} className={`text-blue-700 font-medium ${isMobile ? 'text-sm' : 'text-base'} ${index > 0 ? 'mt-1' : ''}`}>
           {message.subject}: {message.customername}, {message.city}
         </div>
       ))}

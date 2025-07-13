@@ -948,19 +948,19 @@ const Distribution = () => {
   return (
       <div className="min-h-screen p-6 bg-[#52a0e4]/15">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-gray-700">ממשק הפצה</h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-3xl font-bold text-gray-700">ממשק הפצה</h1>
+            <CustomerMessageBanner messages={customerMessages} />
+          </div>
           <CentralAlertBanner isVisible={hasGlobalActiveSiren} />
         </div>
         
-        {/* Second row with customer and warehouse messages */}
-        <div className="flex items-start justify-between mb-6">
-          <CustomerMessageBanner messages={customerMessages} />
-          
-          {/* Warehouse message banner - only for user 4 */}
-          {currentUser?.agentnumber === "4" && (
+        {/* Warehouse message banner - only for user 4 */}
+        {currentUser?.agentnumber === "4" && (
+          <div className="mb-6">
             <WarehouseMessageBanner messages={warehouseMessages} />
-          )}
-        </div>
+          </div>
+        )}
         
         {/* Unassigned items area without alert banner */}
         <UnassignedArea 
