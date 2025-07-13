@@ -40,7 +40,14 @@ export default function Messages() {
           agents!messages_agentnumber_fkey(agentname),
           tag_agent:agents!messages_tagagent_fkey(agentname),
           mainorder(customername, ordernumber),
-          mainreturns(customername, returnnumber)
+          mainreturns(customername, returnnumber),
+          related_messages:messages!related_to_message_id(
+            messages_id,
+            ordernumber,
+            returnnumber,
+            mainorder(customername, ordernumber),
+            mainreturns(customername, returnnumber)
+          )
         `)
         .order('created_at', { ascending: false });
 
@@ -85,7 +92,10 @@ export default function Messages() {
       
       console.log('Fetched messages:', data?.length || 0, 'messages for agent', user?.agentnumber);
       
-      return data || [];
+      // Filter out child messages (those with related_to_message_id) to show only parent messages
+      const parentMessages = (data || []).filter(msg => !msg.related_to_message_id);
+      
+      return parentMessages as any[];
     }
   });
 

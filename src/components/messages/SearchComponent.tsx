@@ -8,6 +8,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+export type RelatedItem = {
+  type: "orders" | "returns";
+  id: number;
+  customername: string;
+  customernumber: string;
+  amount: number;
+  date: string;
+  agentnumber: string;
+};
+
 type SearchType = "orders" | "returns" | "schedules";
 
 type SearchResult = {
@@ -26,7 +36,7 @@ type SelectedItem = {
 };
 
 type SearchComponentProps = {
-  onSelect: (item: SelectedItem) => void;
+  onSelect: (item: SelectedItem, relatedItems?: RelatedItem[]) => void;
   selectedItem: SelectedItem | null;
   onClear: () => void;
   allowedTypes?: SearchType[];
@@ -264,13 +274,203 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
     setIsOpen(value.length >= 1);
   };
 
-  const handleSelect = (result: SearchResult) => {
-    onSelect({
+  // Function to get related items for orders/returns
+  const getRelatedItems = async (selectedItem: SelectedItem): Promise<RelatedItem[]> => {
+    if (selectedItem.type === "schedules") return [];
+    
+    const relatedItems: RelatedItem[] = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // First, get the selected item details to find customer info
+    if (selectedItem.type === "orders") {
+      const { data: orderData } = await supabase
+        .from('mainorder')
+        .select('customername, customernumber, city')
+        .eq('ordernumber', selectedItem.id)
+        .single();
+      
+      if (!orderData) return [];
+
+      // Find related orders for same customer/city
+      const { data: relatedOrders } = await supabase
+        .from('mainorder')
+        .select(`
+          ordernumber, customername, customernumber, orderdate, agentnumber, totalorder,
+          done_mainorder, schedule_id, distribution_schedule(done_schedule, distribution_date)
+        `)
+        .eq('customername', orderData.customername)
+        .eq('city', orderData.city)
+        .neq('ordernumber', selectedItem.id)
+        .is('ordercancel', null)
+        .is('icecream', null);
+
+      // Find related returns for same customer/city  
+      const { data: relatedReturns } = await supabase
+        .from('mainreturns')
+        .select(`
+          returnnumber, customername, customernumber, returndate, agentnumber, totalreturn,
+          done_return, schedule_id, distribution_schedule(done_schedule, distribution_date)
+        `)
+        .eq('customername', orderData.customername)
+        .eq('city', orderData.city)
+        .is('returncancel', null)
+        .is('icecream', null);
+
+      // Filter waiting orders (same logic as search)
+      const waitingOrders = (relatedOrders || []).filter(order => {
+        if (!order.schedule_id) return !order.done_mainorder;
+        const schedule = order.distribution_schedule;
+        if (!order.done_mainorder) return true;
+        if (order.done_mainorder && !schedule?.done_schedule && schedule?.distribution_date) {
+          const distributionDate = new Date(schedule.distribution_date);
+          distributionDate.setHours(0, 0, 0, 0);
+          return distributionDate >= today;
+        }
+        return false;
+      });
+
+      // Filter waiting returns
+      const waitingReturns = (relatedReturns || []).filter(returnItem => {
+        if (!returnItem.schedule_id) return !returnItem.done_return;
+        const schedule = returnItem.distribution_schedule;
+        if (!returnItem.done_return) return true;
+        if (returnItem.done_return && !schedule?.done_schedule && schedule?.distribution_date) {
+          const distributionDate = new Date(schedule.distribution_date);
+          distributionDate.setHours(0, 0, 0, 0);
+          return distributionDate >= today;
+        }
+        return false;
+      });
+
+      // Add to related items
+      waitingOrders.forEach(order => {
+        relatedItems.push({
+          type: "orders",
+          id: order.ordernumber,
+          customername: order.customername,
+          customernumber: order.customernumber,
+          amount: order.totalorder || 0,
+          date: order.orderdate || '',
+          agentnumber: order.agentnumber || ''
+        });
+      });
+
+      waitingReturns.forEach(returnItem => {
+        relatedItems.push({
+          type: "returns", 
+          id: returnItem.returnnumber,
+          customername: returnItem.customername,
+          customernumber: returnItem.customernumber,
+          amount: returnItem.totalreturn || 0,
+          date: returnItem.returndate || '',
+          agentnumber: returnItem.agentnumber || ''
+        });
+      });
+
+    } else if (selectedItem.type === "returns") {
+      const { data: returnData } = await supabase
+        .from('mainreturns')
+        .select('customername, customernumber, city')
+        .eq('returnnumber', selectedItem.id)
+        .single();
+      
+      if (!returnData) return [];
+
+      // Find related orders for same customer/city
+      const { data: relatedOrders } = await supabase
+        .from('mainorder')
+        .select(`
+          ordernumber, customername, customernumber, orderdate, agentnumber, totalorder,
+          done_mainorder, schedule_id, distribution_schedule(done_schedule, distribution_date)
+        `)
+        .eq('customername', returnData.customername)
+        .eq('city', returnData.city)
+        .is('ordercancel', null)
+        .is('icecream', null);
+
+      // Find related returns for same customer/city
+      const { data: relatedReturns } = await supabase
+        .from('mainreturns')
+        .select(`
+          returnnumber, customername, customernumber, returndate, agentnumber, totalreturn,
+          done_return, schedule_id, distribution_schedule(done_schedule, distribution_date)
+        `)
+        .eq('customername', returnData.customername)
+        .eq('city', returnData.city)
+        .neq('returnnumber', selectedItem.id)
+        .is('returncancel', null)
+        .is('icecream', null);
+
+      // Filter waiting items (same logic as above)
+      const waitingOrders = (relatedOrders || []).filter(order => {
+        if (!order.schedule_id) return !order.done_mainorder;
+        const schedule = order.distribution_schedule;
+        if (!order.done_mainorder) return true;
+        if (order.done_mainorder && !schedule?.done_schedule && schedule?.distribution_date) {
+          const distributionDate = new Date(schedule.distribution_date);
+          distributionDate.setHours(0, 0, 0, 0);
+          return distributionDate >= today;
+        }
+        return false;
+      });
+
+      const waitingReturns = (relatedReturns || []).filter(returnItem => {
+        if (!returnItem.schedule_id) return !returnItem.done_return;
+        const schedule = returnItem.distribution_schedule;
+        if (!returnItem.done_return) return true;
+        if (returnItem.done_return && !schedule?.done_schedule && schedule?.distribution_date) {
+          const distributionDate = new Date(schedule.distribution_date);
+          distributionDate.setHours(0, 0, 0, 0);
+          return distributionDate >= today;
+        }
+        return false;
+      });
+
+      // Add to related items
+      waitingOrders.forEach(order => {
+        relatedItems.push({
+          type: "orders",
+          id: order.ordernumber,
+          customername: order.customername,
+          customernumber: order.customernumber,
+          amount: order.totalorder || 0,
+          date: order.orderdate || '',
+          agentnumber: order.agentnumber || ''
+        });
+      });
+
+      waitingReturns.forEach(returnItem => {
+        relatedItems.push({
+          type: "returns",
+          id: returnItem.returnnumber,
+          customername: returnItem.customername,
+          customernumber: returnItem.customernumber,
+          amount: returnItem.totalreturn || 0,
+          date: returnItem.returndate || '',
+          agentnumber: returnItem.agentnumber || ''
+        });
+      });
+    }
+
+    return relatedItems;
+  };
+
+  const handleSelect = async (result: SearchResult) => {
+    const selectedItem = {
       type: result.type,
       id: result.id,
       title: result.title,
       subtitle: result.subtitle
-    });
+    };
+
+    // Get related items only for orders/returns
+    let relatedItems: RelatedItem[] = [];
+    if (selectedItem.type === "orders" || selectedItem.type === "returns") {
+      relatedItems = await getRelatedItems(selectedItem);
+    }
+
+    onSelect(selectedItem, relatedItems);
     setSearchTerm("");
     setIsOpen(false);
   };

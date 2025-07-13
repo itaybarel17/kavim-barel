@@ -15,10 +15,18 @@ type Message = {
   ordernumber: number | null;
   returnnumber: number | null;
   schedule_id: number | null;
+  related_to_message_id?: number | null;
   agents?: { agentname: string };
   tag_agent?: { agentname: string };
   mainorder?: { customername: string; ordernumber: number };
   mainreturns?: { customername: string; returnnumber: number };
+  related_messages?: Array<{
+    messages_id: number;
+    ordernumber: number | null;
+    returnnumber: number | null;
+    mainorder?: { customername: string; ordernumber: number };
+    mainreturns?: { customername: string; returnnumber: number };
+  }>;
 };
 
 type MessageListProps = {

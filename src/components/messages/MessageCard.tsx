@@ -21,10 +21,18 @@ type Message = {
   ordernumber: number | null;
   returnnumber: number | null;
   schedule_id: number | null;
+  related_to_message_id?: number | null;
   agents?: { agentname: string };
   tag_agent?: { agentname: string };
   mainorder?: { customername: string; ordernumber: number };
   mainreturns?: { customername: string; returnnumber: number };
+  related_messages?: Array<{
+    messages_id: number;
+    ordernumber: number | null;
+    returnnumber: number | null;
+    mainorder?: { customername: string; ordernumber: number };
+    mainreturns?: { customername: string; returnnumber: number };
+  }>;
 };
 
 type MessageCardProps = {
@@ -156,20 +164,55 @@ export const MessageCard: React.FC<MessageCardProps> = ({
             </div>
           )}
 
-          {!isWarehouseMessage && (message.mainorder || message.mainreturns) && (
-            <div className="flex items-center gap-2 text-sm bg-blue-50 p-2 rounded">
-              <FileText className="w-4 h-4 text-blue-600" />
-              {message.mainorder && (
-                <span>
-                  <span className="font-medium">הזמנה #{message.mainorder.ordernumber}</span>
-                  <span className="text-gray-600"> - {message.mainorder.customername}</span>
-                </span>
+          {!isWarehouseMessage && (message.mainorder || message.mainreturns || (message.related_messages && message.related_messages.length > 0)) && (
+            <div className="space-y-2">
+              {/* Primary associated item */}
+              {(message.mainorder || message.mainreturns) && (
+                <div className="flex items-center gap-2 text-sm bg-blue-50 p-2 rounded">
+                  <FileText className="w-4 h-4 text-blue-600" />
+                  {message.mainorder && (
+                    <span>
+                      <span className="font-medium">הזמנה #{message.mainorder.ordernumber}</span>
+                      <span className="text-gray-600"> - {message.mainorder.customername}</span>
+                      {isWarehouseMessage && <Badge className="mr-2 text-xs bg-orange-100 text-orange-800">לתשומת לב המחסן</Badge>}
+                    </span>
+                  )}
+                  {message.mainreturns && (
+                    <span>
+                      <span className="font-medium">החזרה #{message.mainreturns.returnnumber}</span>
+                      <span className="text-gray-600"> - {message.mainreturns.customername}</span>
+                      {isWarehouseMessage && <Badge className="mr-2 text-xs bg-orange-100 text-orange-800">לתשומת לב המחסן</Badge>}
+                    </span>
+                  )}
+                </div>
               )}
-              {message.mainreturns && (
-                <span>
-                  <span className="font-medium">החזרה #{message.mainreturns.returnnumber}</span>
-                  <span className="text-gray-600"> - {message.mainreturns.customername}</span>
-                </span>
+              
+              {/* Related items */}
+              {message.related_messages && message.related_messages.length > 0 && (
+                <div className="text-sm">
+                  <div className="font-medium text-gray-700 mb-1">
+                    פריטים קשורים נוספים ({message.related_messages.length}):
+                  </div>
+                  <div className="space-y-1">
+                    {message.related_messages.map((relatedMsg) => (
+                      <div key={relatedMsg.messages_id} className="flex items-center gap-2 bg-green-50 p-2 rounded">
+                        <FileText className="w-3 h-3 text-green-600" />
+                        {relatedMsg.mainorder && (
+                          <span className="text-xs">
+                            <span className="font-medium">הזמנה #{relatedMsg.mainorder.ordernumber}</span>
+                            <span className="text-gray-600"> - {relatedMsg.mainorder.customername}</span>
+                          </span>
+                        )}
+                        {relatedMsg.mainreturns && (
+                          <span className="text-xs">
+                            <span className="font-medium">החזרה #{relatedMsg.mainreturns.returnnumber}</span>
+                            <span className="text-gray-600"> - {relatedMsg.mainreturns.customername}</span>
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           )}

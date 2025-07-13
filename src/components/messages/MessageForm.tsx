@@ -11,11 +11,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SearchComponent } from "./SearchComponent";
+import { SearchComponent, RelatedItem } from "./SearchComponent";
 import { SubjectSelector } from "./SubjectSelector";
 import { CustomerSelector } from "./CustomerSelector";
+import { RelatedItemsDialog } from "./RelatedItemsDialog";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 
 const SUBJECT_OPTIONS = [
   { value: "לבטל הזמנה", label: "לבטל הזמנה" },
@@ -53,6 +55,9 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
+  const [selectedRelatedItems, setSelectedRelatedItems] = useState<RelatedItem[]>([]);
+  const [relatedItemsDialogOpen, setRelatedItemsDialogOpen] = useState(false);
+  const [pendingRelatedItems, setPendingRelatedItems] = useState<RelatedItem[]>([]);
   const [associationError, setAssociationError] = useState<string>("");
 
   const isAdmin = user?.agentnumber === "4";
@@ -120,6 +125,7 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
         }
       }
 
+      // Create primary message
       const messageData: any = {
         subject: data.subject || null,
         content: data.content,
@@ -131,39 +137,74 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
         schedule_id: data.schedule_id || null
       };
 
-      // Insert the message first
-      const { error: messageError } = await supabase.from('messages').insert(messageData);
+      // Insert the primary message first
+      const { data: insertedMessage, error: messageError } = await supabase
+        .from('messages')
+        .insert(messageData)
+        .select('messages_id')
+        .single();
+      
       if (messageError) throw messageError;
 
-      // If message has order/return association, update message_alert for badge blink
-      if (data.ordernumber) {
-        const { error: orderError } = await supabase
-          .from('mainorder')
-          .update({ message_alert: true })
-          .eq('ordernumber', data.ordernumber);
-        if (orderError) console.warn('Failed to update order message_alert:', orderError);
+      const primaryMessageId = insertedMessage.messages_id;
+
+      // Create related messages for selected related items
+      if (selectedRelatedItems.length > 0) {
+        const relatedMessagesData = selectedRelatedItems.map(item => ({
+          subject: data.subject || null,
+          content: data.content,
+          agentnumber: user?.agentnumber,
+          tagagent: data.tagagent === "none" ? null : data.tagagent || null,
+          correctcustomer: data.correctcustomer || null,
+          ordernumber: item.type === "orders" ? item.id : null,
+          returnnumber: item.type === "returns" ? item.id : null,
+          schedule_id: null,
+          related_to_message_id: primaryMessageId
+        }));
+
+        const { error: relatedMessagesError } = await supabase
+          .from('messages')
+          .insert(relatedMessagesData);
+        
+        if (relatedMessagesError) throw relatedMessagesError;
       }
 
-      if (data.returnnumber) {
-        const { error: returnError } = await supabase
-          .from('mainreturns')
-          .update({ message_alert: true })
-          .eq('returnnumber', data.returnnumber);
-        if (returnError) console.warn('Failed to update return message_alert:', returnError);
+      // Update message_alert for all associated items
+      const allAssociatedItems = [
+        ...(selectedItem ? [selectedItem] : []),
+        ...selectedRelatedItems
+      ];
+
+      for (const item of allAssociatedItems) {
+        if (item.type === "orders") {
+          const { error: orderError } = await supabase
+            .from('mainorder')
+            .update({ message_alert: true })
+            .eq('ordernumber', item.id);
+          if (orderError) console.warn('Failed to update order message_alert:', orderError);
+        } else if (item.type === "returns") {
+          const { error: returnError } = await supabase
+            .from('mainreturns')
+            .update({ message_alert: true })
+            .eq('returnnumber', item.id);
+          if (returnError) console.warn('Failed to update return message_alert:', returnError);
+        }
       }
     },
     onSuccess: () => {
       form.reset();
       setSelectedItem(null);
+      setSelectedRelatedItems([]);
       setAssociationError("");
       queryClient.invalidateQueries({ queryKey: ['messages'] });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['returns'] });
       queryClient.invalidateQueries({ queryKey: ['customer-messages'] });
       
+      const totalItems = 1 + selectedRelatedItems.length;
       toast({
         title: "הודעה נשלחה בהצלחה!",
-        description: "ההודעה נשלחה למערכת והתווית עודכנה",
+        description: `ההודעה נשלחה ושויכה ל-${totalItems} פריטים`,
         duration: 3000,
       });
 
@@ -186,7 +227,7 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
     }
   });
 
-  const handleSearchSelect = (item: SelectedItem) => {
+  const handleSearchSelect = (item: SelectedItem, relatedItems?: RelatedItem[]) => {
     setSelectedItem(item);
     setAssociationError("");
     
@@ -203,13 +244,27 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
     } else if (item.type === "schedules") {
       form.setValue("schedule_id", item.id);
     }
+
+    // Show related items dialog if there are any
+    if (relatedItems && relatedItems.length > 0) {
+      setPendingRelatedItems(relatedItems);
+      setRelatedItemsDialogOpen(true);
+    } else {
+      setSelectedRelatedItems([]);
+    }
   };
 
   const handleSearchClear = () => {
     setSelectedItem(null);
+    setSelectedRelatedItems([]);
     form.setValue("ordernumber", undefined);
     form.setValue("returnnumber", undefined);
     form.setValue("schedule_id", undefined);
+  };
+
+  const handleRelatedItemsConfirm = (selectedItems: RelatedItem[]) => {
+    setSelectedRelatedItems(selectedItems);
+    setRelatedItemsDialogOpen(false);
   };
 
   const onSubmit = (data: MessageFormData) => {
@@ -288,6 +343,30 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
                   {associationError && (
                     <div className="mt-2 text-sm text-destructive font-medium">
                       {associationError}
+                    </div>
+                  )}
+                  
+                  {/* Show selected related items */}
+                  {selectedRelatedItems.length > 0 && (
+                    <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <h4 className="font-semibold text-green-800 mb-2">
+                        פריטים קשורים שנבחרו ({selectedRelatedItems.length}):
+                      </h4>
+                      <div className="space-y-1">
+                        {selectedRelatedItems.map((item) => (
+                          <div key={`${item.type}-${item.id}`} className="flex items-center gap-2">
+                            <Badge variant={item.type === "orders" ? "default" : "destructive"} className="text-xs">
+                              {item.type === "orders" ? `הזמנה #${item.id}` : `החזרה #${item.id}`}
+                            </Badge>
+                            <span className="text-xs text-green-700">
+                              {item.customername} - ₪{item.amount.toLocaleString()}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-green-600 mt-2">
+                        ההודעה תחול על כל הפריטים הנבחרים
+                      </p>
                     </div>
                   )}
                 </CardContent>
@@ -423,6 +502,15 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
           )}
         </form>
       </Form>
+
+      {/* Related Items Dialog */}
+      <RelatedItemsDialog
+        open={relatedItemsDialogOpen}
+        onOpenChange={setRelatedItemsDialogOpen}
+        relatedItems={pendingRelatedItems}
+        selectedItem={selectedItem!}
+        onConfirm={handleRelatedItemsConfirm}
+      />
     </div>
   );
 };

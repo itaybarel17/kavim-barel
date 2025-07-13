@@ -667,6 +667,7 @@ export type Database = {
           is_handled: boolean | null
           messages_id: number
           ordernumber: number | null
+          related_to_message_id: number | null
           returnnumber: number | null
           schedule_id: number | null
           subject: Database["public"]["Enums"]["subject_message"] | null
@@ -680,6 +681,7 @@ export type Database = {
           is_handled?: boolean | null
           messages_id?: number
           ordernumber?: number | null
+          related_to_message_id?: number | null
           returnnumber?: number | null
           schedule_id?: number | null
           subject?: Database["public"]["Enums"]["subject_message"] | null
@@ -693,6 +695,7 @@ export type Database = {
           is_handled?: boolean | null
           messages_id?: number
           ordernumber?: number | null
+          related_to_message_id?: number | null
           returnnumber?: number | null
           schedule_id?: number | null
           subject?: Database["public"]["Enums"]["subject_message"] | null
@@ -719,6 +722,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "mainorder"
             referencedColumns: ["ordernumber"]
+          },
+          {
+            foreignKeyName: "messages_related_to_message_id_fkey"
+            columns: ["related_to_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["messages_id"]
           },
           {
             foreignKeyName: "messages_returnnumber_fkey"
