@@ -256,7 +256,7 @@ export const getCustomerReplacementMap = (
       customerData: customerExists ? {
         customername: customerExists.customername,
         address: customerExists.address || '',
-        city: customerExists.city || '',
+        city: customerExists.city_area || customerExists.city || '',
         mobile: customerExists.mobile,
         phone: customerExists.phone,
         supplydetails: customerExists.supplydetails,
