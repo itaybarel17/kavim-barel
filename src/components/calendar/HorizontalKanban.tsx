@@ -44,6 +44,7 @@ interface HorizontalKanbanProps {
     city: string;
   }[];
   currentUser?: User;
+  customerReplacementMap?: Map<string, any>;
 }
 export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
   distributionSchedules,
@@ -55,7 +56,8 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
   onDropToKanban,
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
-  currentUser
+  currentUser,
+  customerReplacementMap
 }) => {
   // Filter schedules by agent (admin sees all)
   const isAdmin = currentUser?.agentnumber === "4";
@@ -196,6 +198,7 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
                   multiOrderActiveCustomerList={multiOrderActiveCustomerList}
                   dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
                   currentUser={currentUser}
+                  customerReplacementMap={customerReplacementMap}
                 />
               </div>
             ))}

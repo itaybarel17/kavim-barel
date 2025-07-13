@@ -470,7 +470,7 @@ const Distribution = () => {
       
       const { data: existingCustomers, error: customerError } = await supabase
         .from('customerlist')
-        .select('customername, customernumber, address, city, supplydetails')
+        .select('customername, customernumber, address, city, mobile, phone, supplydetails')
         .in('customername', correctCustomerNames);
 
       if (customerError) throw customerError;
@@ -504,20 +504,37 @@ const Distribution = () => {
 
       // Process each message
       messages.forEach(msg => {
-        const key = msg.ordernumber ? `order-${msg.ordernumber}` : `return-${msg.returnnumber}`;
         const existingCustomer = customerMap.get(msg.correctcustomer);
         
         // Determine which city to use for area calculation
         const effectiveCity = existingCustomer?.city || msg.city;
         const newArea = cityAreaMap.get(effectiveCity);
 
-        details.set(key, {
-          correctCustomer: msg.correctcustomer,
-          city: effectiveCity, // Use customer's city if exists, otherwise message city
-          newArea,
-          customerExists: !!existingCustomer,
-          customerDetails: existingCustomer || null
-        });
+        const replacementData = {
+          ordernumber: msg.ordernumber,
+          returnnumber: msg.returnnumber,
+          correctcustomer: msg.correctcustomer,
+          city: effectiveCity,
+          existsInSystem: !!existingCustomer,
+          customerData: existingCustomer ? {
+            customername: existingCustomer.customername,
+            customernumber: existingCustomer.customernumber,
+            address: existingCustomer.address,
+            city: existingCustomer.city,
+            mobile: existingCustomer.mobile,
+            phone: existingCustomer.phone,
+            supplydetails: existingCustomer.supplydetails,
+          } : undefined,
+          newArea
+        };
+        
+        if (msg.ordernumber) {
+          details.set(`order-${msg.ordernumber}`, replacementData);
+        }
+        
+        if (msg.returnnumber) {
+          details.set(`return-${msg.returnnumber}`, replacementData);
+        }
       });
 
       return details;

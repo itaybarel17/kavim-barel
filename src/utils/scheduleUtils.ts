@@ -215,4 +215,102 @@ export const isCustomerCompletelyTransferred = (
   return allCustomerItems.every(item => isTransferredItem(item, currentScheduleId));
 };
 
+/**
+ * Interface for customer replacement data
+ */
+export interface CustomerReplacement {
+  ordernumber?: number;
+  returnnumber?: number;
+  correctcustomer: string;
+  city?: string;
+  existsInSystem: boolean;
+  customerData?: {
+    customername: string;
+    customernumber: string;
+    address: string;
+    city: string;
+    mobile?: string;
+    phone?: string;
+    supplydetails?: string;
+  };
+}
+
+/**
+ * Gets customer replacement map for orders and returns with "Order on another customer" messages
+ */
+export const getCustomerReplacementMap = (
+  orderReplacements: CustomerReplacement[]
+): Map<string, CustomerReplacement> => {
+  const map = new Map<string, CustomerReplacement>();
+  
+  orderReplacements.forEach(replacement => {
+    if (replacement.ordernumber) {
+      map.set(`order-${replacement.ordernumber}`, replacement);
+    }
+    if (replacement.returnnumber) {
+      map.set(`return-${replacement.returnnumber}`, replacement);
+    }
+  });
+  
+  return map;
+};
+
+/**
+ * Gets the replacement customer name for display
+ */
+export const getReplacementCustomerName = (
+  item: OrderWithSchedule | ReturnWithSchedule,
+  replacementMap: Map<string, CustomerReplacement>
+): string => {
+  const key = 'ordernumber' in item ? `order-${item.ordernumber}` : `return-${item.returnnumber}`;
+  const replacement = replacementMap.get(key);
+  
+  if (replacement) {
+    return replacement.correctcustomer;
+  }
+  
+  return item.customername;
+};
+
+/**
+ * Gets the replacement customer details for production summary
+ */
+export const getReplacementCustomerDetails = (
+  item: OrderWithSchedule | ReturnWithSchedule,
+  replacementMap: Map<string, CustomerReplacement>
+): {
+  customername: string;
+  address: string;
+  city: string;
+  mobile?: string;
+  phone?: string;
+  supplydetails?: string;
+  customernumber?: string;
+} => {
+  const key = 'ordernumber' in item ? `order-${item.ordernumber}` : `return-${item.returnnumber}`;
+  const replacement = replacementMap.get(key);
+  
+  if (replacement) {
+    if (replacement.existsInSystem && replacement.customerData) {
+      // Customer exists in system - use full details
+      return replacement.customerData;
+    } else {
+      // Customer doesn't exist - use only name and city from message
+      return {
+        customername: replacement.correctcustomer,
+        address: '', // Remove address
+        city: replacement.city || item.city,
+        // Remove phone details and supply details
+      };
+    }
+  }
+  
+  // No replacement - return original data
+  return {
+    customername: item.customername,
+    address: item.address,
+    city: item.city,
+  };
+};
+
 export type { OrderWithSchedule, ReturnWithSchedule };

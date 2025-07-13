@@ -18,8 +18,11 @@ import {
   getNewScheduleId,
   isTransferredItem,
   getTransferredFromScheduleId,
+  getReplacementCustomerDetails,
+  getCustomerReplacementMap,
   type OrderWithSchedule,
-  type ReturnWithSchedule
+  type ReturnWithSchedule,
+  type CustomerReplacement
 } from '@/utils/scheduleUtils';
 
 interface CustomerDetails {
@@ -146,6 +149,71 @@ const ProductionSummary = () => {
   const orders = scheduleId ? getOrdersByScheduleId(allOrders, parseInt(scheduleId)) : [];
   const returns = scheduleId ? getReturnsByScheduleId(allReturns, parseInt(scheduleId)) : [];
 
+  // Fetch customer replacement data
+  const { data: customerReplacements = [], isLoading: replacementsLoading } = useQuery({
+    queryKey: ['customer-replacements', scheduleId],
+    queryFn: async () => {
+      if (!scheduleId) return [];
+      
+      console.log('Fetching customer replacement data for schedule:', scheduleId);
+      
+      // Get all order and return numbers for this schedule
+      const orderNumbers = orders.map(o => o.ordernumber);
+      const returnNumbers = returns.map(r => r.returnnumber);
+      
+      if (orderNumbers.length === 0 && returnNumbers.length === 0) return [];
+      
+      // Get all "order on another customer" messages for these orders/returns
+      const { data: messages, error } = await supabase
+        .from('messages')
+        .select('ordernumber, returnnumber, correctcustomer, city')
+        .eq('subject', 'הזמנה על לקוח אחר')
+        .not('correctcustomer', 'is', null)
+        .or(`ordernumber.in.(${orderNumbers.join(',')}),returnnumber.in.(${returnNumbers.join(',')})`);
+      
+      if (error) throw error;
+      if (!messages || messages.length === 0) return [];
+      
+      // Get customer details for all replacement customers
+      const correctCustomerNames = [...new Set(messages.map(m => m.correctcustomer).filter(Boolean))];
+      
+      const { data: existingCustomers, error: customerError } = await supabase
+        .from('customerlist')
+        .select('customername, customernumber, address, city, mobile, phone, supplydetails')
+        .in('customername', correctCustomerNames);
+      
+      if (customerError) throw customerError;
+      
+      // Create customer lookup map
+      const customerMap = new globalThis.Map(existingCustomers?.map(c => [c.customername, c]) || []);
+      
+      // Build replacement data
+      const replacements: CustomerReplacement[] = messages.map(msg => ({
+        ordernumber: msg.ordernumber,
+        returnnumber: msg.returnnumber,
+        correctcustomer: msg.correctcustomer,
+        city: msg.city,
+        existsInSystem: customerMap.has(msg.correctcustomer),
+        customerData: customerMap.get(msg.correctcustomer) ? {
+          customername: customerMap.get(msg.correctcustomer)!.customername,
+          customernumber: customerMap.get(msg.correctcustomer)!.customernumber,
+          address: customerMap.get(msg.correctcustomer)!.address,
+          city: customerMap.get(msg.correctcustomer)!.city,
+          mobile: customerMap.get(msg.correctcustomer)!.mobile,
+          phone: customerMap.get(msg.correctcustomer)!.phone,
+          supplydetails: customerMap.get(msg.correctcustomer)!.supplydetails,
+        } : undefined
+      }));
+      
+      console.log('Customer replacements:', replacements);
+      return replacements;
+    },
+    enabled: !!scheduleId && !ordersLoading && !returnsLoading && (orders.length > 0 || returns.length > 0)
+  });
+
+  // Create replacement map
+  const replacementMap = getCustomerReplacementMap(customerReplacements);
+
   // Fetch customer details - only after orders and returns are loaded
   const { data: customerDetails = [], isLoading: customerDetailsLoading } = useQuery({
     queryKey: ['customer-details', scheduleId, orders.length, returns.length],
@@ -205,20 +273,22 @@ const ProductionSummary = () => {
   // Combine orders and returns by customer
   const customerEntries = new Map<string, CustomerEntry>();
 
-  // Process orders
+  // Process orders with customer replacement
   orders.forEach(order => {
-    const key = `${order.customername}-${order.city}`;
+    const replacementDetails = getReplacementCustomerDetails(order, replacementMap);
+    const key = `${replacementDetails.customername}-${replacementDetails.city}`;
+    
     if (!customerEntries.has(key)) {
-      const details = customerDetailsMap.get(order.customernumber || '');
+      const originalDetails = customerDetailsMap.get(order.customernumber || '');
       customerEntries.set(key, {
-        customername: order.customername,
-        address: order.address,
-        city: order.city,
-        customernumber: order.customernumber,
-        mobile: details?.mobile,
-        phone: details?.phone,
-        supplydetails: details?.supplydetails,
-        shotefnumber: details?.shotefnumber,
+        customername: replacementDetails.customername,
+        address: replacementDetails.address,
+        city: replacementDetails.city,
+        customernumber: replacementDetails.customernumber || order.customernumber,
+        mobile: replacementDetails.mobile || (replacementDetails.address ? undefined : originalDetails?.mobile),
+        phone: replacementDetails.phone || (replacementDetails.address ? undefined : originalDetails?.phone),
+        supplydetails: replacementDetails.supplydetails || (replacementDetails.address ? undefined : originalDetails?.supplydetails),
+        shotefnumber: originalDetails?.shotefnumber,
         orders: [],
         returns: []
       });
@@ -226,20 +296,22 @@ const ProductionSummary = () => {
     customerEntries.get(key)!.orders.push(order);
   });
 
-  // Process returns
+  // Process returns with customer replacement
   returns.forEach(returnItem => {
-    const key = `${returnItem.customername}-${returnItem.city}`;
+    const replacementDetails = getReplacementCustomerDetails(returnItem, replacementMap);
+    const key = `${replacementDetails.customername}-${replacementDetails.city}`;
+    
     if (!customerEntries.has(key)) {
-      const details = customerDetailsMap.get(returnItem.customernumber || '');
+      const originalDetails = customerDetailsMap.get(returnItem.customernumber || '');
       customerEntries.set(key, {
-        customername: returnItem.customername,
-        address: returnItem.address,
-        city: returnItem.city,
-        customernumber: returnItem.customernumber,
-        mobile: details?.mobile,
-        phone: details?.phone,
-        supplydetails: details?.supplydetails,
-        shotefnumber: details?.shotefnumber,
+        customername: replacementDetails.customername,
+        address: replacementDetails.address,
+        city: replacementDetails.city,
+        customernumber: replacementDetails.customernumber || returnItem.customernumber,
+        mobile: replacementDetails.mobile || (replacementDetails.address ? undefined : originalDetails?.mobile),
+        phone: replacementDetails.phone || (replacementDetails.address ? undefined : originalDetails?.phone),
+        supplydetails: replacementDetails.supplydetails || (replacementDetails.address ? undefined : originalDetails?.supplydetails),
+        shotefnumber: originalDetails?.shotefnumber,
         orders: [],
         returns: []
       });
@@ -274,7 +346,7 @@ const ProductionSummary = () => {
   const isScheduleProduced = schedule?.done_schedule && schedule.done_schedule.trim() !== '';
 
   // Show loading if data is still being fetched
-  const isDataLoading = ordersLoading || returnsLoading || customerDetailsLoading;
+  const isDataLoading = ordersLoading || returnsLoading || customerDetailsLoading || replacementsLoading;
 
   return (
     <div className="p-2 bg-background">

@@ -12,7 +12,9 @@ import {
   isItemModified,
   getOriginalScheduleId,
   getNewScheduleId,
-  isCustomerCompletelyTransferred
+  isCustomerCompletelyTransferred,
+  getReplacementCustomerName,
+  type CustomerReplacement
 } from '@/utils/scheduleUtils';
 import type { OrderWithSchedule, ReturnWithSchedule } from '@/utils/scheduleUtils';
 
@@ -52,6 +54,7 @@ interface CalendarCardProps {
   multiOrderActiveCustomerList?: { name: string; city: string }[];
   dualActiveOrderReturnCustomers?: { name: string; city: string }[];
   currentUser?: { agentnumber: string; agentname: string };
+  customerReplacementMap?: Map<string, CustomerReplacement>;
 }
 
 export const CalendarCard: React.FC<CalendarCardProps> = ({
@@ -69,7 +72,9 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
   currentUser,
+  customerReplacementMap,
 }) => {
+  const replacementMap = customerReplacementMap || new globalThis.Map();
   const navigate = useNavigate();
   
   // Check if this schedule has produced based on done_schedule timestamp
@@ -130,27 +135,29 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
     console.log(`Schedule returns count (after agent filter): ${scheduleReturns.length}`);
   }
 
-  // Calculate unique customers based on filtered data
+  // Calculate unique customers based on filtered data - with customer replacement
   const uniqueCustomers = new Set([
-    ...scheduleOrders.map(order => order.customername),
-    ...scheduleReturns.map(returnItem => returnItem.customername)
+    ...scheduleOrders.map(order => getReplacementCustomerName(order, replacementMap)),
+    ...scheduleReturns.map(returnItem => getReplacementCustomerName(returnItem, replacementMap))
   ]);
   
   // Create a map of customers with their cities for proper strikethrough logic
   const customerCityMap: Record<string, string> = {};
   [...scheduleOrders, ...scheduleReturns].forEach(item => {
-    if (!customerCityMap[item.customername]) {
-      customerCityMap[item.customername] = item.city;
+    const customerName = getReplacementCustomerName(item, replacementMap);
+    if (!customerCityMap[customerName]) {
+      customerCityMap[customerName] = item.city;
     }
   });
   
   const uniqueCustomersList = Array.from(uniqueCustomers);
 
-  // Create a map to track which customers belong to agent 99
+  // Create a map to track which customers belong to agent 99 - with customer replacement
   const agent99Customers = new Set<string>();
   [...scheduleOrders, ...scheduleReturns].forEach(item => {
     if (item.agentnumber === '99') {
-      agent99Customers.add(item.customername);
+      const customerName = getReplacementCustomerName(item, replacementMap);
+      agent99Customers.add(customerName);
     }
   });
 
