@@ -952,13 +952,15 @@ const Distribution = () => {
           <CentralAlertBanner isVisible={hasGlobalActiveSiren} />
         </div>
         
-        {/* Customer message banner - displayed prominently below title */}
-        <CustomerMessageBanner messages={customerMessages} />
-        
-        {/* Warehouse message banner - only for user 4 */}
-        {currentUser?.agentnumber === "4" && (
-          <WarehouseMessageBanner messages={warehouseMessages} />
-        )}
+        {/* Second row with customer and warehouse messages */}
+        <div className="flex items-start justify-between mb-6">
+          <CustomerMessageBanner messages={customerMessages} />
+          
+          {/* Warehouse message banner - only for user 4 */}
+          {currentUser?.agentnumber === "4" && (
+            <WarehouseMessageBanner messages={warehouseMessages} />
+          )}
+        </div>
         
         {/* Unassigned items area without alert banner */}
         <UnassignedArea 
