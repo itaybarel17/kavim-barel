@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, ArrowRight, Map } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getAreaColor, getMainAreaFromSeparation } from '@/utils/areaColors';
-import { formatDistributionDays } from '@/utils/dateUtils';
 import { 
   getOrdersByScheduleId, 
   getReturnsByScheduleId, 
@@ -22,7 +21,6 @@ import type { OrderWithSchedule, ReturnWithSchedule } from '@/utils/scheduleUtil
 interface DistributionGroup {
   groups_id: number;
   separation: string;
-  days?: string[] | null;
 }
 
 interface Driver {
@@ -225,9 +223,6 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
                   #{schedule?.dis_number || 'לא ידוע'}
                 </Badge>
               )}
-            </div>
-            <div className="truncate text-[10px] text-gray-600">
-              ימי הפצה: {formatDistributionDays(group?.days)}
             </div>
           </div>
         </div>
