@@ -515,7 +515,7 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
           <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
           <Input
             ref={inputRef}
-            placeholder={getSearchPlaceholder()}
+            placeholder={isMobile ? "חפש מספר/שם לקוח" : getSearchPlaceholder()}
             value={searchTerm}
             onChange={(e) => handleInputChange(e.target.value)}
             className="pl-10 text-sm w-full rounded-l-none"
