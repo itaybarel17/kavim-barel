@@ -80,7 +80,7 @@ interface OrderCardProps {
   onSirenToggle?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
   
   // message props
-  messageSubject?: string;
+  messageInfo?: { subject: string; content?: string; tagAgent?: string; agentName?: string };
   onMessageBadgeClick?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
 
   // cancellation overlay prop
@@ -94,7 +94,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   dualActiveOrderReturnCustomers = [],
   customerSupplyMap = {},
   onSirenToggle,
-  messageSubject,
+  messageInfo,
   onMessageBadgeClick,
   hasCancellationMessage = false
 }) => {
@@ -354,11 +354,14 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         {/* שורה חמישית: הסכום ותווית הודעה */}
         <div className="mb-2 flex items-center justify-between">
           <span className="text-xs font-bold">₪{total?.toLocaleString()}</span>
-          {messageSubject && (
+          {messageInfo && (
             <MessageBadge
-              subject={messageSubject}
+              subject={messageInfo.subject}
               isBlinking={data.message_alert === true}
               onClick={() => onMessageBadgeClick && onMessageBadgeClick({ type, data })}
+              content={messageInfo.content}
+              tagAgent={messageInfo.tagAgent}
+              agentName={messageInfo.agentName}
             />
           )}
         </div>

@@ -68,7 +68,7 @@ interface UnassignedAreaProps {
   // new prop for siren functionality
   onSirenToggle?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
   // message props
-  messageMap?: Record<string, string>;
+  messageMap?: Record<string, { subject: string; content?: string; tagAgent?: string; agentName?: string }>;
   onMessageBadgeClick?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
   
   // cancellation map for red X overlay
@@ -140,7 +140,7 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
               dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} 
               customerSupplyMap={customerSupplyMap} 
               onSirenToggle={onSirenToggle}
-              messageSubject={messageMap[`order-${order.ordernumber}`]}
+              messageInfo={messageMap[`order-${order.ordernumber}`]}
               onMessageBadgeClick={onMessageBadgeClick}
               hasCancellationMessage={cancellationMap.has(`order-${order.ordernumber}`)}
             />
@@ -165,7 +165,7 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
               dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} 
               customerSupplyMap={customerSupplyMap} 
               onSirenToggle={onSirenToggle}
-              messageSubject={messageMap[`return-${returnItem.returnnumber}`]}
+              messageInfo={messageMap[`return-${returnItem.returnnumber}`]}
               onMessageBadgeClick={onMessageBadgeClick}
               hasCancellationMessage={cancellationMap.has(`return-${returnItem.returnnumber}`)}
             />

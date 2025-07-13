@@ -100,7 +100,7 @@ interface DropZoneProps {
   // new prop for pin toggle functionality
   onTogglePin?: (zoneNumber: number) => void;
   // message props
-  messageMap?: Record<string, string>;
+  messageMap?: Record<string, { subject: string; content?: string; tagAgent?: string; agentName?: string }>;
   onMessageBadgeClick?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
   
   // cancellation map for red X overlay
@@ -556,7 +556,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
             dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
             customerSupplyMap={customerSupplyMap}
             onSirenToggle={onSirenToggle}
-            messageSubject={messageMap[`order-${order.ordernumber}`]}
+            messageInfo={messageMap[`order-${order.ordernumber}`]}
             onMessageBadgeClick={onMessageBadgeClick}
             hasCancellationMessage={cancellationMap.has(`order-${order.ordernumber}`)}
           />
@@ -571,7 +571,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
             dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
             customerSupplyMap={customerSupplyMap}
             onSirenToggle={onSirenToggle}
-            messageSubject={messageMap[`return-${returnItem.returnnumber}`]}
+            messageInfo={messageMap[`return-${returnItem.returnnumber}`]}
             onMessageBadgeClick={onMessageBadgeClick}
             hasCancellationMessage={cancellationMap.has(`return-${returnItem.returnnumber}`)}
           />

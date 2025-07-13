@@ -334,11 +334,24 @@ const Distribution = () => {
       console.log('Fetching order/return messages...');
       const { data, error } = await supabase
         .from('messages')
-        .select('ordernumber, returnnumber, subject')
+        .select('ordernumber, returnnumber, subject, content, tagagent, agentnumber')
         .or('ordernumber.not.is.null,returnnumber.not.is.null');
       
       if (error) throw error;
       console.log('Order/return messages fetched:', data);
+      return data;
+    }
+  });
+
+  // Fetch agent names for tagged agents
+  const { data: agentData = [] } = useQuery({
+    queryKey: ['agents-for-messages'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('agents')
+        .select('agentnumber, agentname');
+      
+      if (error) throw error;
       return data;
     }
   });
@@ -360,19 +373,35 @@ const Distribution = () => {
     }
   });
 
+  // Create agent name mapping
+  const agentNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    agentData.forEach(agent => {
+      map[agent.agentnumber] = agent.agentname;
+    });
+    return map;
+  }, [agentData]);
+
   // Create message mapping for quick lookup
   const messageMap = useMemo(() => {
-    const map: Record<string, string> = {};
+    const map: Record<string, { subject: string; content?: string; tagAgent?: string; agentName?: string }> = {};
     messageData.forEach(msg => {
+      const messageInfo = {
+        subject: msg.subject,
+        content: msg.content,
+        tagAgent: msg.tagagent,
+        agentName: msg.tagagent ? agentNameMap[msg.tagagent] : undefined
+      };
+      
       if (msg.ordernumber) {
-        map[`order-${msg.ordernumber}`] = msg.subject;
+        map[`order-${msg.ordernumber}`] = messageInfo;
       }
       if (msg.returnnumber) {
-        map[`return-${msg.returnnumber}`] = msg.subject;
+        map[`return-${msg.returnnumber}`] = messageInfo;
       }
     });
     return map;
-  }, [messageData]);
+  }, [messageData, agentNameMap]);
 
   // Create cancellation mapping for red X overlay
   const cancellationMap = useMemo(() => {
