@@ -313,7 +313,15 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
   // Filter subject options based on user permissions
   const availableSubjectOptions = SUBJECT_OPTIONS.filter(option => {
     if (option.value === "מחסן") {
-      return user?.agentnumber === "4"; // Only agent 4 can see warehouse option
+      console.log("Debugging warehouse permission:", {
+        userObject: user,
+        agentnumber: user?.agentnumber,
+        agentnumberType: typeof user?.agentnumber,
+        stringValue: String(user?.agentnumber),
+        isAgent4: String(user?.agentnumber) === "4"
+      });
+      // Convert to string to handle both string and number cases
+      return String(user?.agentnumber) === "4";
     }
     return true;
   });
