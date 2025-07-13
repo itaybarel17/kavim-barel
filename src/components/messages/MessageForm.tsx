@@ -21,12 +21,13 @@ const SUBJECT_OPTIONS = [
   { value: "שינוי מוצרים", label: "שינוי מוצרים" },
   { value: "הנחות", label: "הנחות" },
   { value: "אספקה", label: "אספקה" },
-  { value: "הזמנה על לקוח אחר", label: "הזמנה על לקוח אחר" },
+  { value: "לקוח אחר", label: "לקוח אחר" },
+  { value: "קו הפצה", label: "קו הפצה" },
   { value: "מחסן", label: "מחסן" }
 ] as const;
 
 type MessageFormData = {
-  subject?: "לבטל הזמנה" | "לדחות" | "שינוי מוצרים" | "הנחות" | "אספקה" | "הזמנה על לקוח אחר" | "מחסן";
+  subject?: "לבטל הזמנה" | "לדחות" | "שינוי מוצרים" | "הנחות" | "אספקה" | "לקוח אחר" | "קו הפצה" | "מחסן";
   content: string;
   tagagent?: string;
   correctcustomer?: string;
@@ -64,6 +65,35 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
 
   const selectedSubject = form.watch("subject");
 
+  // Clear irrelevant fields when subject changes
+  React.useEffect(() => {
+    if (selectedSubject) {
+      // Clear "correct customer" if not "order for another customer"
+      if (selectedSubject !== "לקוח אחר") {
+        form.setValue("correctcustomer", "");
+      }
+      
+      // Clear associations that don't match the subject
+      if (selectedSubject === "אספקה" || selectedSubject === "מחסן" || selectedSubject === "קו הפצה") {
+        // For supply/warehouse - can only associate with schedules
+        if (selectedItem && selectedItem.type !== "schedules") {
+          setSelectedItem(null);
+          form.setValue("ordernumber", undefined);
+          form.setValue("returnnumber", undefined);
+          form.setValue("schedule_id", undefined);
+        }
+      } else {
+        // For other subjects - cannot associate with schedules
+        if (selectedItem && selectedItem.type === "schedules") {
+          setSelectedItem(null);
+          form.setValue("ordernumber", undefined);
+          form.setValue("returnnumber", undefined);
+          form.setValue("schedule_id", undefined);
+        }
+      }
+    }
+  }, [selectedSubject, selectedItem, form]);
+
   // Fetch agents for tagging
   const { data: agents } = useQuery({
     queryKey: ['agents'],
@@ -79,11 +109,22 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
 
   const createMessageMutation = useMutation({
     mutationFn: async (data: MessageFormData) => {
-      // For warehouse messages, association is optional
-      if (data.subject !== "מחסן") {
-        // Validate that an association is required for non-warehouse messages
+      // Validate association based on subject
+      if (data.subject === "אספקה" || data.subject === "מחסן" || data.subject === "קו הפצה") {
+        // Supply/warehouse/distribution can only be associated with schedules (and it's optional for warehouse)
+        if (selectedItem && selectedItem.type !== "schedules") {
+          throw new Error("הודעות אספקה, מחסן וקו הפצה יכולות להיות משוייכות רק לקווי הפצה");
+        }
+        if ((data.subject === "אספקה" || data.subject === "קו הפצה") && !selectedItem) {
+          throw new Error("חובה לשייך קו הפצה להודעת אספקה וקו הפצה");
+        }
+      } else if (data.subject) {
+        // Other subjects must be associated with orders/returns only
         if (!selectedItem) {
-          throw new Error("חובה לשייך הזמנה, החזרה או קו הפצה להודעה");
+          throw new Error("חובה לשייך הזמנה או החזרה להודעה");
+        }
+        if (selectedItem.type === "schedules") {
+          throw new Error("לא ניתן לשייך קו הפצה להודעה זו");
         }
       }
 
@@ -183,24 +224,14 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
     // Clear previous association error
     setAssociationError("");
     
-    // Validate association is present for non-warehouse messages
-    if (data.subject !== "מחסן" && !selectedItem) {
-      setAssociationError("חובה לשייך הזמנה, החזרה או קו הפצה להודעה");
-      return;
-    }
-    
-    // For distribution line messages, subject is optional
-    if (selectedItem?.type === "schedules") {
-      data.subject = undefined;
-    }
-    
     createMessageMutation.mutate(data);
   };
 
-  // Check if subject should be required
-  const isSubjectRequired = selectedItem?.type !== "schedules";
+  // Check if "correct customer" field should be shown
+  const shouldShowCorrectCustomer = selectedSubject === "לקוח אחר";
   
-  // Check if association should be required (not for warehouse messages)
+  // Check if association should be required and what type
+  const shouldShowScheduleAssociation = selectedSubject === "אספקה" || selectedSubject === "מחסן" || selectedSubject === "קו הפצה";
   const isAssociationRequired = selectedSubject !== "מחסן";
 
   // Filter subject options based on user permissions
@@ -216,151 +247,201 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           
-          {/* Association requirement alert - only show if association is required */}
-          {isAssociationRequired && (
-            <Alert className="border-orange-200 bg-orange-50">
-              <AlertCircle className="h-4 w-4 text-orange-600" />
-              <AlertDescription className="text-orange-800">
-                <strong>חובה:</strong> יש לשייך הזמנה, החזרה או קו הפצה לכל הודעה. חל על כל הסוכנים.
-              </AlertDescription>
-            </Alert>
+          {/* 1. נושא ההודעה - ראשון ובולט */}
+          <Card className="border-2 border-blue-200 bg-blue-50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xl text-blue-900 flex items-center gap-2">
+                <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">1</span>
+                נושא ההודעה
+                <span className="text-sm font-normal text-blue-700">(חובה - קובע את שלבי המילוי הבאים)</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FormField
+                control={form.control}
+                name="subject"
+                rules={{ required: "נושא ההודעה נדרש" }}
+                render={({ field }) => (
+                  <FormItem>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="text-lg h-12 border-2">
+                          <SelectValue placeholder="בחר נושא ההודעה..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {availableSubjectOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value} className="text-lg py-3">
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+
+          {/* 2. שיוך להזמנה/החזרה/קו הפצה - מותנה בנושא */}
+          {selectedSubject && (
+            <div className="animate-fade-in">
+              <Card className={associationError ? "border-red-300 bg-red-50" : "border-2 border-green-200 bg-green-50"}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg text-green-900 flex items-center gap-2">
+                    <span className="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">2</span>
+                    {shouldShowScheduleAssociation ? "שיוך לקו הפצה" : "שיוך להזמנה או החזרה"}
+                    {isAssociationRequired && <span className="text-sm font-normal text-red-600">(חובה)</span>}
+                    {!isAssociationRequired && <span className="text-sm font-normal text-green-700">(אופציונלי)</span>}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <SearchComponent
+                    onSelect={handleSearchSelect}
+                    selectedItem={selectedItem}
+                    onClear={handleSearchClear}
+                    allowedTypes={shouldShowScheduleAssociation ? ["schedules"] : ["orders", "returns"]}
+                  />
+                  {associationError && (
+                    <div className="mt-2 text-sm text-red-600 font-medium">
+                      {associationError}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           )}
 
-          {/* Warehouse message info for admin */}
+          {/* 3. לקוח נכון - רק עבור "הזמנה על לקוח אחר" */}
+          {shouldShowCorrectCustomer && (
+            <div className="animate-fade-in">
+              <Card className="border-2 border-amber-200 bg-amber-50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg text-amber-900 flex items-center gap-2">
+                    <span className="bg-amber-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">3</span>
+                    לקוח נכון
+                    <span className="text-sm font-normal text-amber-700">(נדרש עבור הזמנה על לקוח אחר)</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <FormField
+                    control={form.control}
+                    name="correctcustomer"
+                    rules={{ required: "יש למלא את שם הלקוח הנכון" }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Input 
+                            placeholder="שם הלקוח הנכון..." 
+                            className="text-lg h-12 border-2"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* 4. תייג סוכן */}
+          {selectedSubject && (
+            <div className="animate-fade-in">
+              <FormField
+                control={form.control}
+                name="tagagent"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-lg font-medium">תייג סוכן (אופציונלי)</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="h-11">
+                          <SelectValue placeholder="בחר סוכן לתיוג" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">ללא תיוג</SelectItem>
+                        {agents?.map((agent) => (
+                          <SelectItem key={agent.agentnumber} value={agent.agentnumber}>
+                            {agent.agentname} ({agent.agentnumber})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          )}
+
+          {/* 5. תוכן ההודעה */}
+          {selectedSubject && (
+            <div className="animate-fade-in">
+              <FormField
+                control={form.control}
+                name="content"
+                rules={{ required: "תוכן ההודעה נדרש" }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-lg font-medium">תוכן ההודעה</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="כתוב כאן את תוכן ההודעה..." 
+                        className="min-h-[120px] text-lg border-2" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          )}
+
+          {/* 6. שלח הודעה */}
+          {selectedSubject && (
+            <div className="animate-fade-in">
+              <Button 
+                type="submit" 
+                className="w-full h-12 text-lg font-semibold" 
+                disabled={createMessageMutation.isPending}
+              >
+                {createMessageMutation.isPending ? "שולח הודעה..." : "שלח הודעה"}
+              </Button>
+            </div>
+          )}
+
+          {/* הודעות הדרכה */}
           {selectedSubject === "מחסן" && (
             <Alert className="border-blue-200 bg-blue-50">
               <AlertCircle className="h-4 w-4 text-blue-600" />
               <AlertDescription className="text-blue-800">
-                <strong>הודעת מחסן:</strong> הודעה פנימית למשרד. לא נדרש שיוך להזמנה/החזרה/קו הפצה.
+                <strong>הודעת מחסן:</strong> הודעה פנימית למשרד. שיוך לקו הפצה הוא אופציונלי.
               </AlertDescription>
             </Alert>
           )}
 
-          {/* 1. נושא ההודעה */}
-          <FormField
-            control={form.control}
-            name="subject"
-            rules={isSubjectRequired ? { required: "נושא ההודעה נדרש" } : {}}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  נושא ההודעה
-                  {!isSubjectRequired && <span className="text-gray-500"> (אופציונלי עבור קווי הפצה)</span>}
-                </FormLabel>
-                <Select onValueChange={field.onChange} value={field.value} disabled={!isSubjectRequired}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder={isSubjectRequired ? "בחר נושא" : "לא נדרש עבור קווי הפצה"} />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {availableSubjectOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* 2. הודעה לגבי הזמנה/החזרה/קו הפצה - CONDITIONAL */}
-          {isAssociationRequired && (
-            <Card className={associationError ? "border-red-300 bg-red-50" : ""}>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <span className="text-red-500">*</span>
-                  הודעה לגבי הזמנה/החזרה/קו הפצה
-                  <span className="text-sm font-normal text-red-600">(חובה)</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <SearchComponent
-                  onSelect={handleSearchSelect}
-                  selectedItem={selectedItem}
-                  onClear={handleSearchClear}
-                />
-                {associationError && (
-                  <div className="mt-2 text-sm text-red-600 font-medium">
-                    {associationError}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          {selectedSubject === "אספקה" && (
+            <Alert className="border-green-200 bg-green-50">
+              <AlertCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                <strong>הודעת אספקה:</strong> חובה לשייך לקו הפצה.
+              </AlertDescription>
+            </Alert>
           )}
 
-          {/* 3. לקוח נכון (אם שודר על לקוח אחר) */}
-          <FormField
-            control={form.control}
-            name="correctcustomer"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>לקוח נכון (אם שודר על לקוח אחר)</FormLabel>
-                <FormControl>
-                  <Input placeholder="שם הלקוח הנכון..." {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* 4. תייג סוכן */}
-          <FormField
-            control={form.control}
-            name="tagagent"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>תייג סוכן (אופציונלי)</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="בחר סוכן לתיוג" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="none">ללא תיוג</SelectItem>
-                    {agents?.map((agent) => (
-                      <SelectItem key={agent.agentnumber} value={agent.agentnumber}>
-                        {agent.agentname} ({agent.agentnumber})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* 5. תוכן ההודעה */}
-          <FormField
-            control={form.control}
-            name="content"
-            rules={{ required: "תוכן ההודעה נדרש" }}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>תוכן ההודעה</FormLabel>
-                <FormControl>
-                  <Textarea 
-                    placeholder="כתוב כאן את תוכן ההודעה..." 
-                    className="min-h-[100px]" 
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* 6. שלח הודעה */}
-          <Button 
-            type="submit" 
-            className="w-full" 
-            disabled={createMessageMutation.isPending}
-          >
-            {createMessageMutation.isPending ? "שולח..." : "שלח הודעה"}
-          </Button>
+          {shouldShowCorrectCustomer && (
+            <Alert className="border-amber-200 bg-amber-50">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800">
+                <strong>לקוח אחר:</strong> חובה למלא את שם הלקוח הנכון.
+              </AlertDescription>
+            </Alert>
+          )}
         </form>
       </Form>
     </div>

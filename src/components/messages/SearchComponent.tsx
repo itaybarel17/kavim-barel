@@ -29,16 +29,18 @@ type SearchComponentProps = {
   onSelect: (item: SelectedItem) => void;
   selectedItem: SelectedItem | null;
   onClear: () => void;
+  allowedTypes?: SearchType[];
 };
 
 export const SearchComponent: React.FC<SearchComponentProps> = ({
   onSelect,
   selectedItem,
-  onClear
+  onClear,
+  allowedTypes = ["orders", "returns", "schedules"]
 }) => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
-  const [searchType, setSearchType] = useState<SearchType>("orders");
+  const [searchType, setSearchType] = useState<SearchType>(allowedTypes[0] || "orders");
   const [isOpen, setIsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -286,17 +288,23 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
     <div className="space-y-4">
       <div className="flex gap-2">
         <Select value={searchType} onValueChange={(value: SearchType) => {
-          setSearchType(value);
-          setSearchTerm("");
-          setIsOpen(false);
+          if (allowedTypes.includes(value)) {
+            setSearchType(value);
+            setSearchTerm("");
+            setIsOpen(false);
+          }
         }}>
           <SelectTrigger className="w-40">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="orders">הזמנות</SelectItem>
-            <SelectItem value="returns">החזרות</SelectItem>
-            {user?.agentnumber !== "99" && (
+            {allowedTypes.includes("orders") && (
+              <SelectItem value="orders">הזמנות</SelectItem>
+            )}
+            {allowedTypes.includes("returns") && (
+              <SelectItem value="returns">החזרות</SelectItem>
+            )}
+            {allowedTypes.includes("schedules") && user?.agentnumber !== "99" && (
               <SelectItem value="schedules">קווי הפצה</SelectItem>
             )}
           </SelectContent>
