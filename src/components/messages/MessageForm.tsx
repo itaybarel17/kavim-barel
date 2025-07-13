@@ -98,21 +98,21 @@ export const MessageForm: React.FC = () => {
       const { error: messageError } = await supabase.from('messages').insert(messageData);
       if (messageError) throw messageError;
 
-      // If message has order/return association, update alert_status
+      // If message has order/return association, update message_alert for badge blink
       if (data.ordernumber) {
         const { error: orderError } = await supabase
           .from('mainorder')
-          .update({ alert_status: true })
+          .update({ message_alert: true })
           .eq('ordernumber', data.ordernumber);
-        if (orderError) console.warn('Failed to update order alert_status:', orderError);
+        if (orderError) console.warn('Failed to update order message_alert:', orderError);
       }
 
       if (data.returnnumber) {
         const { error: returnError } = await supabase
           .from('mainreturns')
-          .update({ alert_status: true })
+          .update({ message_alert: true })
           .eq('returnnumber', data.returnnumber);
-        if (returnError) console.warn('Failed to update return alert_status:', returnError);
+        if (returnError) console.warn('Failed to update return message_alert:', returnError);
       }
     },
     onSuccess: () => {

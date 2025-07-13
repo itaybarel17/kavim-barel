@@ -13,6 +13,7 @@ import { useAuth } from '@/context/AuthContext';
 import { CentralAlertBanner } from '@/components/distribution/CentralAlertBanner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { WarehouseMessageBanner } from '@/components/distribution/WarehouseMessageBanner';
+import { CustomerMessageBanner } from '@/components/distribution/CustomerMessageBanner';
 
 interface Order {
   ordernumber: number;
@@ -325,6 +326,36 @@ const Distribution = () => {
       return data;
     },
     enabled: currentUser?.agentnumber === "4"
+  });
+
+  // Add query for customer messages (tagged to orders/returns, not warehouse messages)
+  const { data: customerMessages = [] } = useQuery({
+    queryKey: ['customer-messages'],
+    queryFn: async () => {
+      console.log('Fetching customer messages...');
+      const { data, error } = await supabase
+        .from('messages')
+        .select(`
+          subject, 
+          ordernumber, 
+          returnnumber,
+          mainorder:ordernumber!inner(customername, city),
+          mainreturns:returnnumber!inner(customername, city)
+        `)
+        .neq('subject', 'מחסן')
+        .or('ordernumber.not.is.null,returnnumber.not.is.null')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      console.log('Customer messages fetched:', data);
+      
+      // Format for CustomerMessageBanner
+      return data.map(msg => ({
+        subject: msg.subject,
+        customername: msg.mainorder?.customername || msg.mainreturns?.customername,
+        city: msg.mainorder?.city || msg.mainreturns?.city
+      })).filter(msg => msg.customername && msg.city);
+    }
   });
 
   // Fetch messages for orders and returns
@@ -873,6 +904,7 @@ const Distribution = () => {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-gray-700">ממשק הפצה</h1>
           <div className="flex gap-2">
+            <CustomerMessageBanner messages={customerMessages} />
             <CentralAlertBanner isVisible={hasGlobalActiveSiren} />
           </div>
         </div>
