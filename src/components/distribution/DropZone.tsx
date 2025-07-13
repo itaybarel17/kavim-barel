@@ -506,7 +506,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
               מזהה לוח זמנים: {scheduleId}
                {selectedGroup && (
                  <div className="font-medium text-primary" dir="rtl">
-                   ימי הפצה: {formatDistributionDays(selectedGroup.day || selectedGroup.days)}
+                   ימי הפצה: {formatDistributionDays(selectedGroup.days)}
                  </div>
                )}
               {selectedDriver && (
