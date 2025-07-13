@@ -565,6 +565,23 @@ const ProductionSummary = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Additional customer section - פלקסמור */}
+        {customerReplacements?.some(r => r.correctcustomer === 'פלקסמור מסחר בע"מ') && (
+          <Card className="mt-4">
+            <CardContent className="p-4">
+              <h3 className="text-lg font-bold mb-2">* נוסף לקוח:</h3>
+              <div className="bg-muted p-3 rounded">
+                <div className="grid grid-cols-4 gap-2 text-sm">
+                  <div><strong>שם לקוח:</strong> פלקסמור מסחר בע"מ</div>
+                  <div><strong>הזמנה:</strong> {customerReplacements.find(r => r.correctcustomer === 'פלקסמור מסחר בע"מ')?.ordernumber}</div>
+                  <div><strong>עיר:</strong> {customerReplacements.find(r => r.correctcustomer === 'פלקסמור מסחר בע"מ')?.city || ''}</div>
+                  <div><strong>כתובת:</strong> {customerReplacements.find(r => r.correctcustomer === 'פלקסמור מסחר בע"מ')?.customerData?.address || ''}</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <style>{`
