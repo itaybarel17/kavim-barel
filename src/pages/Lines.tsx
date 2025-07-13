@@ -1,7 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 import { supabase } from '@/integrations/supabase/client';
 import { getAreaColor, getMainAreaFromSeparation } from '@/utils/areaColors';
 import { Loader2 } from 'lucide-react';
@@ -393,7 +391,6 @@ const Lines = () => {
   }
 
   return (
-    <DndProvider backend={HTML5Backend}>
       <div className={`container mx-auto ${isMobile ? 'p-3' : 'p-6'} space-y-4`}>
         <div className="text-center">
           <h1 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold mb-2`}>ניהול קווי הפצה</h1>
@@ -450,8 +447,7 @@ const Lines = () => {
           ))}
         </div>
       </div>
-    </DndProvider>
-  );
+    );
 };
 
 export default Lines;

@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 import { supabase } from '@/integrations/supabase/client';
 import { DropZone } from '@/components/distribution/DropZone';
 import { UnassignedArea } from '@/components/distribution/UnassignedArea';
@@ -699,6 +697,7 @@ const Distribution = () => {
         
         // Toggle message_alert and force immediate local update
         (item.data as Order).message_alert = !currentAlert;
+        refetchOrders();
       } else {
         const currentAlert = (item.data as Return).message_alert;
         const { error } = await supabase
@@ -713,6 +712,7 @@ const Distribution = () => {
         
         // Toggle message_alert and force immediate local update
         (item.data as Return).message_alert = !currentAlert;
+        refetchReturns();
       }
       
       console.log('Message alert status updated successfully');
@@ -800,7 +800,7 @@ const Distribution = () => {
         </div>
       </div>;
   }
-  return <DndProvider backend={HTML5Backend}>
+  return (
       <div className="min-h-screen p-6 bg-[#52a0e4]/15">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-gray-700">ממשק הפצה</h1>
@@ -856,7 +856,7 @@ const Distribution = () => {
           )}
         </div>
       </div>
-    </DndProvider>;
+    );
 };
 
 export default Distribution;
