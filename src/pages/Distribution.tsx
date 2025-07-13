@@ -351,7 +351,12 @@ const Distribution = () => {
       if (returnError) throw returnError;
 
       // Get the corresponding message subjects only if we have any orders/returns
-      const result = [];
+      const groupedMessages = new Map<string, {
+        subject: string;
+        customername: string;
+        city: string;
+        relatedItems: Array<{ type: 'order' | 'return'; id: number; customername: string; }>;
+      }>();
       
       if (orderMessages && orderMessages.length > 0) {
         const orderNums = orderMessages.map(o => o.ordernumber);
@@ -367,10 +372,22 @@ const Distribution = () => {
         orderMessages.forEach(order => {
           const msg = orderMessageSubjects?.find(m => m.ordernumber === order.ordernumber);
           if (msg) {
-            result.push({
-              subject: msg.subject,
-              customername: order.customername,
-              city: order.city
+            const key = `${msg.subject}-${order.customername}-${order.city}`;
+            
+            if (!groupedMessages.has(key)) {
+              groupedMessages.set(key, {
+                subject: msg.subject,
+                customername: order.customername,
+                city: order.city,
+                relatedItems: []
+              });
+            }
+            
+            const group = groupedMessages.get(key)!;
+            group.relatedItems.push({
+              type: 'order',
+              id: order.ordernumber,
+              customername: order.customername
             });
           }
         });
@@ -390,14 +407,41 @@ const Distribution = () => {
         returnMessages.forEach(returnItem => {
           const msg = returnMessageSubjects?.find(m => m.returnnumber === returnItem.returnnumber);
           if (msg) {
-            result.push({
-              subject: msg.subject,
-              customername: returnItem.customername,
-              city: returnItem.city
+            const key = `${msg.subject}-${returnItem.customername}-${returnItem.city}`;
+            
+            if (!groupedMessages.has(key)) {
+              groupedMessages.set(key, {
+                subject: msg.subject,
+                customername: returnItem.customername,
+                city: returnItem.city,
+                relatedItems: []
+              });
+            }
+            
+            const group = groupedMessages.get(key)!;
+            group.relatedItems.push({
+              type: 'return',
+              id: returnItem.returnnumber,
+              customername: returnItem.customername
             });
           }
         });
       }
+
+      // Convert to array and adjust relatedItems
+      const result = Array.from(groupedMessages.values()).map(group => {
+        // If there's only one item, don't show relatedItems
+        // If there are multiple items, show all except the first as related items
+        if (group.relatedItems.length <= 1) {
+          const { relatedItems, ...messageWithoutRelated } = group;
+          return messageWithoutRelated;
+        } else {
+          return {
+            ...group,
+            relatedItems: group.relatedItems.slice(1) // Show all except the first as related items
+          };
+        }
+      });
 
       console.log('Customer messages with message_alert=true:', result);
       return result.filter(msg => msg.customername && msg.city);
