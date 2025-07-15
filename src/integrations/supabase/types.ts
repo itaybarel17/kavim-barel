@@ -48,6 +48,13 @@ export type Database = {
             referencedColumns: ["agentnumber"]
           },
           {
+            foreignKeyName: "agent_visits_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents_public"
+            referencedColumns: ["agentnumber"]
+          },
+          {
             foreignKeyName: "agent_visits_city_fkey"
             columns: ["city"]
             isOneToOne: false
@@ -431,6 +438,7 @@ export type Database = {
           hashavshevet: string | null
           hour: string | null
           icecream: string | null
+          ignore_icecream: boolean | null
           invoicedate: string | null
           invoicenumber: number | null
           melaketID: number | null
@@ -479,6 +487,7 @@ export type Database = {
           hashavshevet?: string | null
           hour?: string | null
           icecream?: string | null
+          ignore_icecream?: boolean | null
           invoicedate?: string | null
           invoicenumber?: number | null
           melaketID?: number | null
@@ -527,6 +536,7 @@ export type Database = {
           hashavshevet?: string | null
           hour?: string | null
           icecream?: string | null
+          ignore_icecream?: boolean | null
           invoicedate?: string | null
           invoicenumber?: number | null
           melaketID?: number | null
@@ -582,6 +592,7 @@ export type Database = {
           done_return: string | null
           hour: string | null
           icecream: string | null
+          ignore_icecream: boolean | null
           message_alert: boolean | null
           remark: string | null
           return_reason: Json | null
@@ -604,6 +615,7 @@ export type Database = {
           done_return?: string | null
           hour?: string | null
           icecream?: string | null
+          ignore_icecream?: boolean | null
           message_alert?: boolean | null
           remark?: string | null
           return_reason?: Json | null
@@ -626,6 +638,7 @@ export type Database = {
           done_return?: string | null
           hour?: string | null
           icecream?: string | null
+          ignore_icecream?: boolean | null
           message_alert?: boolean | null
           remark?: string | null
           return_reason?: Json | null
@@ -723,6 +736,13 @@ export type Database = {
             referencedColumns: ["agentnumber"]
           },
           {
+            foreignKeyName: "messages_agentnumber_fkey"
+            columns: ["agentnumber"]
+            isOneToOne: false
+            referencedRelation: "agents_public"
+            referencedColumns: ["agentnumber"]
+          },
+          {
             foreignKeyName: "messages_ordernumber_fkey"
             columns: ["ordernumber"]
             isOneToOne: false
@@ -755,6 +775,13 @@ export type Database = {
             columns: ["tagagent"]
             isOneToOne: false
             referencedRelation: "agents"
+            referencedColumns: ["agentnumber"]
+          },
+          {
+            foreignKeyName: "messages_tagagent_fkey"
+            columns: ["tagagent"]
+            isOneToOne: false
+            referencedRelation: "agents_public"
             referencedColumns: ["agentnumber"]
           },
         ]
@@ -1203,7 +1230,54 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      agents_public: {
+        Row: {
+          agentname: string | null
+          agentnumber: string | null
+          id: string | null
+          monday1: string | null
+          monday2: Json | null
+          sunday1: string | null
+          sunday2: Json | null
+          thursday1: Json | null
+          thursday2: Json | null
+          tuesday1: Json | null
+          tuesday2: Json | null
+          wednesday1: Json | null
+          wednesday2: Json | null
+        }
+        Insert: {
+          agentname?: string | null
+          agentnumber?: string | null
+          id?: string | null
+          monday1?: string | null
+          monday2?: Json | null
+          sunday1?: string | null
+          sunday2?: Json | null
+          thursday1?: Json | null
+          thursday2?: Json | null
+          tuesday1?: Json | null
+          tuesday2?: Json | null
+          wednesday1?: Json | null
+          wednesday2?: Json | null
+        }
+        Update: {
+          agentname?: string | null
+          agentnumber?: string | null
+          id?: string | null
+          monday1?: string | null
+          monday2?: Json | null
+          sunday1?: string | null
+          sunday2?: Json | null
+          thursday1?: Json | null
+          thursday2?: Json | null
+          tuesday1?: Json | null
+          tuesday2?: Json | null
+          wednesday1?: Json | null
+          wednesday2?: Json | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_next_dis_number: {
