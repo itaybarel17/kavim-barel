@@ -1,4 +1,4 @@
-import { MessageSquare, Package, AlertTriangle, Users, Truck, Archive, Building } from "lucide-react";
+import { MessageSquare, Package, AlertTriangle, Users, Truck, Archive, Building, Package2 } from "lucide-react";
 
 interface SubjectSelectorProps {
   value: string;
@@ -48,6 +48,12 @@ const SUBJECT_OPTIONS = [
     label: 'מחסן',
     icon: Building,
     color: 'bg-gray-100 hover:bg-gray-200 border-gray-200 text-gray-700 dark:bg-gray-900/20 dark:hover:bg-gray-900/30 dark:border-gray-800 dark:text-gray-300'
+  },
+  { 
+    value: 'להחזיר הזמנה עם גלידה', 
+    label: 'להחזיר הזמנה עם גלידה',
+    icon: Package2,
+    color: 'bg-sky-100 hover:bg-sky-200 border-sky-200 text-sky-700 dark:bg-sky-900/20 dark:hover:bg-sky-900/30 dark:border-sky-800 dark:text-sky-300'
   }
 ];
 
@@ -66,6 +72,8 @@ export function SubjectSelector({ value, onChange, userAgentNumber }: SubjectSel
           if (isWarehouseForNonAgent4) {
             return null; // Hide warehouse button for non-agent-4 users
           }
+          
+          // "להחזיר הזמנה עם גלידה" is visible to all agents
           
           return (
             <button

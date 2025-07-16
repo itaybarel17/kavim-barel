@@ -64,7 +64,7 @@ export default function Messages() {
       // Admin (agent 4) sees all messages - no additional filtering
 
       if (filters.subject) {
-        query = query.eq('subject', filters.subject as "לבטל הזמנה" | "לדחות" | "שינוי מוצרים" | "הנחות" | "אספקה" | "הזמנה על לקוח אחר" | "מחסן");
+        query = query.eq('subject', filters.subject as "לבטל הזמנה" | "לדחות" | "שינוי מוצרים" | "הנחות" | "אספקה" | "הזמנה על לקוח אחר" | "מחסן" | "להחזיר הזמנה עם גלידה");
       }
       
       if (filters.isHandled !== "") {
@@ -129,6 +129,32 @@ export default function Messages() {
   // Delete message mutation
   const deleteMessageMutation = useMutation({
     mutationFn: async (messageId: number) => {
+      // First, get the message details to check if it's an ice cream return message
+      const { data: message, error: fetchError } = await supabase
+        .from('messages')
+        .select('subject, ordernumber, returnnumber')
+        .eq('messages_id', messageId)
+        .single();
+      
+      if (fetchError) throw fetchError;
+      
+      // If it's an ice cream return message, restore ignore_icecream to false
+      if (message?.subject === "להחזיר הזמנה עם גלידה") {
+        if (message.ordernumber) {
+          await supabase
+            .from('mainorder')
+            .update({ ignore_icecream: false })
+            .eq('ordernumber', message.ordernumber);
+        }
+        if (message.returnnumber) {
+          await supabase
+            .from('mainreturns')
+            .update({ ignore_icecream: false })
+            .eq('returnnumber', message.returnnumber);
+        }
+      }
+      
+      // Delete the message
       const { error } = await supabase
         .from('messages')
         .delete()

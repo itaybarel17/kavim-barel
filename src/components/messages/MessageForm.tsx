@@ -26,11 +26,12 @@ const SUBJECT_OPTIONS = [
   { value: "הנחות", label: "הנחות" },
   { value: "אספקה", label: "אספקה" },
   { value: "הזמנה על לקוח אחר", label: "הזמנה על לקוח אחר" },
-  { value: "מחסן", label: "מחסן" }
+  { value: "מחסן", label: "מחסן" },
+  { value: "להחזיר הזמנה עם גלידה", label: "להחזיר הזמנה עם גלידה" }
 ] as const;
 
 type MessageFormData = {
-  subject?: "לבטל הזמנה" | "לדחות" | "שינוי מוצרים" | "הנחות" | "אספקה" | "הזמנה על לקוח אחר" | "מחסן";
+  subject?: "לבטל הזמנה" | "לדחות" | "שינוי מוצרים" | "הנחות" | "אספקה" | "הזמנה על לקוח אחר" | "מחסן" | "להחזיר הזמנה עם גלידה";
   content: string;
   tagagent?: string;
   correctcustomer?: string;
@@ -126,7 +127,7 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
   const createMessageMutation = useMutation({
     mutationFn: async (data: MessageFormData) => {
       // Define subjects that require mandatory association
-      const mandatoryAssociationSubjects = ["לבטל הזמנה", "לדחות", "שינוי מוצרים", "הנחות", "הזמנה על לקוח אחר", "אספקה"];
+      const mandatoryAssociationSubjects = ["לבטל הזמנה", "לדחות", "שינוי מוצרים", "הנחות", "הזמנה על לקוח אחר", "אספקה", "להחזיר הזמנה עם גלידה"];
       
       // Validate association based on subject
       if (data.subject === "אספקה" || data.subject === "מחסן") {
@@ -135,6 +136,14 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
           throw new Error("חובה לשייך הזמנה, החזרה או קו הפצה להודעת " + data.subject);
         }
         // Warehouse messages don't require association
+      } else if (data.subject === "להחזיר הזמנה עם גלידה") {
+        // Ice cream return subject requires order/return association only
+        if (!selectedItem) {
+          throw new Error("חובה לשייך הזמנה או החזרה להודעת " + data.subject);
+        }
+        if (selectedItem.type === "schedules") {
+          throw new Error("לא ניתן לשייך קו הפצה להודעה זו");
+        }
       } else if (data.subject && mandatoryAssociationSubjects.includes(data.subject)) {
         // Subjects that require mandatory association must be associated with orders/returns only
         if (!selectedItem) {
@@ -191,31 +200,49 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
         if (relatedMessagesError) throw relatedMessagesError;
       }
 
-      // Update message_alert for all associated items
+      // Update message_alert for all associated items, except for ice cream return subject
       const allAssociatedItems = [
         ...(selectedItem ? [selectedItem] : []),
         ...selectedRelatedItems
       ];
 
       for (const item of allAssociatedItems) {
-        if (item.type === "orders") {
-          const { error: orderError } = await supabase
-            .from('mainorder')
-            .update({ message_alert: true })
-            .eq('ordernumber', item.id);
-          if (orderError) console.warn('Failed to update order message_alert:', orderError);
-        } else if (item.type === "returns") {
-          const { error: returnError } = await supabase
-            .from('mainreturns')
-            .update({ message_alert: true })
-            .eq('returnnumber', item.id);
-          if (returnError) console.warn('Failed to update return message_alert:', returnError);
-        } else if (item.type === "schedules") {
-          const { error: scheduleError } = await supabase
-            .from('distribution_schedule')
-            .update({ message_alert: true })
-            .eq('schedule_id', item.id);
-          if (scheduleError) console.warn('Failed to update schedule message_alert:', scheduleError);
+        if (data.subject === "להחזיר הזמנה עם גלידה") {
+          // For ice cream return subject, update ignore_icecream instead of message_alert
+          if (item.type === "orders") {
+            const { error: orderError } = await supabase
+              .from('mainorder')
+              .update({ ignore_icecream: true })
+              .eq('ordernumber', item.id);
+            if (orderError) console.warn('Failed to update order ignore_icecream:', orderError);
+          } else if (item.type === "returns") {
+            const { error: returnError } = await supabase
+              .from('mainreturns')
+              .update({ ignore_icecream: true })
+              .eq('returnnumber', item.id);
+            if (returnError) console.warn('Failed to update return ignore_icecream:', returnError);
+          }
+        } else {
+          // For other subjects, update message_alert as usual
+          if (item.type === "orders") {
+            const { error: orderError } = await supabase
+              .from('mainorder')
+              .update({ message_alert: true })
+              .eq('ordernumber', item.id);
+            if (orderError) console.warn('Failed to update order message_alert:', orderError);
+          } else if (item.type === "returns") {
+            const { error: returnError } = await supabase
+              .from('mainreturns')
+              .update({ message_alert: true })
+              .eq('returnnumber', item.id);
+            if (returnError) console.warn('Failed to update return message_alert:', returnError);
+          } else if (item.type === "schedules") {
+            const { error: scheduleError } = await supabase
+              .from('distribution_schedule')
+              .update({ message_alert: true })
+              .eq('schedule_id', item.id);
+            if (scheduleError) console.warn('Failed to update schedule message_alert:', scheduleError);
+          }
         }
       }
     },
@@ -307,8 +334,11 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
   
   // Check if association should be required and what type
   const shouldShowBothAssociation = selectedSubject === "אספקה" || selectedSubject === "מחסן";
-  const mandatoryAssociationSubjects = ["לבטל הזמנה", "לדחות", "שינוי מוצרים", "הנחות", "הזמנה על לקוח אחר", "אספקה"];
+  const mandatoryAssociationSubjects = ["לבטל הזמנה", "לדחות", "שינוי מוצרים", "הנחות", "הזמנה על לקוח אחר", "אספקה", "להחזיר הזמנה עם גלידה"];
   const isAssociationRequired = selectedSubject ? mandatoryAssociationSubjects.includes(selectedSubject) : false;
+  
+  // Check if content and agent tagging should be hidden for ice cream return subject
+  const shouldHideContentAndTagging = selectedSubject === "להחזיר הזמנה עם גלידה";
 
 
   return (
@@ -356,7 +386,7 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
                     {!isAssociationRequired && <span className="text-sm font-normal text-muted-foreground">(אופציונלי)</span>}
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent data-ice-cream-mode={shouldHideContentAndTagging ? "true" : "false"}>
                   <SearchComponent
                     onSelect={handleSearchSelect}
                     selectedItem={selectedItem}
@@ -507,8 +537,8 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
              </div>
            )}
 
-           {/* 4. תייג סוכן */}
-          {selectedSubject && (
+           {/* 4. תייג סוכן - מוסתר עבור נושא גלידה */}
+          {selectedSubject && !shouldHideContentAndTagging && (
             <div className="animate-fade-in">
               <FormField
                 control={form.control}
@@ -538,8 +568,8 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
             </div>
           )}
 
-          {/* 5. תוכן ההודעה */}
-          {selectedSubject && (
+          {/* 5. תוכן ההודעה - מוסתר עבור נושא גלידה */}
+          {selectedSubject && !shouldHideContentAndTagging && (
             <div className="animate-fade-in">
               <FormField
                 control={form.control}
@@ -599,6 +629,15 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
               <AlertCircle className="h-4 w-4 text-amber-600" />
               <AlertDescription className="text-amber-800">
                 <strong>לקוח אחר:</strong> חובה למלא את שם הלקוח הנכון.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {selectedSubject === "להחזיר הזמנה עם גלידה" && (
+            <Alert className="border-sky-200 bg-sky-50">
+              <AlertCircle className="h-4 w-4 text-sky-600" />
+              <AlertDescription className="text-sky-800">
+                <strong>החזרת הזמנה עם גלידה:</strong> חובה לשייך להזמנה או החזרה עם גלידה. הפעולה תעדכן את הרשומה ותסמן אותה כ"בלי גלידה".
               </AlertDescription>
             </Alert>
           )}

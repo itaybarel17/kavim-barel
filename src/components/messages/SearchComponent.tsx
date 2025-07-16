@@ -54,8 +54,16 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [searchType, setSearchType] = useState<SearchType>(allowedTypes[0] || "orders");
   const [isOpen, setIsOpen] = useState(false);
+  const [isIceCreamMode, setIsIceCreamMode] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Check if we're in ice cream search mode based on current form context
+  React.useEffect(() => {
+    // We can detect ice cream mode by checking the DOM for form state or using context
+    const isIceCreamSearch = document.querySelector('[data-ice-cream-mode="true"]') !== null;
+    setIsIceCreamMode(isIceCreamSearch);
+  }, []);
 
   const isAdmin = user?.agentnumber === "4";
 
@@ -73,7 +81,7 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
 
   // Search query with agent-based filtering
   const { data: searchResults, isLoading } = useQuery({
-    queryKey: ['autocomplete-search', searchType, searchTerm, user?.agentnumber],
+    queryKey: ['autocomplete-search', searchType, searchTerm, user?.agentnumber, isIceCreamMode],
     queryFn: async (): Promise<SearchResult[]> => {
       if (!searchTerm || searchTerm.length < 1) return [];
       
@@ -84,7 +92,7 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
         today.setHours(0, 0, 0, 0);
         
         // Get all orders - both assigned and unassigned that match "waiting" criteria
-        const { data: allOrders, error: allOrdersError } = await supabase
+        let query = supabase
           .from('mainorder')
           .select(`
             ordernumber, 
@@ -101,42 +109,59 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
           `)
           .or(`customername.ilike.%${searchTerm}%,customernumber.ilike.%${searchTerm}%,ordernumber.eq.${parseInt(searchTerm) || 0}`)
           .is('ordercancel', null)
-          .is('icecream', null)
           .limit(20);
+
+        // Check if we're searching for ice cream orders (last 7 days) or regular waiting orders        
+        if (isIceCreamMode) {
+          // For ice cream search: get orders from last 7 days with icecream = '1'
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+          query = query
+            .eq('icecream', '1')
+            .gte('orderdate', sevenDaysAgo.toISOString().split('T')[0]);
+        } else {
+          // Regular search: exclude ice cream orders
+          query = query.is('icecream', null);
+        }
+        
+        const { data: allOrders, error: allOrdersError } = await query;
           
         if (allOrdersError) throw allOrdersError;
         
-        // Filter based on waiting criteria (same as useWaitingCustomers)
-        const waitingOrders = (allOrders || []).filter(order => {
-          // Unassigned orders (no schedule_id) are waiting if done_mainorder is null
-          if (!order.schedule_id) {
-            return !order.done_mainorder;
-          }
-          
-          // Assigned orders waiting criteria
-          const schedule = order.distribution_schedule;
-          
-          // Criteria 1: done_mainorder is NULL
-          if (!order.done_mainorder) {
-            return true;
-          }
-          
-          // Criteria 2: done_mainorder has timestamp but done_schedule is null and distribution_date is today or later
-          if (order.done_mainorder && !schedule?.done_schedule && schedule?.distribution_date) {
-            const distributionDate = new Date(schedule.distribution_date);
-            distributionDate.setHours(0, 0, 0, 0);
+        let filteredOrders = allOrders || [];
+        
+        // For ice cream search, don't filter by waiting criteria - show all from last 7 days
+        if (!isIceCreamMode) {
+          // Filter based on waiting criteria (same as useWaitingCustomers)
+          filteredOrders = filteredOrders.filter(order => {
+            // Unassigned orders (no schedule_id) are waiting if done_mainorder is null
+            if (!order.schedule_id) {
+              return !order.done_mainorder;
+            }
             
-            // If distribution date is today or later and not yet distributed, it's still waiting
-            if (distributionDate >= today) {
+            // Assigned orders waiting criteria
+            const schedule = order.distribution_schedule;
+            
+            // Criteria 1: done_mainorder is NULL
+            if (!order.done_mainorder) {
               return true;
             }
-          }
-          
-          return false;
-        });
+            
+            // Criteria 2: done_mainorder has timestamp but done_schedule is null and distribution_date is today or later
+            if (order.done_mainorder && !schedule?.done_schedule && schedule?.distribution_date) {
+              const distributionDate = new Date(schedule.distribution_date);
+              distributionDate.setHours(0, 0, 0, 0);
+              
+              // If distribution date is today or later and not yet distributed, it's still waiting
+              if (distributionDate >= today) {
+                return true;
+              }
+            }
+            
+            return false;
+          });
+        }
         
-        let filteredOrders = waitingOrders;
-
         // Filter by agent unless admin
         if (!isAdmin && user?.agentnumber) {
           if (user.agentnumber === '99') {
@@ -165,7 +190,7 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
         today.setHours(0, 0, 0, 0);
         
         // Get all returns - both assigned and unassigned that match "waiting" criteria
-        const { data: allReturns, error: allReturnsError } = await supabase
+        let query = supabase
           .from('mainreturns')
           .select(`
             returnnumber, 
@@ -182,41 +207,58 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
           `)
           .or(`customername.ilike.%${searchTerm}%,customernumber.ilike.%${searchTerm}%,returnnumber.eq.${parseInt(searchTerm) || 0}`)
           .is('returncancel', null)
-          .is('icecream', null)
           .limit(20);
+
+        // Check if we're searching for ice cream returns (last 7 days) or regular waiting returns        
+        if (isIceCreamMode) {
+          // For ice cream search: get returns from last 7 days with icecream = '1'
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+          query = query
+            .eq('icecream', '1')
+            .gte('returndate', sevenDaysAgo.toISOString().split('T')[0]);
+        } else {
+          // Regular search: exclude ice cream returns
+          query = query.is('icecream', null);
+        }
+        
+        const { data: allReturns, error: allReturnsError } = await query;
           
         if (allReturnsError) throw allReturnsError;
         
-        // Filter based on waiting criteria (same logic as orders)
-        const waitingReturns = (allReturns || []).filter(returnItem => {
-          // Unassigned returns (no schedule_id) are waiting if done_return is null
-          if (!returnItem.schedule_id) {
-            return !returnItem.done_return;
-          }
-          
-          // Assigned returns waiting criteria
-          const schedule = returnItem.distribution_schedule;
-          
-          // Criteria 1: done_return is NULL
-          if (!returnItem.done_return) {
-            return true;
-          }
-          
-          // Criteria 2: done_return has timestamp but done_schedule is null and distribution_date is today or later
-          if (returnItem.done_return && !schedule?.done_schedule && schedule?.distribution_date) {
-            const distributionDate = new Date(schedule.distribution_date);
-            distributionDate.setHours(0, 0, 0, 0);
+        let filteredReturns = allReturns || [];
+        
+        // For ice cream search, don't filter by waiting criteria - show all from last 7 days
+        if (!isIceCreamMode) {
+          // Filter based on waiting criteria (same logic as orders)
+          filteredReturns = filteredReturns.filter(returnItem => {
+            // Unassigned returns (no schedule_id) are waiting if done_return is null
+            if (!returnItem.schedule_id) {
+              return !returnItem.done_return;
+            }
             
-            // If distribution date is today or later and not yet distributed, it's still waiting
-            if (distributionDate >= today) {
+            // Assigned returns waiting criteria
+            const schedule = returnItem.distribution_schedule;
+            
+            // Criteria 1: done_return is NULL
+            if (!returnItem.done_return) {
               return true;
             }
-          }
-          
-          return false;
-        });
-        
-        let filteredReturns = waitingReturns;
+            
+            // Criteria 2: done_return has timestamp but done_schedule is null and distribution_date is today or later
+            if (returnItem.done_return && !schedule?.done_schedule && schedule?.distribution_date) {
+              const distributionDate = new Date(schedule.distribution_date);
+              distributionDate.setHours(0, 0, 0, 0);
+              
+              // If distribution date is today or later and not yet distributed, it's still waiting
+              if (distributionDate >= today) {
+                return true;
+              }
+            }
+            
+            return false;
+          });
+        }
 
         // Filter by agent unless admin
         if (!isAdmin && user?.agentnumber) {
