@@ -77,6 +77,7 @@ interface OrderCardProps {
 
   // new props for supply details - removed agentNameMap as we'll display agentnumber directly
   customerSupplyMap?: Record<string, string>;
+  customerCoordinatesMap?: Record<string, { lat: number; lng: number }>;
   
   // new prop for siren functionality
   onSirenToggle?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
@@ -113,6 +114,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
   customerSupplyMap = {},
+  customerCoordinatesMap = {},
   onSirenToggle,
   messagesInfo,
   onMessageBadgeClick,
@@ -171,6 +173,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
   // Get supply details
   const customerSupplyDetails = data.customernumber ? customerSupplyMap[data.customernumber] : '';
+  
+  // Get customer coordinates
+  const customerCoordinates = data.customernumber ? customerCoordinatesMap[data.customernumber] : undefined;
 
   // Smart icon logic
   const isMultiOrderActive = multiOrderActiveCustomerList.some(cust => cust.name === data.customername && cust.city === data.city);
@@ -548,6 +553,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         customerName={data.customername}
         address={data.address}
         city={data.city}
+        lat={customerCoordinates?.lat}
+        lng={customerCoordinates?.lng}
         kanbanAreas={[]} // This will be populated from parent component data
       />
     </Card>;

@@ -64,6 +64,7 @@ interface UnassignedAreaProps {
   }[];
   // new props for supply details - removed agentNameMap
   customerSupplyMap?: Record<string, string>;
+  customerCoordinatesMap?: Record<string, { lat: number; lng: number }>;
   
   // new prop for siren functionality
   onSirenToggle?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
@@ -86,6 +87,7 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
   customerSupplyMap = {},
+  customerCoordinatesMap = {},
   onSirenToggle,
   messageMap = {},
   onMessageBadgeClick,
@@ -143,6 +145,7 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
               multiOrderActiveCustomerList={multiOrderActiveCustomerList} 
               dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} 
               customerSupplyMap={customerSupplyMap} 
+              customerCoordinatesMap={customerCoordinatesMap}
               onSirenToggle={onSirenToggle}
               messagesInfo={messageMap[`order-${order.ordernumber}`]}
               onMessageBadgeClick={onMessageBadgeClick}
@@ -169,6 +172,7 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
               multiOrderActiveCustomerList={multiOrderActiveCustomerList} 
               dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} 
               customerSupplyMap={customerSupplyMap} 
+              customerCoordinatesMap={customerCoordinatesMap}
               onSirenToggle={onSirenToggle}
               messagesInfo={messageMap[`return-${returnItem.returnnumber}`]}
               onMessageBadgeClick={onMessageBadgeClick}

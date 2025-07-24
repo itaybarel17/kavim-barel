@@ -86,6 +86,8 @@ interface CustomerSupply {
   city?: string;
   mobile?: string;
   phone?: string;
+  lat?: number;
+  lng?: number;
 }
 
 const Distribution = () => {
@@ -200,7 +202,7 @@ const Distribution = () => {
       const {
         data,
         error
-      } = await supabase.from('customerlist').select('customernumber, customername, supplydetails, address, city, mobile, phone');
+      } = await supabase.from('customerlist').select('customernumber, customername, supplydetails, address, city, mobile, phone, lat, lng');
       if (error) throw error;
       console.log('Customer supply data fetched:', data);
       return data;
@@ -268,6 +270,14 @@ const Distribution = () => {
     map[customer.customernumber] = customer.supplydetails || '';
     return map;
   }, {} as Record<string, string>);
+
+  // Create map for customer coordinates lookup
+  const customerCoordinatesMap = customerSupplyData.reduce((map, customer) => {
+    if (customer.lat && customer.lng) {
+      map[customer.customernumber] = { lat: customer.lat, lng: customer.lng };
+    }
+    return map;
+  }, {} as Record<string, { lat: number; lng: number }>);
 
 
   // --- BEGIN CUSTOMER STATUS LOGIC FOR ICONS ---
@@ -1133,6 +1143,7 @@ const Distribution = () => {
           multiOrderActiveCustomerList={multiOrderActiveCustomerList}
           dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
           customerSupplyMap={customerSupplyMap}
+          customerCoordinatesMap={customerCoordinatesMap}
           onSirenToggle={handleSirenToggle}
           messageMap={messageMap}
           onMessageBadgeClick={handleMessageBadgeClick}
@@ -1159,6 +1170,7 @@ const Distribution = () => {
               multiOrderActiveCustomerList={multiOrderActiveCustomerList}
               dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
               customerSupplyMap={customerSupplyMap}
+              customerCoordinatesMap={customerCoordinatesMap}
               onSirenToggle={handleSirenToggle}
               onTogglePin={handleTogglePin}
               messageMap={messageMap}
