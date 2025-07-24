@@ -412,10 +412,19 @@ const Calendar = () => {
 
   const allowedGroupIds = useMemo(() => {
     if (!currentUser) return [];
-    if (currentUser.agentnumber === "4") return null; // 4 ("משרד") sees all
+    
+    // Determine which agent to use for filtering
+    let agentForFiltering = currentUser.agentnumber;
+    if (currentUser.agentnumber === "4") {
+      // Admin user - use selected agent for filtering
+      if (selectedAgent === '4') {
+        return null; // Show all groups when "משרד" is selected
+      }
+      agentForFiltering = selectedAgent; // Use selected agent for filtering
+    }
 
     // Special logic for Agent 99 - only see specific schedule_ids that have his orders/returns
-    if (currentUser.agentnumber === "99") {
+    if (agentForFiltering === "99") {
       const agent99ScheduleIds = new Set<number>();
       distributionSchedules.forEach(schedule => {
         const hasAgent99Orders = orders.some(order => {
@@ -461,21 +470,21 @@ const Calendar = () => {
     return distributionGroups.filter(group => {
       if (!group.agents) return false;
       if (Array.isArray(group.agents)) {
-        // Convert currentUser.agentnumber to integer for comparison
-        return group.agents.includes(parseInt(currentUser.agentnumber));
+        // Convert agentForFiltering to integer for comparison
+        return group.agents.includes(parseInt(agentForFiltering));
       }
       // fallback in case agents is not an array (shouldn't happen)
       if (typeof group.agents === "string") {
         try {
           const arr = JSON.parse(group.agents);
-          return arr.includes(parseInt(currentUser.agentnumber));
+          return arr.includes(parseInt(agentForFiltering));
         } catch {
           return false;
         }
       }
       return false;
     }).map(group => group.groups_id);
-  }, [currentUser, distributionGroups, distributionSchedules, orders, returns]);
+  }, [currentUser, selectedAgent, distributionGroups, distributionSchedules, orders, returns]);
 
   // Filtered schedules
   const filteredSchedules = useMemo(() => {
