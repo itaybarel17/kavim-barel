@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Toggle } from '@/components/ui/toggle';
-import { X, Printer } from 'lucide-react';
+import { X, Printer, Map } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderCard } from './OrderCard';
 import { pdf } from '@react-pdf/renderer';
@@ -152,8 +153,8 @@ export const DropZone: React.FC<DropZoneProps> = ({
   onTogglePin,
   messageMap = {},
   onMessageBadgeClick,
-  cancellationMap = new Set(),
-  customerReplacementMap = new Map(),
+  cancellationMap,
+  customerReplacementMap,
   scheduleMessageMap = {},
   onScheduleImportantMessageClick
 }) => {
@@ -162,6 +163,9 @@ export const DropZone: React.FC<DropZoneProps> = ({
   const [selectedDriverId, setSelectedDriverId] = useState<number | null>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // Provide safe access to optional props
 
   // Get current zone state from parent
   const currentZoneState = getZoneState(zoneNumber);
@@ -316,6 +320,12 @@ export const DropZone: React.FC<DropZoneProps> = ({
     navigate(`/zone-report/${zoneNumber}`, {
       state: reportData
     });
+  };
+
+  // Function to handle map button click
+  const handleMapClick = () => {
+    if (!scheduleId) return;
+    navigate(`/schedule-map/${scheduleId}`);
   };
 
   const handleGroupSelection = async (value: string) => {
@@ -480,13 +490,24 @@ export const DropZone: React.FC<DropZoneProps> = ({
                 <div className={`w-3 h-3 bg-white rounded-full transition-transform ${currentZoneState.isPinned ? 'translate-x-1' : '-translate-x-1'}`} />
               </Toggle>
             )}
+            {scheduleId && (assignedOrders.length > 0 || assignedReturns.length > 0) && user?.agentnumber === "4" && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleMapClick}
+                className="h-8 w-8"
+                title="הצג מפה"
+              >
+                <Map className="h-4 w-4" />
+              </Button>
+            )}
             {scheduleId && (assignedOrders.length > 0 || assignedReturns.length > 0) && (
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={handlePrint}
-                className="h-6 w-6 text-muted-foreground hover:text-blue-600"
-                title="הדפס דוח"
+                className="h-8 w-8"
+                title="הדפסת דוח אזור"
               >
                 <Printer className="h-4 w-4" />
               </Button>
@@ -621,8 +642,8 @@ export const DropZone: React.FC<DropZoneProps> = ({
             onSirenToggle={onSirenToggle}
             messagesInfo={messageMap[`order-${order.ordernumber}`]}
             onMessageBadgeClick={onMessageBadgeClick}
-            hasCancellationMessage={cancellationMap.has(`order-${order.ordernumber}`)}
-            orderOnAnotherCustomerDetails={customerReplacementMap.get(`order-${order.ordernumber}`)}
+            hasCancellationMessage={cancellationMap?.has(`order-${order.ordernumber}`) || false}
+            orderOnAnotherCustomerDetails={customerReplacementMap?.get(`order-${order.ordernumber}`)}
             onLocalCompletionChange={handleOrderCompletionChange}
           />
         ))}
@@ -639,8 +660,8 @@ export const DropZone: React.FC<DropZoneProps> = ({
             onSirenToggle={onSirenToggle}
             messagesInfo={messageMap[`return-${returnItem.returnnumber}`]}
             onMessageBadgeClick={onMessageBadgeClick}
-            hasCancellationMessage={cancellationMap.has(`return-${returnItem.returnnumber}`)}
-            orderOnAnotherCustomerDetails={customerReplacementMap.get(`return-${returnItem.returnnumber}`)}
+            hasCancellationMessage={cancellationMap?.has(`return-${returnItem.returnnumber}`) || false}
+            orderOnAnotherCustomerDetails={customerReplacementMap?.get(`return-${returnItem.returnnumber}`)}
           />
         ))}
         {assignedOrders.length === 0 && assignedReturns.length === 0 && (
