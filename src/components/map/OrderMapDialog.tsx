@@ -65,63 +65,57 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
 
   // Initialize map when dialog opens
   useEffect(() => {
-    if (!isOpen || !mapRef.current) return;
+    if (!isOpen || !mapRef.current || !window.google) return;
 
-    // Check if Google Maps API is loaded
-    if (typeof window.google === 'undefined' || !window.google.maps) {
-      console.error('Google Maps API not loaded');
-      return;
-    }
+    try {
+      // Geocode the address to get coordinates
+      const geocoder = new window.google.maps.Geocoder();
+      geocoder.geocode(
+        { address: `${address}, ${city}`, region: 'IL' },
+        (results: any, status: any) => {
+          if (status === 'OK' && results[0]) {
+            const location = results[0].geometry.location;
+            const coords = { lat: location.lat(), lng: location.lng() };
+            setTargetLocation(coords);
 
-    // Check if required services are available
-    if (!window.google.maps.Geocoder || !window.google.maps.DistanceMatrixService || !window.google.maps.DirectionsService) {
-      console.error('Required Google Maps services not available');
-      return;
-    }
+            const mapInstance = new window.google.maps.Map(mapRef.current, {
+              zoom: 15,
+              center: coords,
+              mapTypeControl: false,
+              streetViewControl: false,
+              fullscreenControl: false,
+            });
 
-    // Geocode the address to get coordinates
-    const geocoder = new window.google.maps.Geocoder();
-    geocoder.geocode(
-      { address: `${address}, ${city}`, region: 'IL' },
-      (results: any, status: any) => {
-        if (status === 'OK' && results[0]) {
-          const location = results[0].geometry.location;
-          const coords = { lat: location.lat(), lng: location.lng() };
-          setTargetLocation(coords);
+            // Add marker for the target address
+            new window.google.maps.Marker({
+              position: coords,
+              map: mapInstance,
+              title: customerName,
+              icon: {
+                path: window.google.maps.SymbolPath.CIRCLE,
+                fillColor: '#FF6B6B',
+                fillOpacity: 1,
+                strokeColor: '#ffffff',
+                strokeWeight: 3,
+                scale: 15
+              },
+              label: {
+                text: 'יעד',
+                color: 'white',
+                fontSize: '12px',
+                fontWeight: 'bold'
+              }
+            });
 
-          const mapInstance = new window.google.maps.Map(mapRef.current, {
-            zoom: 15,
-            center: coords,
-            mapTypeControl: false,
-            streetViewControl: false,
-            fullscreenControl: false,
-          });
-
-          // Add marker for the target address
-          new window.google.maps.Marker({
-            position: coords,
-            map: mapInstance,
-            title: customerName,
-            icon: {
-              path: window.google.maps.SymbolPath.CIRCLE,
-              fillColor: '#FF6B6B',
-              fillOpacity: 1,
-              strokeColor: '#ffffff',
-              strokeWeight: 3,
-              scale: 15
-            },
-            label: {
-              text: 'יעד',
-              color: 'white',
-              fontSize: '12px',
-              fontWeight: 'bold'
-            }
-          });
-
-          setMap(mapInstance);
+            setMap(mapInstance);
+          } else {
+            console.error('Geocoding failed:', status);
+          }
         }
-      }
-    );
+      );
+    } catch (error) {
+      console.error('Error initializing map:', error);
+    }
   }, [isOpen, address, city, customerName]);
 
   const findClosestPoints = async () => {
