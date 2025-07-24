@@ -22,6 +22,7 @@ interface Order {
   city: string;
   totalorder: number;
   totalinvoice?: number;
+  end_picking_time?: string | null;
   schedule_id?: number;
   customernumber?: string;
   agentnumber?: string;
@@ -219,18 +220,29 @@ export const DropZone: React.FC<DropZoneProps> = ({
     return uniqueCustomers.size;
   }, [assignedOrders, assignedReturns]);
 
-  // Calculate total orders sum
-  const totalOrdersSum = useMemo(() => {
-    return assignedOrders
-      .filter(order => order.totalorder != null && order.totalorder !== undefined)
-      .reduce((sum, order) => sum + order.totalorder, 0);
+  // Calculate prepared orders count and total orders count
+  const completedOrdersCount = useMemo(() => {
+    return assignedOrders.filter(order => order.end_picking_time != null && order.end_picking_time !== '').length;
   }, [assignedOrders]);
 
-  // Calculate total invoices sum
+  const totalOrdersCount = useMemo(() => {
+    return assignedOrders.length;
+  }, [assignedOrders]);
+
+  // Calculate total orders sum (without decimals)
+  const totalOrdersSum = useMemo(() => {
+    const sum = assignedOrders
+      .filter(order => order.totalorder != null && order.totalorder !== undefined)
+      .reduce((sum, order) => sum + order.totalorder, 0);
+    return Math.floor(sum);
+  }, [assignedOrders]);
+
+  // Calculate total invoices sum (without decimals)
   const totalInvoicesSum = useMemo(() => {
-    return assignedOrders
+    const sum = assignedOrders
       .filter(order => order.totalinvoice != null && order.totalinvoice !== undefined)
       .reduce((sum, order) => sum + order.totalinvoice, 0);
+    return Math.floor(sum);
   }, [assignedOrders]);
 
   // Get delivery date for display
@@ -541,19 +553,19 @@ export const DropZone: React.FC<DropZoneProps> = ({
                   />
                 </div>
               )}
+              {scheduleId && totalOrdersCount > 0 && (
+                <div className="font-medium text-green-600 mt-1 text-sm">
+                  הוכנו {completedOrdersCount} הזמנות מתוך {totalOrdersCount}
+                </div>
+              )}
               {scheduleId && (
                 <div className="font-medium text-blue-600 mt-1">
                   סה"כ נקודות: {uniqueCustomerPoints}
                 </div>
               )}
-              {scheduleId && (
-                <div className="font-medium text-blue-600 mt-1">
-                  סה"כ הזמנות: {totalOrdersSum.toLocaleString('he-IL')}
-                </div>
-              )}
-              {scheduleId && (
-                <div className="font-medium text-blue-600 mt-1">
-                  סה"כ חשבוניות: {totalInvoicesSum.toLocaleString('he-IL')}
+              {scheduleId && (totalOrdersSum > 0 || totalInvoicesSum > 0) && (
+                <div className="font-medium text-blue-600 mt-1 text-sm">
+                  סה"כ: הזמנה: {totalOrdersSum.toLocaleString('he-IL')} | חש': {totalInvoicesSum.toLocaleString('he-IL')}
                 </div>
               )}
               {deliveryDate && (
