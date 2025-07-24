@@ -498,7 +498,7 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-6xl h-[85vh] flex flex-col">
+      <DialogContent className="max-w-7xl h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -530,7 +530,7 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
           </div>
           
           {/* Side Panel */}
-          <div className="w-80 space-y-4 overflow-y-auto">
+          <div className="w-80 flex-shrink-0 space-y-4 max-h-[calc(90vh-8rem)] overflow-y-auto p-1">
             {/* Customer Info */}
             <div className="p-4 bg-card rounded-lg border">
               <h3 className="font-semibold mb-2">{customerName}</h3>
@@ -612,16 +612,21 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
                         </div>
                          <p className="text-xs text-muted-foreground">{item.customer.address}, {item.customer.city}</p>
                          <div className="flex justify-between items-center text-xs text-muted-foreground">
-                           <span>מרחק: {item.distance.toFixed(2)} ק"מ</span>
+                           <div className="flex items-center gap-3">
+                             <span>מרחק: {item.distance.toFixed(2)} ק"מ</span>
+                             {item.travelTime && (
+                               <div className="flex items-center gap-1">
+                                 <Clock size={12} />
+                                 <span>{item.travelTime}</span>
+                               </div>
+                             )}
+                           </div>
                            {item.customer.orderCount > 1 && (
                              <span className="bg-primary text-primary-foreground px-1 rounded text-xs">
                                {item.customer.orderCount} הזמנות
                              </span>
                            )}
                          </div>
-                         {item.travelTime && (
-                           <p className="text-xs text-muted-foreground">זמן נסיעה: {item.travelTime}</p>
-                         )}
                       </div>
                     ))}
                   </div>
