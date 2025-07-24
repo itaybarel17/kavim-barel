@@ -556,6 +556,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         lat={customerCoordinates?.lat}
         lng={customerCoordinates?.lng}
         scheduleId={data.schedule_id}
+        customerCoordinatesMap={customerCoordinatesMap}
+        customerNumber={data.customernumber}
       />
     </Card>;
 };
