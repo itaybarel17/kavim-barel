@@ -84,7 +84,7 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
   // Fetch active customers with coordinates from database (one record per customer)
   const fetchActiveCustomersWithCoordinates = async (): Promise<CustomerWithCoordinates[]> => {
     try {
-      console.log('Fetching active customers from database...');
+      console.log('🔍 Fetching active customers from database...');
       
       // First, get active orders with schedule_id but without done_mainorder
       const { data: activeOrders, error: ordersError } = await supabase
@@ -98,7 +98,7 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
         return [];
       }
 
-      console.log('Active orders found:', activeOrders?.length || 0);
+      console.log(`📊 Active orders found: ${activeOrders?.length || 0}`);
 
       if (!activeOrders || activeOrders.length === 0) {
         return [];
@@ -112,45 +112,76 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
       });
 
       const customerNumbers = Array.from(customerOrderCounts.keys());
-      console.log('Unique customer numbers:', customerNumbers.length);
+      console.log(`👥 Unique customer numbers: ${customerNumbers.length}`);
 
-      // Fetch customer coordinates from customerlist
+      // Fetch customer coordinates from customerlist with improved filtering
       const { data: customersWithCoords, error: coordsError } = await supabase
         .from('customerlist')
         .select('customernumber, customername, address, city, lat, lng')
         .in('customernumber', customerNumbers)
         .not('lat', 'is', null)
-        .not('lng', 'is', null);
+        .not('lng', 'is', null)
+        .neq('lat', 0)
+        .neq('lng', 0);
 
       if (coordsError) {
         console.error('Error fetching customer coordinates:', coordsError);
         return [];
       }
 
-      console.log('Customers with coordinates found:', customersWithCoords?.length || 0);
+      console.log(`📍 Raw customers with coordinates: ${customersWithCoords?.length || 0}`);
 
       if (!customersWithCoords) {
         return [];
       }
 
-      // Combine the data - one record per customer with order count
-      const uniqueCustomers: CustomerWithCoordinates[] = customersWithCoords.map(customer => {
+      // Process and validate coordinates
+      let validCoordinatesCount = 0;
+      let invalidCoordinatesCount = 0;
+      
+      const uniqueCustomers: CustomerWithCoordinates[] = [];
+      
+      customersWithCoords.forEach(customer => {
         const orderCount = customerOrderCounts.get(customer.customernumber) || 1;
         const sampleOrder = activeOrders.find(order => order.customernumber === customer.customernumber);
         
-        return {
-          customernumber: customer.customernumber,
-          customername: customer.customername || sampleOrder?.customername || '',
-          address: customer.address || '',
-          city: customer.city || '',
-          lat: customer.lat,
-          lng: customer.lng,
-          orderCount: orderCount
-        };
+        // Convert coordinates to numbers with better validation
+        const latStr = String(customer.lat || '').trim();
+        const lngStr = String(customer.lng || '').trim();
+        
+        // Parse coordinates
+        const lat = parseFloat(latStr);
+        const lng = parseFloat(lngStr);
+        
+        // Validate coordinates are valid numbers and within Israel's geographical bounds
+        const isValidLat = !isNaN(lat) && lat >= 29 && lat <= 34;
+        const isValidLng = !isNaN(lng) && lng >= 33 && lng <= 36;
+        
+        if (isValidLat && isValidLng) {
+          validCoordinatesCount++;
+          uniqueCustomers.push({
+            customernumber: customer.customernumber,
+            customername: customer.customername || sampleOrder?.customername || '',
+            address: customer.address || '',
+            city: customer.city || '',
+            lat: lat,
+            lng: lng,
+            orderCount: orderCount
+          });
+        } else {
+          invalidCoordinatesCount++;
+          console.log(`❌ Invalid coordinates for ${customer.customername || customer.customernumber}: lat=${latStr} (${lat}), lng=${lngStr} (${lng})`);
+        }
       });
 
-      console.log('Final unique customers:', uniqueCustomers.length);
-      console.log('Sample customer data:', uniqueCustomers[0]);
+      console.log(`📍 Coordinate validation results:`);
+      console.log(`  ✅ Valid coordinates: ${validCoordinatesCount}`);
+      console.log(`  ❌ Invalid coordinates: ${invalidCoordinatesCount}`);
+      console.log(`  👥 Final customers with valid coordinates: ${uniqueCustomers.length}`);
+      
+      if (uniqueCustomers.length > 0) {
+        console.log('Sample valid customer:', uniqueCustomers[0]);
+      }
       
       return uniqueCustomers;
       
