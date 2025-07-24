@@ -215,9 +215,17 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
 
   // Calculate travel times using Google Maps Distance Matrix API
   const calculateTravelTimes = async (customers: Array<{customer: CustomerWithCoordinates; distance: number}>) => {
-    if (!window.google || !lat || !lng) return customers;
+    if (!window.google || !lat || !lng) {
+      console.log('Missing Google Maps API or coordinates');
+      return customers;
+    }
     
     try {
+      console.log('🚗 Starting travel time calculation...');
+      console.log('Departure time:', departureTime);
+      console.log('Origin:', { lat, lng });
+      console.log('Customers:', customers.length);
+      
       const service = new window.google.maps.DistanceMatrixService();
       const destinations = customers.map(item => 
         new window.google.maps.LatLng(item.customer.lat, item.customer.lng)
@@ -227,6 +235,9 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
       const now = new Date();
       const [hours, minutes] = departureTime.split(':').map(Number);
       const departureDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+      
+      console.log('Departure date:', departureDate);
+      console.log('Destinations:', destinations.length);
       
       return new Promise<Array<{customer: CustomerWithCoordinates; distance: number; travelTime?: string}>>((resolve) => {
         service.getDistanceMatrix({
@@ -241,15 +252,28 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
             trafficModel: window.google.maps.TrafficModel.BEST_GUESS
           }
         }, (response: any, status: any) => {
+          console.log('Distance Matrix API response:', { status, response });
+          
           if (status === 'OK' && response.rows[0]) {
             const results = customers.map((customer, index) => {
               const element = response.rows[0].elements[index];
-              let travelTime = 'לא זמין';
+              let travelTime = undefined;
+              
+              console.log(`Customer ${index + 1}:`, {
+                name: customer.customer.customername,
+                element_status: element.status,
+                duration_in_traffic: element.duration_in_traffic?.text,
+                duration: element.duration?.text
+              });
               
               if (element.status === 'OK' && element.duration_in_traffic) {
                 travelTime = element.duration_in_traffic.text;
+                console.log(`✅ Using traffic time: ${travelTime}`);
               } else if (element.status === 'OK' && element.duration) {
                 travelTime = element.duration.text;
+                console.log(`⚠️ Using regular time: ${travelTime}`);
+              } else {
+                console.log(`❌ No time available for customer ${index + 1}`);
               }
               
               return {
@@ -257,9 +281,11 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
                 travelTime
               };
             });
+            
+            console.log('Final results with travel times:', results);
             resolve(results);
           } else {
-            console.log('Distance Matrix API failed, using distance only');
+            console.log('❌ Distance Matrix API failed:', status);
             resolve(customers);
           }
         });
