@@ -101,6 +101,9 @@ interface OrderCardProps {
       supplydetails?: string;
     };
   };
+  
+  // callback for local completion status updates
+  onLocalCompletionChange?: (ordernumber: number, isCompleted: boolean) => void;
 }
 export const OrderCard: React.FC<OrderCardProps> = ({
   type,
@@ -113,7 +116,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   messagesInfo,
   onMessageBadgeClick,
   hasCancellationMessage = false,
-  orderOnAnotherCustomerDetails
+  orderOnAnotherCustomerDetails,
+  onLocalCompletionChange
 }) => {
   // Initialize state from data
   useEffect(() => {
@@ -218,6 +222,11 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     // Update local data and state
     (data as Order).end_picking_time = newValue;
     setEndPickingTimeState(newValue);
+    
+    // Notify parent component about the local change
+    if (onLocalCompletionChange) {
+      onLocalCompletionChange(orderData.ordernumber, newValue !== null);
+    }
   };
 
   // Handle hashavshevet toggle (for orders only)

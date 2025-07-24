@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useDrop } from 'react-dnd';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -220,14 +220,34 @@ export const DropZone: React.FC<DropZoneProps> = ({
     return uniqueCustomers.size;
   }, [assignedOrders, assignedReturns]);
 
+// State to track local changes to end_picking_time
+  const [localCompletedOrders, setLocalCompletedOrders] = useState<Set<number>>(new Set());
+
   // Calculate prepared orders count and total orders count
   const completedOrdersCount = useMemo(() => {
-    return assignedOrders.filter(order => order.end_picking_time != null && order.end_picking_time !== '').length;
-  }, [assignedOrders]);
+    const dbCompleted = assignedOrders.filter(order => order.end_picking_time != null && order.end_picking_time !== '').length;
+    const localCompleted = Array.from(localCompletedOrders).filter(orderId => 
+      assignedOrders.some(order => order.ordernumber === orderId && (order.end_picking_time == null || order.end_picking_time === ''))
+    ).length;
+    return dbCompleted + localCompleted;
+  }, [assignedOrders, localCompletedOrders]);
 
   const totalOrdersCount = useMemo(() => {
     return assignedOrders.length;
   }, [assignedOrders]);
+
+  // Function to handle local completion status change
+  const handleOrderCompletionChange = useCallback((ordernumber: number, isCompleted: boolean) => {
+    setLocalCompletedOrders(prev => {
+      const newSet = new Set(prev);
+      if (isCompleted) {
+        newSet.add(ordernumber);
+      } else {
+        newSet.delete(ordernumber);
+      }
+      return newSet;
+    });
+  }, []);
 
   // Calculate total orders sum (without decimals)
   const totalOrdersSum = useMemo(() => {
@@ -565,7 +585,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
               )}
               {scheduleId && (totalOrdersSum > 0 || totalInvoicesSum > 0) && (
                 <div className="font-medium text-blue-600 mt-1 text-sm">
-                  סה"כ: הזמנה: {totalOrdersSum.toLocaleString('he-IL')} | חש': {totalInvoicesSum.toLocaleString('he-IL')}
+                  הזמנה: {totalOrdersSum.toLocaleString('he-IL')} | חש': {totalInvoicesSum.toLocaleString('he-IL')}
                 </div>
               )}
               {deliveryDate && (
@@ -600,6 +620,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
             onMessageBadgeClick={onMessageBadgeClick}
             hasCancellationMessage={cancellationMap.has(`order-${order.ordernumber}`)}
             orderOnAnotherCustomerDetails={customerReplacementMap.get(`order-${order.ordernumber}`)}
+            onLocalCompletionChange={handleOrderCompletionChange}
           />
         ))}
         {sortedReturns.map(returnItem => (
