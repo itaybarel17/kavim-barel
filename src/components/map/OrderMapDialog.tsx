@@ -81,40 +81,46 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
     return R * c;
   };
   
-  // Fetch active customers with coordinates from database (one record per customer)
+  // Fetch active customers with coordinates using optimized approach
   const fetchActiveCustomersWithCoordinates = async (): Promise<CustomerWithCoordinates[]> => {
     try {
-      console.log('🔍 Fetching active customers from database...');
+      console.log('🔍 Fetching active customers with optimized query...');
       
-      // First, get active orders with schedule_id but without done_mainorder
+      // Step 1: Get active orders with customer details
       const { data: activeOrders, error: ordersError } = await supabase
         .from('mainorder')
-        .select('ordernumber, customername, customernumber, schedule_id')
+        .select('customernumber, customername')
         .not('schedule_id', 'is', null)
-        .is('done_mainorder', null);
+        .is('done_mainorder', null)
+        .is('ordercancel', null)
+        .limit(200); // Prevent system overload
 
       if (ordersError) {
-        console.error('Error fetching active orders:', ordersError);
+        console.error('❌ Error fetching active orders:', ordersError);
         return [];
       }
-
-      console.log(`📊 Active orders found: ${activeOrders?.length || 0}`);
 
       if (!activeOrders || activeOrders.length === 0) {
+        console.log('📊 No active orders found');
         return [];
       }
 
-      // Get unique customer numbers and count orders per customer
-      const customerOrderCounts = new Map<string, number>();
+      console.log(`📊 Active orders found: ${activeOrders.length}`);
+
+      // Group by customer and count orders
+      const customerOrderCounts = new Map<string, { count: number; name: string }>();
       activeOrders.forEach(order => {
-        const count = customerOrderCounts.get(order.customernumber) || 0;
-        customerOrderCounts.set(order.customernumber, count + 1);
+        const existing = customerOrderCounts.get(order.customernumber);
+        customerOrderCounts.set(order.customernumber, {
+          count: (existing?.count || 0) + 1,
+          name: order.customername || existing?.name || ''
+        });
       });
 
       const customerNumbers = Array.from(customerOrderCounts.keys());
-      console.log(`👥 Unique customer numbers: ${customerNumbers.length}`);
+      console.log(`👥 Unique customers: ${customerNumbers.length}`);
 
-      // Fetch customer coordinates from customerlist with improved filtering
+      // Step 2: Get customer coordinates with proper filtering
       const { data: customersWithCoords, error: coordsError } = await supabase
         .from('customerlist')
         .select('customernumber, customername, address, city, lat, lng')
@@ -125,71 +131,70 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
         .neq('lng', 0);
 
       if (coordsError) {
-        console.error('Error fetching customer coordinates:', coordsError);
+        console.error('❌ Error fetching customer coordinates:', coordsError);
         return [];
       }
 
-      console.log(`📍 Raw customers with coordinates: ${customersWithCoords?.length || 0}`);
-
-      if (!customersWithCoords) {
+      if (!customersWithCoords || customersWithCoords.length === 0) {
+        console.log('📊 No customers with coordinates found');
         return [];
       }
 
-      // Process and validate coordinates
-      let validCoordinatesCount = 0;
-      let invalidCoordinatesCount = 0;
-      
+      console.log(`📍 Customers with coordinates: ${customersWithCoords.length}`);
+
+      // Step 3: Process and validate coordinates
+      let validCount = 0;
+      let invalidCount = 0;
       const uniqueCustomers: CustomerWithCoordinates[] = [];
-      
+
       customersWithCoords.forEach(customer => {
-        const orderCount = customerOrderCounts.get(customer.customernumber) || 1;
-        const sampleOrder = activeOrders.find(order => order.customernumber === customer.customernumber);
+        const orderInfo = customerOrderCounts.get(customer.customernumber);
+        if (!orderInfo) return;
+
+        // Parse and validate coordinates with better type handling
+        const latValue = customer.lat;
+        const lngValue = customer.lng;
         
-        // Convert coordinates to numbers with better validation
-        const latStr = String(customer.lat || '').trim();
-        const lngStr = String(customer.lng || '').trim();
-        
-        // Parse coordinates
-        const lat = parseFloat(latStr);
-        const lng = parseFloat(lngStr);
-        
-        // Validate coordinates are valid numbers (removed strict geographical bounds)
-        const isValidLat = !isNaN(lat) && lat !== 0 && latStr !== '' && latStr !== 'undefined';
-        const isValidLng = !isNaN(lng) && lng !== 0 && lngStr !== '' && lngStr !== 'undefined';
-        
-        console.log(`🔍 Customer ${customer.customernumber} (${customer.customername}): lat=${latStr}→${lat}, lng=${lngStr}→${lng}, valid=${isValidLat && isValidLng}`);
-        
+        // Handle both string and number types from database
+        const latStr = String(latValue || '').trim();
+        const lngStr = String(lngValue || '').trim();
+        const lat = typeof latValue === 'number' ? latValue : parseFloat(latStr);
+        const lng = typeof lngValue === 'number' ? lngValue : parseFloat(lngStr);
+
+        const isValidLat = !isNaN(lat) && lat !== 0 && isFinite(lat);
+        const isValidLng = !isNaN(lng) && lng !== 0 && isFinite(lng);
+
         if (isValidLat && isValidLng) {
-          validCoordinatesCount++;
+          validCount++;
           uniqueCustomers.push({
             customernumber: customer.customernumber,
-            customername: customer.customername || sampleOrder?.customername || '',
+            customername: customer.customername || orderInfo.name || '',
             address: customer.address || '',
             city: customer.city || '',
             lat: lat,
             lng: lng,
-            orderCount: orderCount
+            orderCount: orderInfo.count
           });
-          console.log(`✅ Added customer ${customer.customernumber} with coordinates (${lat}, ${lng})`);
+          console.log(`✅ Added ${customer.customernumber}: (${lat}, ${lng})`);
         } else {
-          invalidCoordinatesCount++;
-          console.log(`❌ Rejected customer ${customer.customernumber} (${customer.customername}): lat=${latStr}→${lat} (valid: ${isValidLat}), lng=${lngStr}→${lng} (valid: ${isValidLng})`);
+          invalidCount++;
+          console.log(`❌ Invalid coordinates for ${customer.customernumber}: lat=${latStr}, lng=${lngStr}`);
         }
       });
 
-      console.log(`📍 Coordinate validation results:`);
-      console.log(`  ✅ Valid coordinates: ${validCoordinatesCount}`);
-      console.log(`  ❌ Invalid coordinates: ${invalidCoordinatesCount}`);
-      console.log(`  👥 Final customers with valid coordinates: ${uniqueCustomers.length}`);
-      
+      console.log(`📍 Processing results:`);
+      console.log(`  ✅ Valid customers: ${validCount}`);
+      console.log(`  ❌ Invalid coordinates: ${invalidCount}`);
+      console.log(`  👥 Final unique customers: ${uniqueCustomers.length}`);
+
       if (uniqueCustomers.length > 0) {
-        console.log('Sample valid customer:', uniqueCustomers[0]);
+        console.log('Sample customer:', uniqueCustomers[0]);
       }
-      
+
       return uniqueCustomers;
-      
+
     } catch (error) {
-      console.error('Error in fetchActiveCustomersWithCoordinates:', error);
+      console.error('❌ Error in fetchActiveCustomersWithCoordinates:', error);
       return [];
     }
   };
