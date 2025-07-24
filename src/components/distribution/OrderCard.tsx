@@ -555,7 +555,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         city={data.city}
         lat={customerCoordinates?.lat}
         lng={customerCoordinates?.lng}
-        kanbanAreas={[]} // This will be populated from parent component data
       />
     </Card>;
 };

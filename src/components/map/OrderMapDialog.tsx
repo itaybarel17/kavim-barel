@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { X, MapPin, Target, Route } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 declare global {
   interface Window {
@@ -22,15 +23,16 @@ interface OrderMapDialogProps {
   city: string;
   lat?: number;
   lng?: number;
-  kanbanAreas?: Array<{
-    customername: string;
-    address: string;
-    city: string;
-    schedule_id: number;
-    area_name: string;
-    lat?: number;
-    lng?: number;
-  }>;
+}
+
+interface CustomerWithCoordinates {
+  customernumber: string;
+  customername: string;
+  address: string;
+  city: string;
+  lat: number;
+  lng: number;
+  schedule_id: number;
 }
 
 
@@ -41,8 +43,7 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
   address,
   city,
   lat,
-  lng,
-  kanbanAreas = []
+  lng
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<any>(null);
@@ -51,15 +52,7 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
   
   // State for closest customers functionality
   const [closestCustomers, setClosestCustomers] = useState<Array<{
-    customer: {
-      customername: string;
-      address: string;
-      city: string;
-      schedule_id: number;
-      area_name: string;
-      lat: number;
-      lng: number;
-    };
+    customer: CustomerWithCoordinates;
     distance: number;
   }>>([]);
   const [showingClosest, setShowingClosest] = useState(false);
@@ -80,36 +73,109 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
     return R * c;
   };
   
+  // Fetch active customers with coordinates from database
+  const fetchActiveCustomersWithCoordinates = async (): Promise<CustomerWithCoordinates[]> => {
+    try {
+      console.log('Fetching active customers from database...');
+      
+      // First, get active orders with schedule_id but without done_mainorder
+      const { data: activeOrders, error: ordersError } = await supabase
+        .from('mainorder')
+        .select('ordernumber, customername, customernumber, schedule_id')
+        .not('schedule_id', 'is', null)
+        .is('done_mainorder', null);
+
+      if (ordersError) {
+        console.error('Error fetching active orders:', ordersError);
+        return [];
+      }
+
+      console.log('Active orders found:', activeOrders?.length || 0);
+
+      if (!activeOrders || activeOrders.length === 0) {
+        return [];
+      }
+
+      // Get unique customer numbers
+      const customerNumbers = [...new Set(activeOrders.map(order => order.customernumber))];
+      console.log('Unique customer numbers:', customerNumbers.length);
+
+      // Fetch customer coordinates from customerlist
+      const { data: customersWithCoords, error: coordsError } = await supabase
+        .from('customerlist')
+        .select('customernumber, customername, address, city, lat, lng')
+        .in('customernumber', customerNumbers)
+        .not('lat', 'is', null)
+        .not('lng', 'is', null);
+
+      if (coordsError) {
+        console.error('Error fetching customer coordinates:', coordsError);
+        return [];
+      }
+
+      console.log('Customers with coordinates found:', customersWithCoords?.length || 0);
+
+      if (!customersWithCoords) {
+        return [];
+      }
+
+      // Combine the data
+      const customersWithSchedules: CustomerWithCoordinates[] = [];
+      
+      customersWithCoords.forEach(customer => {
+        const customerOrders = activeOrders.filter(order => order.customernumber === customer.customernumber);
+        customerOrders.forEach(order => {
+          customersWithSchedules.push({
+            customernumber: customer.customernumber,
+            customername: customer.customername || order.customername,
+            address: customer.address || '',
+            city: customer.city || '',
+            lat: customer.lat,
+            lng: customer.lng,
+            schedule_id: order.schedule_id
+          });
+        });
+      });
+
+      console.log('Final customers with schedules:', customersWithSchedules.length);
+      return customersWithSchedules;
+      
+    } catch (error) {
+      console.error('Error in fetchActiveCustomersWithCoordinates:', error);
+      return [];
+    }
+  };
+
   // Find 3 closest customers
-  const findClosestCustomers = () => {
-    if (!kanbanAreas.length || !map || !lat || !lng) return;
+  const findClosestCustomers = async () => {
+    if (!map || !lat || !lng) return;
     
     setIsCalculatingClosest(true);
-    console.log('Finding closest customers from kanbanAreas:', kanbanAreas);
+    console.log('Finding closest customers...');
     console.log('Starting point (clicked customer):', { lat, lng });
     
-    // Add loading delay to simulate calculation time
-    setTimeout(() => {
+    try {
+      // Fetch customers from database
+      const activeCustomers = await fetchActiveCustomersWithCoordinates();
+      
+      if (activeCustomers.length === 0) {
+        console.log('No active customers found');
+        setIsCalculatingClosest(false);
+        return;
+      }
+
       // Filter customers with valid coordinates, excluding those at the same location as starting point
-      const validCustomers = kanbanAreas.filter(customer => 
+      const validCustomers = activeCustomers.filter(customer => 
         customer.lat && customer.lng && 
         !(customer.lat === lat && customer.lng === lng)
       );
       
-      console.log('Valid customers with coordinates:', validCustomers);
+      console.log('Valid customers with coordinates:', validCustomers.length);
       
       // Calculate distances from the clicked customer (starting point)
       const customersWithDistance = validCustomers.map(customer => ({
-        customer: {
-          customername: customer.customername,
-          address: customer.address,
-          city: customer.city,
-          schedule_id: customer.schedule_id,
-          area_name: customer.area_name,
-          lat: customer.lat!,
-          lng: customer.lng!
-        },
-        distance: calculateDistance(lat, lng, customer.lat!, customer.lng!)
+        customer: customer,
+        distance: calculateDistance(lat, lng, customer.lat, customer.lng)
       }));
       
       // Sort by distance and take top 3
@@ -122,8 +188,12 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
       setClosestCustomers(closest);
       setShowingClosest(true);
       displayClosestCustomersOnMap(closest);
+      
+    } catch (error) {
+      console.error('Error finding closest customers:', error);
+    } finally {
       setIsCalculatingClosest(false);
-    }, 1000); // 1 second loading delay
+    }
   };
   
   // Display closest customers on map with arrows
@@ -409,14 +479,14 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
               {!showingClosest ? (
                 <Button 
                   onClick={findClosestCustomers}
-                  disabled={isCalculatingClosest || kanbanAreas.length === 0 || !lat || !lng}
+                  disabled={isCalculatingClosest || !lat || !lng}
                   className="w-full"
                   variant="outline"
                 >
                   {isCalculatingClosest ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-                      מחשב...
+                      מחפש לקוחות...
                     </>
                   ) : (
                     <>
@@ -455,12 +525,6 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
                     ))}
                   </div>
                 </div>
-              )}
-              
-              {kanbanAreas.length === 0 && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  אין לקוחות זמינים באזור הקנבאן
-                </p>
               )}
               
               {(!lat || !lng) && (
