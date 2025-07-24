@@ -77,7 +77,51 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
 
   // Calculate for each schedule if allowed for agent
   const allowedGroupIds = React.useMemo(() => {
-    if (isAdmin) return null; // All
+    if (isAdmin) {
+      // Admin can filter by selected agent using actual orders/returns
+      if (selectedAgent && selectedAgent !== '4') {
+        const agentScheduleIds = new Set<number>();
+        distributionSchedules.forEach(schedule => {
+          const hasAgentOrders = orders.some(order => {
+            const relevantScheduleIds = [];
+            if (typeof order.schedule_id === 'number') relevantScheduleIds.push(order.schedule_id);
+            if (order.schedule_id_if_changed) {
+              if (typeof order.schedule_id_if_changed === 'number') {
+                relevantScheduleIds.push(order.schedule_id_if_changed);
+              } else if (Array.isArray(order.schedule_id_if_changed)) {
+                order.schedule_id_if_changed.forEach(sid => {
+                  if (typeof sid === 'number') relevantScheduleIds.push(sid);
+                });
+              } else if (typeof order.schedule_id_if_changed === 'object' && order.schedule_id_if_changed.schedule_id) {
+                relevantScheduleIds.push(order.schedule_id_if_changed.schedule_id);
+              }
+            }
+            return relevantScheduleIds.includes(schedule.schedule_id) && order.agentnumber === selectedAgent;
+          });
+          const hasAgentReturns = returns.some(returnItem => {
+            const relevantScheduleIds = [];
+            if (typeof returnItem.schedule_id === 'number') relevantScheduleIds.push(returnItem.schedule_id);
+            if (returnItem.schedule_id_if_changed) {
+              if (typeof returnItem.schedule_id_if_changed === 'number') {
+                relevantScheduleIds.push(returnItem.schedule_id_if_changed);
+              } else if (Array.isArray(returnItem.schedule_id_if_changed)) {
+                returnItem.schedule_id_if_changed.forEach(sid => {
+                  if (typeof sid === 'number') relevantScheduleIds.push(sid);
+                });
+              } else if (typeof returnItem.schedule_id_if_changed === 'object' && returnItem.schedule_id_if_changed.schedule_id) {
+                relevantScheduleIds.push(returnItem.schedule_id_if_changed.schedule_id);
+              }
+            }
+            return relevantScheduleIds.includes(schedule.schedule_id) && returnItem.agentnumber === selectedAgent;
+          });
+          if (hasAgentOrders || hasAgentReturns) {
+            agentScheduleIds.add(schedule.schedule_id);
+          }
+        });
+        return Array.from(agentScheduleIds);
+      }
+      return null; // Show all when "משרד" is selected
+    }
     if (!currentUser) return [];
 
     // Special logic for Agent 99 - only see specific schedule_ids that have his orders/returns
@@ -140,9 +184,12 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
       return false;
     }).map(group => group.groups_id);
     return agentAllowedGroups;
-  }, [currentUser, isAdmin, isAgent99, distributionGroups, distributionSchedules, orders, returns]);
+  }, [currentUser, isAdmin, isAgent99, distributionGroups, distributionSchedules, orders, returns, selectedAgent]);
   const filteredSchedulesWithItems = distributionSchedules.filter(schedule => {
-    if (!isAdmin && !isAgent99) {
+    if (isAdmin && selectedAgent && selectedAgent !== '4') {
+      // When admin filters by specific agent, check if schedule_id is in allowed list
+      if (!allowedGroupIds || !allowedGroupIds.includes(schedule.schedule_id)) return false;
+    } else if (!isAdmin && !isAgent99) {
       if (!allowedGroupIds || !allowedGroupIds.includes(schedule.groups_id)) return false;
     }
     if (isAgent99 && (!allowedGroupIds || !allowedGroupIds.includes(schedule.schedule_id))) {

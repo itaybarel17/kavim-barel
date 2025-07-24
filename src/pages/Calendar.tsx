@@ -421,11 +421,10 @@ const Calendar = () => {
       // Use selected agent for filtering when admin selects specific agent
       const agentForFiltering = selectedAgent;
       
-      // Special logic for Agent 99 when admin filters by 99
-      if (agentForFiltering === "99") {
-        const agent99ScheduleIds = new Set<number>();
+      // For any selected agent (including 99), filter by actual orders/returns instead of agents column
+      const agentScheduleIds = new Set<number>();
       distributionSchedules.forEach(schedule => {
-        const hasAgent99Orders = orders.some(order => {
+        const hasAgentOrders = orders.some(order => {
           const relevantScheduleIds = [];
           if (typeof order.schedule_id === 'number') relevantScheduleIds.push(order.schedule_id);
           if (order.schedule_id_if_changed) {
@@ -439,9 +438,9 @@ const Calendar = () => {
               relevantScheduleIds.push(order.schedule_id_if_changed.schedule_id);
             }
           }
-          return relevantScheduleIds.includes(schedule.schedule_id) && order.agentnumber === '99';
+          return relevantScheduleIds.includes(schedule.schedule_id) && order.agentnumber === agentForFiltering;
         });
-        const hasAgent99Returns = returns.some(returnItem => {
+        const hasAgentReturns = returns.some(returnItem => {
           const relevantScheduleIds = [];
           if (typeof returnItem.schedule_id === 'number') relevantScheduleIds.push(returnItem.schedule_id);
           if (returnItem.schedule_id_if_changed) {
@@ -455,33 +454,20 @@ const Calendar = () => {
               relevantScheduleIds.push(returnItem.schedule_id_if_changed.schedule_id);
             }
           }
-          return relevantScheduleIds.includes(schedule.schedule_id) && returnItem.agentnumber === '99';
+          return relevantScheduleIds.includes(schedule.schedule_id) && returnItem.agentnumber === agentForFiltering;
         });
-        if (hasAgent99Orders || hasAgent99Returns) {
-          agent99ScheduleIds.add(schedule.schedule_id);
+        if (hasAgentOrders || hasAgentReturns) {
+          agentScheduleIds.add(schedule.schedule_id);
         }
       });
-      return Array.from(agent99ScheduleIds);
-      }
-
-      // Allow only groups where agent is in distribution_groups.agents (array of agentnumbers in jsonb)
-      return distributionGroups.filter(group => {
-        if (!group.agents) return false;
-        if (Array.isArray(group.agents)) {
-          // Convert agentForFiltering to integer for comparison
-          return group.agents.includes(parseInt(agentForFiltering));
-        }
-        // fallback in case agents is not an array (shouldn't happen)
-        if (typeof group.agents === "string") {
-          try {
-            const arr = JSON.parse(group.agents);
-            return arr.includes(parseInt(agentForFiltering));
-          } catch {
-            return false;
-          }
-        }
-        return false;
-      }).map(group => group.groups_id);
+      
+      // Convert schedule_ids to group_ids
+      const scheduleGroupIds = Array.from(agentScheduleIds).map(scheduleId => {
+        const schedule = distributionSchedules.find(s => s.schedule_id === scheduleId);
+        return schedule?.groups_id;
+      }).filter((groupId): groupId is number => groupId !== undefined);
+      
+      return scheduleGroupIds;
     }
 
     // Special logic for Agent 99 - only see specific schedule_ids that have his orders/returns  

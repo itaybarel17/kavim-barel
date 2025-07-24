@@ -12,6 +12,7 @@ interface DistributionGroup {
   groups_id: number;
   separation: string;
   days: string[];
+  agents?: number[] | string;
 }
 interface DistributionSchedule {
   schedule_id: number;
@@ -130,7 +131,57 @@ const CalendarDay: React.FC<{
   const shouldShowProductionButton = schedulesForDate.length > 0 && currentUser?.agentnumber !== "99";
   
   // Get areas for this specific day
-  const areasForDay = getAreasForDay(distributionGroups, date.getDay());
+  const allAreasForDay = getAreasForDay(distributionGroups, date.getDay());
+  
+  // Filter areas shown based on user permissions and selected agent
+  const areasForDay = allAreasForDay.filter(area => {
+    if (currentUser?.agentnumber === "4") {
+      // Admin can filter by selected agent using actual orders/returns
+      if (selectedAgent && selectedAgent !== '4') {
+        // Check if this area has any schedules with actual orders/returns for selected agent
+        const areaSchedules = schedulesForDate.filter(s => s.groups_id === area.groups_id);
+        return areaSchedules.some(schedule => {
+          return orders.some(order => {
+            const relevantScheduleIds = [];
+            if (typeof order.schedule_id === 'number') relevantScheduleIds.push(order.schedule_id);
+            if (order.schedule_id_if_changed) {
+              if (typeof order.schedule_id_if_changed === 'number') {
+                relevantScheduleIds.push(order.schedule_id_if_changed);
+              } else if (Array.isArray(order.schedule_id_if_changed)) {
+                order.schedule_id_if_changed.forEach(sid => {
+                  if (typeof sid === 'number') relevantScheduleIds.push(sid);
+                });
+              } else if (typeof order.schedule_id_if_changed === 'object' && order.schedule_id_if_changed.schedule_id) {
+                relevantScheduleIds.push(order.schedule_id_if_changed.schedule_id);
+              }
+            }
+            return relevantScheduleIds.includes(schedule.schedule_id) && order.agentnumber === selectedAgent;
+          }) || returns.some(returnItem => {
+            const relevantScheduleIds = [];
+            if (typeof returnItem.schedule_id === 'number') relevantScheduleIds.push(returnItem.schedule_id);
+            if (returnItem.schedule_id_if_changed) {
+              if (typeof returnItem.schedule_id_if_changed === 'number') {
+                relevantScheduleIds.push(returnItem.schedule_id_if_changed);
+              } else if (Array.isArray(returnItem.schedule_id_if_changed)) {
+                returnItem.schedule_id_if_changed.forEach(sid => {
+                  if (typeof sid === 'number') relevantScheduleIds.push(sid);
+                });
+              } else if (typeof returnItem.schedule_id_if_changed === 'object' && returnItem.schedule_id_if_changed.schedule_id) {
+                relevantScheduleIds.push(returnItem.schedule_id_if_changed.schedule_id);
+              }
+            }
+            return relevantScheduleIds.includes(schedule.schedule_id) && returnItem.agentnumber === selectedAgent;
+          });
+        });
+      }
+      return true; // Show all when "משרד" is selected
+    }
+    
+    if (!area.agents) return false;
+    const agents = Array.isArray(area.agents) ? area.agents : 
+      typeof area.agents === 'string' ? JSON.parse(area.agents) : [];
+    return agents.includes(parseInt(currentUser?.agentnumber || "0"));
+  });
   
   return (
     <div className="space-y-1">

@@ -74,6 +74,7 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   dualActiveOrderReturnCustomers = [],
   currentUser,
   customerReplacementMap,
+  selectedAgent,
 }) => {
   const replacementMap = customerReplacementMap || new globalThis.Map();
   const navigate = useNavigate();
@@ -124,8 +125,13 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
     })));
   }
 
+  // Filter based on selected agent when admin uses agent filter  
+  if (currentUser?.agentnumber === "4" && selectedAgent && selectedAgent !== '4') {
+    scheduleOrders = scheduleOrders.filter(order => order.agentnumber === selectedAgent);
+    scheduleReturns = scheduleReturns.filter(returnItem => returnItem.agentnumber === selectedAgent);
+  } 
   // Special filtering for Agent 99 - only show his own orders/returns within cards (but not for produced cards)
-  if (currentUser?.agentnumber === "99" && !isProduced) {
+  else if (currentUser?.agentnumber === "99" && !isProduced) {
     scheduleOrders = scheduleOrders.filter(order => order.agentnumber === '99');
     scheduleReturns = scheduleReturns.filter(returnItem => returnItem.agentnumber === '99');
   }
