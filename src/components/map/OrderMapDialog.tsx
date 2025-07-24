@@ -25,6 +25,15 @@ interface OrderMapDialogProps {
   city: string;
   lat?: number;
   lng?: number;
+  scheduleId?: number;
+}
+
+interface Customer {
+  customername: string;
+  city: string;
+  address: string;
+  lat: number;
+  lng: number;
 }
 
 interface CustomerWithCoordinates {
@@ -46,7 +55,8 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
   address,
   city,
   lat,
-  lng
+  lng,
+  scheduleId
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<any>(null);
@@ -81,122 +91,221 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
     return R * c;
   };
   
-  // Fetch active customers with coordinates using optimized approach
-  const fetchActiveCustomersWithCoordinates = async (): Promise<CustomerWithCoordinates[]> => {
+  // Fetch customers for the specific schedule - using ScheduleMap logic
+  const fetchScheduleCustomers = async (): Promise<Customer[]> => {
+    if (!scheduleId) {
+      console.log('No schedule ID provided, skipping customer fetch');
+      return [];
+    }
+
     try {
-      console.log('🔍 Fetching active customers with optimized query...');
-      
-      // Step 1: Get active orders with customer details
-      const { data: activeOrders, error: ordersError } = await supabase
+      console.log(`Fetching customers for schedule ${scheduleId}...`);
+
+      // Get orders for this schedule
+      const { data: orders, error: ordersError } = await supabase
         .from('mainorder')
-        .select('customernumber, customername')
-        .not('schedule_id', 'is', null)
-        .is('done_mainorder', null)
-        .is('ordercancel', null)
-        .limit(200); // Prevent system overload
+        .select('customername, city, address')
+        .eq('schedule_id', scheduleId);
 
-      if (ordersError) {
-        console.error('❌ Error fetching active orders:', ordersError);
+      if (ordersError) throw ordersError;
+
+      // Get returns for this schedule
+      const { data: returns, error: returnsError } = await supabase
+        .from('mainreturns')
+        .select('customername, city, address')
+        .eq('schedule_id', scheduleId);
+
+      if (returnsError) throw returnsError;
+
+      // Combine orders and returns
+      const allItems = [
+        ...(orders || []),
+        ...(returns || [])
+      ];
+
+      if (allItems.length === 0) {
+        console.log('No orders or returns found for this schedule');
         return [];
       }
 
-      if (!activeOrders || activeOrders.length === 0) {
-        console.log('📊 No active orders found');
-        return [];
-      }
+      // Get unique customers
+      const uniqueCustomers = Array.from(
+        new Set(allItems.map(item => item.customername))
+      );
 
-      console.log(`📊 Active orders found: ${activeOrders.length}`);
+      console.log(`Found ${uniqueCustomers.length} unique customers for schedule ${scheduleId}`);
 
-      // Group by customer and count orders
-      const customerOrderCounts = new Map<string, { count: number; name: string }>();
-      activeOrders.forEach(order => {
-        const existing = customerOrderCounts.get(order.customernumber);
-        customerOrderCounts.set(order.customernumber, {
-          count: (existing?.count || 0) + 1,
-          name: order.customername || existing?.name || ''
-        });
-      });
-
-      const customerNumbers = Array.from(customerOrderCounts.keys());
-      console.log(`👥 Unique customers: ${customerNumbers.length}`);
-
-      // Step 2: Get customer coordinates with proper filtering
-      const { data: customersWithCoords, error: coordsError } = await supabase
-        .from('customerlist')
-        .select('customernumber, customername, address, city, lat, lng')
-        .in('customernumber', customerNumbers)
-        .not('lat', 'is', null)
-        .not('lng', 'is', null)
-        .neq('lat', 0)
-        .neq('lng', 0);
-
-      if (coordsError) {
-        console.error('❌ Error fetching customer coordinates:', coordsError);
-        return [];
-      }
-
-      if (!customersWithCoords || customersWithCoords.length === 0) {
-        console.log('📊 No customers with coordinates found');
-        return [];
-      }
-
-      console.log(`📍 Customers with coordinates: ${customersWithCoords.length}`);
-
-      // Step 3: Process and validate coordinates
-      let validCount = 0;
-      let invalidCount = 0;
-      const uniqueCustomers: CustomerWithCoordinates[] = [];
-
-      customersWithCoords.forEach(customer => {
-        const orderInfo = customerOrderCounts.get(customer.customernumber);
-        if (!orderInfo) return;
-
-        // Parse and validate coordinates with better type handling
-        const latValue = customer.lat;
-        const lngValue = customer.lng;
+      // Get customer replacement data from messages
+      let replacementMap = new Map();
+      
+      // Find all relevant order and return numbers from the database
+      const { data: orderIds } = await supabase
+        .from('mainorder')
+        .select('ordernumber, customername')
+        .eq('schedule_id', scheduleId)
+        .in('customername', uniqueCustomers);
         
-        // Handle both string and number types from database
-        const latStr = String(latValue || '').trim();
-        const lngStr = String(lngValue || '').trim();
-        const lat = typeof latValue === 'number' ? latValue : parseFloat(latStr);
-        const lng = typeof lngValue === 'number' ? lngValue : parseFloat(lngStr);
+      const { data: returnIds } = await supabase
+        .from('mainreturns')
+        .select('returnnumber, customername')
+        .eq('schedule_id', scheduleId)
+        .in('customername', uniqueCustomers);
 
-        const isValidLat = !isNaN(lat) && lat !== 0 && isFinite(lat);
-        const isValidLng = !isNaN(lng) && lng !== 0 && isFinite(lng);
+      const orderNumbersForMessages = orderIds?.map(o => o.ordernumber) || [];
+      const returnNumbersForMessages = returnIds?.map(r => r.returnnumber) || [];
 
-        if (isValidLat && isValidLng) {
-          validCount++;
-          uniqueCustomers.push({
-            customernumber: customer.customernumber,
-            customername: customer.customername || orderInfo.name || '',
-            address: customer.address || '',
-            city: customer.city || '',
-            lat: lat,
-            lng: lng,
-            orderCount: orderInfo.count
+      if (orderNumbersForMessages.length > 0 || returnNumbersForMessages.length > 0) {
+        const { data: replacements } = await supabase
+          .from('messages')
+          .select('ordernumber, returnnumber, correctcustomer, city')
+          .eq('subject', 'הזמנה על לקוח אחר')
+          .not('correctcustomer', 'is', null)
+          .or(`ordernumber.in.(${orderNumbersForMessages.join(',')}),returnnumber.in.(${returnNumbersForMessages.join(',')})`);
+
+        if (replacements) {
+          replacements.forEach(replacement => {
+            const key = replacement.ordernumber || replacement.returnnumber;
+            if (key) {
+              replacementMap.set(key.toString(), {
+                customername: replacement.correctcustomer,
+                city: replacement.city
+              });
+            }
           });
-          console.log(`✅ Added ${customer.customernumber}: (${lat}, ${lng})`);
-        } else {
-          invalidCount++;
-          console.log(`❌ Invalid coordinates for ${customer.customernumber}: lat=${latStr}, lng=${lngStr}`);
+        }
+      }
+
+      // City name mappings for fallback
+      const cityNameMappings: Record<string, string> = {
+        'פ"ת': 'פתח תקווה',
+        'ת"א': 'תל אביב',
+        'י-ם': 'ירושלים'
+      };
+
+      // Get customer coordinates
+      const { data: customerList, error } = await supabase
+        .from('customerlist')
+        .select('customername, city, address, lat, lng')
+        .in('customername', uniqueCustomers);
+
+      if (error) {
+        console.error('Error fetching customer coordinates:', error);
+        return [];
+      }
+
+      // Get city coordinates for fallback
+      const { data: cityCoordinates, error: cityError } = await supabase
+        .from('cities')
+        .select('city, lat, lng');
+
+      if (cityError) {
+        console.error('Error fetching city coordinates:', cityError);
+      }
+
+      const cityCoordMap = new Map();
+      cityCoordinates?.forEach(city => {
+        if (city.lat && city.lng) {
+          cityCoordMap.set(city.city, { lat: city.lat, lng: city.lng });
         }
       });
 
-      console.log(`📍 Processing results:`);
-      console.log(`  ✅ Valid customers: ${validCount}`);
-      console.log(`  ❌ Invalid coordinates: ${invalidCount}`);
-      console.log(`  👥 Final unique customers: ${uniqueCustomers.length}`);
+      // Process customers to ensure all have coordinates
+      const processedCustomers: Customer[] = [];
+      
+      for (const customerName of uniqueCustomers) {
+        const orderDataItem = allItems.find(item => item.customername === customerName);
+        if (!orderDataItem) continue;
 
-      if (uniqueCustomers.length > 0) {
-        console.log('Sample customer:', uniqueCustomers[0]);
+        // Check if this customer has been replaced
+        let finalCustomerName = customerName;
+        let finalCityName = orderDataItem.city;
+        
+        // Look for replacements
+        const { data: orderCheck } = await supabase
+          .from('mainorder')
+          .select('ordernumber')
+          .eq('schedule_id', scheduleId)
+          .eq('customername', customerName)
+          .limit(1);
+          
+        const { data: returnCheck } = await supabase
+          .from('mainreturns')
+          .select('returnnumber')
+          .eq('schedule_id', scheduleId)
+          .eq('customername', customerName)
+          .limit(1);
+
+        const orderNumber = orderCheck?.[0]?.ordernumber;
+        const returnNumber = returnCheck?.[0]?.returnnumber;
+        
+        const replacementKey = orderNumber?.toString() || returnNumber?.toString();
+        if (replacementKey && replacementMap.has(replacementKey)) {
+          const replacement = replacementMap.get(replacementKey);
+          finalCustomerName = replacement.customername;
+          finalCityName = replacement.city;
+        }
+
+        // Find customer in customerlist
+        let customerRecord = customerList?.find(c => c.customername === finalCustomerName);
+        if (!customerRecord) {
+          customerRecord = customerList?.find(c => c.customername === customerName);
+        }
+        
+        let customer: Customer;
+        
+        if (customerRecord?.lat && customerRecord?.lng) {
+          // Use existing precise coordinates
+          customer = {
+            customername: finalCustomerName,
+            city: customerRecord.city || finalCityName,
+            address: customerRecord.address || orderDataItem.address,
+            lat: customerRecord.lat,
+            lng: customerRecord.lng
+          };
+        } else {
+          // Try to get city coordinates as fallback
+          const cityName = finalCityName;
+          const mappedCityName = cityNameMappings[cityName] || cityName;
+          const cityCoords = cityCoordMap.get(mappedCityName) || cityCoordMap.get(cityName);
+          
+          if (cityCoords) {
+            customer = {
+              customername: finalCustomerName,
+              city: cityName,
+              address: customerRecord?.address || orderDataItem.address || 'כתובת לא זמינה',
+              lat: cityCoords.lat,
+              lng: cityCoords.lng
+            };
+          } else {
+            // Skip customers without any coordinates
+            console.warn(`No coordinates found for customer: ${finalCustomerName} in city: ${cityName}`);
+            continue;
+          }
+        }
+        
+        processedCustomers.push(customer);
       }
 
-      return uniqueCustomers;
+      console.log(`Processed ${processedCustomers.length} customers with coordinates`);
+      return processedCustomers;
 
     } catch (error) {
-      console.error('❌ Error in fetchActiveCustomersWithCoordinates:', error);
+      console.error('Error in fetchScheduleCustomers:', error);
       return [];
     }
+  };
+
+  // Convert ScheduleMap Customer interface to CustomerWithCoordinates
+  const convertToCustomerWithCoordinates = (customers: Customer[]): CustomerWithCoordinates[] => {
+    return customers.map(customer => ({
+      customernumber: customer.customername, // Use name as number for now
+      customername: customer.customername,
+      address: customer.address,
+      city: customer.city,
+      lat: customer.lat,
+      lng: customer.lng,
+      orderCount: 1 // Default to 1
+    }));
   };
 
   // Find 3 closest customers
@@ -208,8 +317,9 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
     console.log('Starting point (clicked customer):', { lat, lng });
     
     try {
-      // Fetch customers from database
-      const activeCustomers = await fetchActiveCustomersWithCoordinates();
+      // Fetch customers from schedule or general active customers
+      const scheduleCustomers = await fetchScheduleCustomers();
+      const activeCustomers = convertToCustomerWithCoordinates(scheduleCustomers);
       
       if (activeCustomers.length === 0) {
         console.log('No active customers found');
