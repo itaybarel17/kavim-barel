@@ -597,39 +597,55 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
     }
   };
 
+  // Fetch coordinates when dialog opens
   useEffect(() => {
-    fetchCurrentCustomerCoordinates();
-  }, [customerName, city]);
+    if (isOpen) {
+      fetchCurrentCustomerCoordinates();
+    }
+  }, [isOpen, customerName, city]);
 
+  // Initialize map only after coordinates are available
   useEffect(() => {
     const initializeMap = async () => {
       if (!isOpen || !mapRef.current || map) return;
       
-      // Check if coordinates are available
+      // Wait for coordinates to be available
       if (!currentLat || !currentLng) {
-        console.error('Missing coordinates for map initialization');
+        console.log('Waiting for coordinates...');
         return;
       }
 
       try {
         setIsLoading(true);
         
-        // Ensure Google Maps is loaded
+        // Ensure Google Maps is loaded with proper retry logic
         if (!window.google || !window.google.maps) {
-          console.log('Google Maps not loaded, retrying...');
-          if (retryCount < 5) {
+          console.log('Google Maps not loaded, retrying...', retryCount);
+          if (retryCount < 10) {
             setTimeout(() => {
               setRetryCount(prev => prev + 1);
-            }, 1000);
+            }, 500);
+          } else {
+            console.error('Google Maps failed to load after maximum retries');
+            setIsLoading(false);
           }
           return;
         }
+
+        console.log('Initializing map with coordinates:', { lat: currentLat, lng: currentLng });
 
         // Initialize map
         const mapInstance = new window.google.maps.Map(mapRef.current, {
           center: { lat: currentLat, lng: currentLng },
           zoom: 15,
           mapTypeId: window.google.maps.MapTypeId.ROADMAP,
+          styles: [
+            {
+              featureType: 'poi',
+              elementType: 'labels',
+              stylers: [{ visibility: 'off' }]
+            }
+          ]
         });
 
         // Add marker for the current customer
@@ -648,6 +664,7 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
         });
 
         setMap(mapInstance);
+        setRetryCount(0); // Reset retry count on success
         console.log('Map initialized successfully');
         
       } catch (error) {
