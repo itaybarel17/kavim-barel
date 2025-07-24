@@ -327,6 +327,7 @@ const Distribution = () => {
         .from('messages')
         .select('messages_id, content, is_handled, created_at')
         .eq('subject', 'מחסן')
+        .eq('is_handled', false)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -373,6 +374,7 @@ const Distribution = () => {
           .select('subject, ordernumber, correctcustomer, city')
           .in('ordernumber', orderNums)
           .neq('subject', 'מחסן')
+          .eq('is_handled', false)
           .order('created_at', { ascending: false });
           
         if (orderMsgError) throw orderMsgError;
@@ -408,6 +410,7 @@ const Distribution = () => {
           .select('subject, returnnumber, correctcustomer, city')
           .in('returnnumber', returnNums)
           .neq('subject', 'מחסן')
+          .eq('is_handled', false)
           .order('created_at', { ascending: false });
           
         if (returnMsgError) throw returnMsgError;
