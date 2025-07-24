@@ -537,8 +537,8 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onMessageSent }) => {
              </div>
            )}
 
-           {/* 4. תייג סוכן - מוסתר עבור נושא גלידה */}
-          {selectedSubject && !shouldHideContentAndTagging && (
+            {/* 4. תייג סוכן - מוסתר עבור נושא גלידה וזמין רק לסוכן 4 */}
+           {selectedSubject && !shouldHideContentAndTagging && isAdmin && (
             <div className="animate-fade-in">
               <FormField
                 control={form.control}
