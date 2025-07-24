@@ -33,8 +33,6 @@ interface OrderMapDialogProps {
   }>;
 }
 
-// Starting point coordinates (factory/warehouse)
-const DEPOT_LOCATION = { lat: 32.0853, lng: 34.7818 }; // Tel Aviv - can be adjusted
 
 export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
   isOpen,
@@ -84,44 +82,48 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
   
   // Find 3 closest customers
   const findClosestCustomers = () => {
-    if (!kanbanAreas.length || !map) return;
+    if (!kanbanAreas.length || !map || !lat || !lng) return;
     
     setIsCalculatingClosest(true);
     console.log('Finding closest customers from kanbanAreas:', kanbanAreas);
+    console.log('Starting point (clicked customer):', { lat, lng });
     
-    // Filter customers with valid coordinates, excluding those at the same location as depot
-    const validCustomers = kanbanAreas.filter(customer => 
-      customer.lat && customer.lng && 
-      !(customer.lat === DEPOT_LOCATION.lat && customer.lng === DEPOT_LOCATION.lng)
-    );
-    
-    console.log('Valid customers with coordinates:', validCustomers);
-    
-    // Calculate distances
-    const customersWithDistance = validCustomers.map(customer => ({
-      customer: {
-        customername: customer.customername,
-        address: customer.address,
-        city: customer.city,
-        schedule_id: customer.schedule_id,
-        area_name: customer.area_name,
-        lat: customer.lat!,
-        lng: customer.lng!
-      },
-      distance: calculateDistance(DEPOT_LOCATION.lat, DEPOT_LOCATION.lng, customer.lat!, customer.lng!)
-    }));
-    
-    // Sort by distance and take top 3
-    const closest = customersWithDistance
-      .sort((a, b) => a.distance - b.distance)
-      .slice(0, 3);
-    
-    console.log('3 closest customers:', closest);
-    
-    setClosestCustomers(closest);
-    setShowingClosest(true);
-    displayClosestCustomersOnMap(closest);
-    setIsCalculatingClosest(false);
+    // Add loading delay to simulate calculation time
+    setTimeout(() => {
+      // Filter customers with valid coordinates, excluding those at the same location as starting point
+      const validCustomers = kanbanAreas.filter(customer => 
+        customer.lat && customer.lng && 
+        !(customer.lat === lat && customer.lng === lng)
+      );
+      
+      console.log('Valid customers with coordinates:', validCustomers);
+      
+      // Calculate distances from the clicked customer (starting point)
+      const customersWithDistance = validCustomers.map(customer => ({
+        customer: {
+          customername: customer.customername,
+          address: customer.address,
+          city: customer.city,
+          schedule_id: customer.schedule_id,
+          area_name: customer.area_name,
+          lat: customer.lat!,
+          lng: customer.lng!
+        },
+        distance: calculateDistance(lat, lng, customer.lat!, customer.lng!)
+      }));
+      
+      // Sort by distance and take top 3
+      const closest = customersWithDistance
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 3);
+      
+      console.log('3 closest customers:', closest);
+      
+      setClosestCustomers(closest);
+      setShowingClosest(true);
+      displayClosestCustomersOnMap(closest);
+      setIsCalculatingClosest(false);
+    }, 1000); // 1 second loading delay
   };
   
   // Display closest customers on map with arrows
@@ -173,7 +175,7 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
       });
       
       directionsService.route({
-        origin: DEPOT_LOCATION,
+        origin: { lat: lat!, lng: lng! },
         destination: { lat: customer.lat, lng: customer.lng },
         travelMode: window.google.maps.TravelMode.DRIVING
       }, (result: any, status: any) => {
@@ -190,7 +192,7 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
     
     // Adjust map bounds to show all points
     const bounds = new window.google.maps.LatLngBounds();
-    bounds.extend(DEPOT_LOCATION);
+    bounds.extend({ lat: lat!, lng: lng! });
     closest.forEach(item => {
       bounds.extend({ lat: item.customer.lat, lng: item.customer.lng });
     });
@@ -212,33 +214,31 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
     setShowingClosest(false);
     
     // Reset map to original view
-    if (map) {
-      const coords = lat && lng ? { lat, lng } : DEPOT_LOCATION;
+    if (map && lat && lng) {
+      const coords = { lat, lng };
       map.setCenter(coords);
-      map.setZoom(lat && lng ? 15 : 10);
+      map.setZoom(15);
       
-      // Re-add original marker if exists
-      if (lat && lng) {
-        new window.google.maps.Marker({
-          position: coords,
-          map: map,
-          title: customerName,
-          icon: {
-            path: window.google.maps.SymbolPath.CIRCLE,
-            fillColor: '#FF6B6B',
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: 3,
-            scale: 15
-          },
-          label: {
-            text: 'יעד',
-            color: 'white',
-            fontSize: '12px',
-            fontWeight: 'bold'
-          }
-        });
-      }
+      // Re-add original marker
+      new window.google.maps.Marker({
+        position: coords,
+        map: map,
+        title: customerName,
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          fillColor: '#FF6B6B',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 3,
+          scale: 15
+        },
+        label: {
+          text: 'מוצא',
+          color: 'white',
+          fontSize: '12px',
+          fontWeight: 'bold'
+        }
+      });
     }
   };
 
@@ -276,7 +276,7 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
 
       try {
         // Create a simple empty map first
-        const coords = lat && lng ? { lat, lng } : DEPOT_LOCATION;
+        const coords = lat && lng ? { lat, lng } : { lat: 32.0853, lng: 34.7818 }; // Default to Tel Aviv
         console.log('Using coordinates:', coords);
 
         const mapInstance = new window.google.maps.Map(mapRef.current, {
@@ -289,28 +289,7 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
 
         console.log('✅ Map instance created successfully');
 
-        // Add starting point marker (depot/warehouse)
-        new window.google.maps.Marker({
-          position: DEPOT_LOCATION,
-          map: mapInstance,
-          title: 'נקודת מוצא',
-          icon: {
-            path: window.google.maps.SymbolPath.CIRCLE,
-            fillColor: '#22c55e', // Green color for starting point
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: 3,
-            scale: 18
-          },
-          label: {
-            text: 'מוצא',
-            color: 'white',
-            fontSize: '11px',
-            fontWeight: 'bold'
-          }
-        });
-
-        // Add target marker if we have coordinates
+        // Add starting point marker (the clicked customer) if we have coordinates
         if (lat && lng) {
           new window.google.maps.Marker({
             position: coords,
@@ -325,16 +304,14 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
               scale: 15
             },
             label: {
-              text: 'יעד',
+              text: 'מוצא',
               color: 'white',
               fontSize: '12px',
               fontWeight: 'bold'
             }
           });
-          console.log('✅ Target marker added with coordinates');
+          console.log('✅ Starting point marker added with coordinates');
         }
-        
-        console.log('✅ Starting point marker added');
 
         setMap(mapInstance);
         setIsLoading(false);
@@ -432,7 +409,7 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
               {!showingClosest ? (
                 <Button 
                   onClick={findClosestCustomers}
-                  disabled={isCalculatingClosest || kanbanAreas.length === 0}
+                  disabled={isCalculatingClosest || kanbanAreas.length === 0 || !lat || !lng}
                   className="w-full"
                   variant="outline"
                 >
@@ -485,17 +462,12 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
                   אין לקוחות זמינים באזור הקנבאן
                 </p>
               )}
-            </div>
-
-            {/* Starting Point Info */}
-            <div className="p-4 bg-card rounded-lg border">
-              <h3 className="font-semibold mb-2 flex items-center gap-2">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                נקודת מוצא
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                קואורדינטות: {DEPOT_LOCATION.lat.toFixed(6)}, {DEPOT_LOCATION.lng.toFixed(6)}
-              </p>
+              
+              {(!lat || !lng) && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  אין קואורדינטות ללקוח זה
+                </p>
+              )}
             </div>
           </div>
         </div>
