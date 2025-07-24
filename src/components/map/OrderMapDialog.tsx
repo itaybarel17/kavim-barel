@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { X, MapPin } from 'lucide-react';
+import { X, MapPin, Target, Route } from 'lucide-react';
 
 declare global {
   interface Window {
@@ -33,6 +33,9 @@ interface OrderMapDialogProps {
   }>;
 }
 
+// Starting point coordinates (factory/warehouse)
+const DEPOT_LOCATION = { lat: 32.0853, lng: 34.7818 }; // Tel Aviv - can be adjusted
+
 export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
   isOpen,
   onClose,
@@ -47,6 +50,197 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
   const [map, setMap] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  
+  // State for closest customers functionality
+  const [closestCustomers, setClosestCustomers] = useState<Array<{
+    customer: {
+      customername: string;
+      address: string;
+      city: string;
+      schedule_id: number;
+      area_name: string;
+      lat: number;
+      lng: number;
+    };
+    distance: number;
+  }>>([]);
+  const [showingClosest, setShowingClosest] = useState(false);
+  const [isCalculatingClosest, setIsCalculatingClosest] = useState(false);
+  const [markersOnMap, setMarkersOnMap] = useState<any[]>([]);
+  const [directionsRenderers, setDirectionsRenderers] = useState<any[]>([]);
+  
+  // Haversine formula for distance calculation
+  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+  
+  // Find 3 closest customers
+  const findClosestCustomers = () => {
+    if (!kanbanAreas.length || !map) return;
+    
+    setIsCalculatingClosest(true);
+    console.log('Finding closest customers from kanbanAreas:', kanbanAreas);
+    
+    // Filter customers with valid coordinates, excluding those at the same location as depot
+    const validCustomers = kanbanAreas.filter(customer => 
+      customer.lat && customer.lng && 
+      !(customer.lat === DEPOT_LOCATION.lat && customer.lng === DEPOT_LOCATION.lng)
+    );
+    
+    console.log('Valid customers with coordinates:', validCustomers);
+    
+    // Calculate distances
+    const customersWithDistance = validCustomers.map(customer => ({
+      customer: {
+        customername: customer.customername,
+        address: customer.address,
+        city: customer.city,
+        schedule_id: customer.schedule_id,
+        area_name: customer.area_name,
+        lat: customer.lat!,
+        lng: customer.lng!
+      },
+      distance: calculateDistance(DEPOT_LOCATION.lat, DEPOT_LOCATION.lng, customer.lat!, customer.lng!)
+    }));
+    
+    // Sort by distance and take top 3
+    const closest = customersWithDistance
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 3);
+    
+    console.log('3 closest customers:', closest);
+    
+    setClosestCustomers(closest);
+    setShowingClosest(true);
+    displayClosestCustomersOnMap(closest);
+    setIsCalculatingClosest(false);
+  };
+  
+  // Display closest customers on map with arrows
+  const displayClosestCustomersOnMap = (closest: typeof closestCustomers) => {
+    if (!map || !window.google) return;
+    
+    // Clear existing markers and directions
+    clearMarkersAndDirections();
+    
+    const newMarkers: any[] = [];
+    const newDirections: any[] = [];
+    const colors = ['#2563eb', '#dc2626', '#16a34a']; // Blue, Red, Green
+    
+    closest.forEach((item, index) => {
+      const { customer } = item;
+      
+      // Add numbered marker
+      const marker = new window.google.maps.Marker({
+        position: { lat: customer.lat, lng: customer.lng },
+        map: map,
+        title: customer.customername,
+        label: {
+          text: (index + 1).toString(),
+          color: 'white',
+          fontSize: '14px',
+          fontWeight: 'bold'
+        },
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          fillColor: colors[index],
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 3,
+          scale: 20
+        }
+      });
+      newMarkers.push(marker);
+      
+      // Add direction arrow
+      const directionsService = new window.google.maps.DirectionsService();
+      const directionsRenderer = new window.google.maps.DirectionsRenderer({
+        map: map,
+        suppressMarkers: true, // We have our own markers
+        polylineOptions: {
+          strokeColor: colors[index],
+          strokeWeight: 4,
+          strokeOpacity: 0.8
+        }
+      });
+      
+      directionsService.route({
+        origin: DEPOT_LOCATION,
+        destination: { lat: customer.lat, lng: customer.lng },
+        travelMode: window.google.maps.TravelMode.DRIVING
+      }, (result: any, status: any) => {
+        if (status === 'OK') {
+          directionsRenderer.setDirections(result);
+        }
+      });
+      
+      newDirections.push(directionsRenderer);
+    });
+    
+    setMarkersOnMap(newMarkers);
+    setDirectionsRenderers(newDirections);
+    
+    // Adjust map bounds to show all points
+    const bounds = new window.google.maps.LatLngBounds();
+    bounds.extend(DEPOT_LOCATION);
+    closest.forEach(item => {
+      bounds.extend({ lat: item.customer.lat, lng: item.customer.lng });
+    });
+    map.fitBounds(bounds);
+  };
+  
+  // Clear markers and directions
+  const clearMarkersAndDirections = () => {
+    markersOnMap.forEach(marker => marker.setMap(null));
+    directionsRenderers.forEach(renderer => renderer.setMap(null));
+    setMarkersOnMap([]);
+    setDirectionsRenderers([]);
+  };
+  
+  // Clear closest customers display
+  const clearClosestDisplay = () => {
+    clearMarkersAndDirections();
+    setClosestCustomers([]);
+    setShowingClosest(false);
+    
+    // Reset map to original view
+    if (map) {
+      const coords = lat && lng ? { lat, lng } : DEPOT_LOCATION;
+      map.setCenter(coords);
+      map.setZoom(lat && lng ? 15 : 10);
+      
+      // Re-add original marker if exists
+      if (lat && lng) {
+        new window.google.maps.Marker({
+          position: coords,
+          map: map,
+          title: customerName,
+          icon: {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            fillColor: '#FF6B6B',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 3,
+            scale: 15
+          },
+          label: {
+            text: 'יעד',
+            color: 'white',
+            fontSize: '12px',
+            fontWeight: 'bold'
+          }
+        });
+      }
+    }
+  };
 
   // Initialize map when dialog opens with improved timing and retry
   useEffect(() => {
@@ -82,7 +276,7 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
 
       try {
         // Create a simple empty map first
-        const coords = lat && lng ? { lat, lng } : { lat: 32.0853, lng: 34.7818 }; // Default to Tel Aviv
+        const coords = lat && lng ? { lat, lng } : DEPOT_LOCATION;
         console.log('Using coordinates:', coords);
 
         const mapInstance = new window.google.maps.Map(mapRef.current, {
@@ -95,7 +289,28 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
 
         console.log('✅ Map instance created successfully');
 
-        // Add marker if we have coordinates
+        // Add starting point marker (depot/warehouse)
+        new window.google.maps.Marker({
+          position: DEPOT_LOCATION,
+          map: mapInstance,
+          title: 'נקודת מוצא',
+          icon: {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            fillColor: '#22c55e', // Green color for starting point
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 3,
+            scale: 18
+          },
+          label: {
+            text: 'מוצא',
+            color: 'white',
+            fontSize: '11px',
+            fontWeight: 'bold'
+          }
+        });
+
+        // Add target marker if we have coordinates
         if (lat && lng) {
           new window.google.maps.Marker({
             position: coords,
@@ -116,8 +331,10 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
               fontWeight: 'bold'
             }
           });
-          console.log('✅ Marker added with coordinates');
+          console.log('✅ Target marker added with coordinates');
         }
+        
+        console.log('✅ Starting point marker added');
 
         setMap(mapInstance);
         setIsLoading(false);
@@ -151,7 +368,10 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
   }, [isOpen, customerName, lat, lng, retryCount]);
 
   const handleClose = () => {
+    clearMarkersAndDirections();
     setMap(null);
+    setClosestCustomers([]);
+    setShowingClosest(false);
     onClose();
   };
 
@@ -200,6 +420,82 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
                   <p>קואורדינטות: {lat.toFixed(6)}, {lng.toFixed(6)}</p>
                 </div>
               )}
+            </div>
+
+            {/* Route Planning */}
+            <div className="p-4 bg-card rounded-lg border">
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <Route className="h-4 w-4" />
+                תכנון מסלול
+              </h3>
+              
+              {!showingClosest ? (
+                <Button 
+                  onClick={findClosestCustomers}
+                  disabled={isCalculatingClosest || kanbanAreas.length === 0}
+                  className="w-full"
+                  variant="outline"
+                >
+                  {isCalculatingClosest ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                      מחשב...
+                    </>
+                  ) : (
+                    <>
+                      <Target className="h-4 w-4 mr-2" />
+                      מצא 3 לקוחות קרובים
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <div className="space-y-3">
+                  <Button 
+                    onClick={clearClosestDisplay}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    נקה תצוגה
+                  </Button>
+                  
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium">3 הלקוחות הקרובים ביותר:</h4>
+                    {closestCustomers.map((item, index) => (
+                      <div key={index} className="p-2 bg-muted rounded text-sm">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div 
+                            className="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                            style={{ backgroundColor: ['#2563eb', '#dc2626', '#16a34a'][index] }}
+                          >
+                            {index + 1}
+                          </div>
+                          <span className="font-medium">{item.customer.customername}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{item.customer.address}, {item.customer.city}</p>
+                        <p className="text-xs text-muted-foreground">מרחק: {item.distance.toFixed(2)} ק"מ</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {kanbanAreas.length === 0 && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  אין לקוחות זמינים באזור הקנבאן
+                </p>
+              )}
+            </div>
+
+            {/* Starting Point Info */}
+            <div className="p-4 bg-card rounded-lg border">
+              <h3 className="font-semibold mb-2 flex items-center gap-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                נקודת מוצא
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                קואורדינטות: {DEPOT_LOCATION.lat.toFixed(6)}, {DEPOT_LOCATION.lng.toFixed(6)}
+              </p>
             </div>
           </div>
         </div>
