@@ -58,12 +58,17 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
   lng: propLng,
   scheduleId,
 }) => {
+  // Default coordinates for Israel (Tel Aviv center) as fallback
+  const DEFAULT_COORDINATES = { lat: 32.0853, lng: 34.7818 };
+  
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
-  const [currentLat, setCurrentLat] = useState<number | undefined>(propLat);
-  const [currentLng, setCurrentLng] = useState<number | undefined>(propLng);
+  const [currentLat, setCurrentLat] = useState<number | null>(propLat || null);
+  const [currentLng, setCurrentLng] = useState<number | null>(propLng || null);
+  const [mapError, setMapError] = useState<string | null>(null);
+  const [coordinatesReady, setCoordinatesReady] = useState(false);
   const [departureTime, setDepartureTime] = useState(() => {
     const now = new Date();
     return now.toTimeString().slice(0, 5);
@@ -312,9 +317,28 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
 
   // Fetch current customer coordinates if not provided
   const fetchCurrentCustomerCoordinates = async () => {
-    if (currentLat && currentLng) return;
+    console.log('📍 Fetching coordinates for:', { customerName, city, propLat, propLng });
+    
+    // If we already have coordinates from props, use them
+    if (propLat && propLng) {
+      console.log('Using prop coordinates:', { lat: propLat, lng: propLng });
+      setCurrentLat(propLat);
+      setCurrentLng(propLng);
+      setCoordinatesReady(true);
+      setMapError(null);
+      return;
+    }
+
+    // If coordinates are already set, skip
+    if (currentLat && currentLng) {
+      setCoordinatesReady(true);
+      return;
+    }
 
     try {
+      setMapError(null);
+      console.log('🔍 Searching for coordinates in database...');
+      
       // First try to get coordinates from customerlist
       const { data: customerData } = await supabase
         .from('customerlist')
@@ -323,11 +347,15 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
         .maybeSingle();
 
       if (customerData?.lat && customerData?.lng) {
+        console.log('✅ Found customer coordinates:', customerData);
         setCurrentLat(customerData.lat);
         setCurrentLng(customerData.lng);
+        setCoordinatesReady(true);
         return;
       }
 
+      console.log('⚠️ Customer coordinates not found, trying city coordinates...');
+      
       // If not found, try to get coordinates from cities
       const { data: cityData } = await supabase
         .from('cities')
@@ -336,11 +364,27 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
         .maybeSingle();
 
       if (cityData?.lat && cityData?.lng) {
+        console.log('✅ Found city coordinates:', cityData);
         setCurrentLat(cityData.lat);
         setCurrentLng(cityData.lng);
+        setCoordinatesReady(true);
+        return;
       }
+
+      console.log('⚠️ No coordinates found, using default fallback coordinates');
+      // Use default coordinates as fallback
+      setCurrentLat(DEFAULT_COORDINATES.lat);
+      setCurrentLng(DEFAULT_COORDINATES.lng);
+      setCoordinatesReady(true);
+      setMapError(`לא נמצאו קואורדינטות ללקוח ${customerName}. המפה מציגה מיקום כללי.`);
+      
     } catch (error) {
-      console.error('Error fetching coordinates:', error);
+      console.error('❌ Error fetching coordinates:', error);
+      // Use default coordinates even on error
+      setCurrentLat(DEFAULT_COORDINATES.lat);
+      setCurrentLng(DEFAULT_COORDINATES.lng);
+      setCoordinatesReady(true);
+      setMapError('שגיאה בטעינת קואורדינטות. המפה מציגה מיקום כללי.');
     }
   };
 
@@ -600,44 +644,81 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
   // Fetch coordinates when dialog opens
   useEffect(() => {
     if (isOpen) {
+      console.log('🚀 Dialog opened, fetching coordinates...');
+      setCoordinatesReady(false);
+      setMapError(null);
       fetchCurrentCustomerCoordinates();
+    } else {
+      // Reset state when dialog closes
+      setCoordinatesReady(false);
+      setCurrentLat(propLat || null);
+      setCurrentLng(propLng || null);
+      setRetryCount(0);
+      setMapError(null);
     }
-  }, [isOpen, customerName, city]);
+  }, [isOpen, customerName, city, propLat, propLng]);
 
-  // Initialize map only after coordinates are available
+  // Separate useEffect for Google Maps API retry logic
+  useEffect(() => {
+    if (!isOpen || retryCount === 0) return;
+    
+    const checkGoogleMaps = () => {
+      if (window.google && window.google.maps) {
+        console.log('✅ Google Maps API is now available');
+        setRetryCount(0); // This will trigger map initialization
+        return;
+      }
+      
+      if (retryCount < 10) {
+        console.log(`⏳ Google Maps API not ready, retry ${retryCount}/10`);
+        setTimeout(() => {
+          setRetryCount(prev => prev + 1);
+        }, 500);
+      } else {
+        console.error('❌ Google Maps API failed to load after maximum retries');
+        setIsLoading(false);
+        setMapError('שגיאה בטעינת המפה. אנא רענן את הדף ונסה שוב.');
+      }
+    };
+    
+    checkGoogleMaps();
+  }, [retryCount, isOpen]);
+
+  // Initialize map only after coordinates are ready and Google Maps is loaded
   useEffect(() => {
     const initializeMap = async () => {
-      if (!isOpen || !mapRef.current || map) return;
+      if (!isOpen || !mapRef.current || map || !coordinatesReady) {
+        console.log('⏸️ Map initialization conditions not met:', {
+          isOpen,
+          hasMapRef: !!mapRef.current,
+          hasMap: !!map,
+          coordinatesReady
+        });
+        return;
+      }
       
-      // Wait for coordinates to be available
+      // Double-check coordinates are available
       if (!currentLat || !currentLng) {
-        console.log('Waiting for coordinates...');
+        console.log('⏳ Coordinates not ready yet...');
+        return;
+      }
+
+      // Ensure Google Maps is loaded
+      if (!window.google || !window.google.maps) {
+        console.log('⏳ Google Maps not loaded, starting retry process...');
+        setRetryCount(1);
         return;
       }
 
       try {
         setIsLoading(true);
-        
-        // Ensure Google Maps is loaded with proper retry logic
-        if (!window.google || !window.google.maps) {
-          console.log('Google Maps not loaded, retrying...', retryCount);
-          if (retryCount < 10) {
-            setTimeout(() => {
-              setRetryCount(prev => prev + 1);
-            }, 500);
-          } else {
-            console.error('Google Maps failed to load after maximum retries');
-            setIsLoading(false);
-          }
-          return;
-        }
-
-        console.log('Initializing map with coordinates:', { lat: currentLat, lng: currentLng });
+        setMapError(null);
+        console.log('🗺️ Initializing map with coordinates:', { lat: currentLat, lng: currentLng });
 
         // Initialize map
         const mapInstance = new window.google.maps.Map(mapRef.current, {
           center: { lat: currentLat, lng: currentLng },
-          zoom: 15,
+          zoom: mapError ? 8 : 15, // Use lower zoom for fallback coordinates
           mapTypeId: window.google.maps.MapTypeId.ROADMAP,
           styles: [
             {
@@ -664,18 +745,18 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
         });
 
         setMap(mapInstance);
-        setRetryCount(0); // Reset retry count on success
-        console.log('Map initialized successfully');
+        console.log('✅ Map initialized successfully');
         
       } catch (error) {
-        console.error('Error initializing map:', error);
+        console.error('❌ Error initializing map:', error);
+        setMapError('שגיאה ביצירת המפה. אנא נסה שוב.');
       } finally {
         setIsLoading(false);
       }
     };
 
     initializeMap();
-  }, [isOpen, currentLat, currentLng, customerName, retryCount]);
+  }, [isOpen, coordinatesReady, currentLat, currentLng, customerName, map]);
 
   const handleClose = () => {
     clearMarkersAndDirections();
@@ -728,6 +809,11 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
               {currentLat && currentLng && (
                 <div className="mt-2 text-xs text-muted-foreground">
                   <p>קואורדינטות: {currentLat.toFixed(6)}, {currentLng.toFixed(6)}</p>
+                </div>
+              )}
+              {mapError && (
+                <div className="mt-2 p-2 bg-yellow-100 border border-yellow-300 rounded text-xs text-yellow-800">
+                  <p>⚠️ {mapError}</p>
                 </div>
               )}
             </div>
