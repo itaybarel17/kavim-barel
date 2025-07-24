@@ -6,7 +6,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { X, MapPin, Target, Route } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { X, MapPin, Target, Route, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 declare global {
@@ -50,6 +52,10 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
   const [map, setMap] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [departureTime, setDepartureTime] = useState(() => {
+    const now = new Date();
+    return now.toTimeString().slice(0, 5);
+  });
   
   // State for closest customers functionality
   const [closestCustomers, setClosestCustomers] = useState<Array<{
@@ -217,6 +223,11 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
         new window.google.maps.LatLng(item.customer.lat, item.customer.lng)
       );
       
+      // Parse departure time
+      const now = new Date();
+      const [hours, minutes] = departureTime.split(':').map(Number);
+      const departureDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+      
       return new Promise<Array<{customer: CustomerWithCoordinates; distance: number; travelTime?: string}>>((resolve) => {
         service.getDistanceMatrix({
           origins: [new window.google.maps.LatLng(lat, lng)],
@@ -224,14 +235,20 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
           travelMode: window.google.maps.TravelMode.DRIVING,
           unitSystem: window.google.maps.UnitSystem.METRIC,
           avoidHighways: false,
-          avoidTolls: false
+          avoidTolls: false,
+          drivingOptions: {
+            departureTime: departureDate,
+            trafficModel: window.google.maps.TrafficModel.BEST_GUESS
+          }
         }, (response: any, status: any) => {
           if (status === 'OK' && response.rows[0]) {
             const results = customers.map((customer, index) => {
               const element = response.rows[0].elements[index];
               let travelTime = 'לא זמין';
               
-              if (element.status === 'OK' && element.duration) {
+              if (element.status === 'OK' && element.duration_in_traffic) {
+                travelTime = element.duration_in_traffic.text;
+              } else if (element.status === 'OK' && element.duration) {
                 travelTime = element.duration.text;
               }
               
@@ -481,7 +498,7 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+      <DialogContent className="max-w-6xl h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -532,6 +549,23 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
                 <Route className="h-4 w-4" />
                 תכנון מסלול
               </h3>
+              
+              {/* Departure Time Input */}
+              <div className="mb-4 space-y-2">
+                <Label htmlFor="departure-time" className="text-sm font-medium">
+                  שעת יציאה
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Clock size={16} className="text-muted-foreground" />
+                  <Input
+                    id="departure-time"
+                    type="time"
+                    value={departureTime}
+                    onChange={(e) => setDepartureTime(e.target.value)}
+                    className="flex-1"
+                  />
+                </div>
+              </div>
               
               {!showingClosest ? (
                 <Button 
