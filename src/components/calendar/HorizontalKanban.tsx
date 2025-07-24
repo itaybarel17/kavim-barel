@@ -1,6 +1,8 @@
 import React from 'react';
 import { useDrop } from 'react-dnd';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Map, Printer } from 'lucide-react';
 import { CalendarCard } from './CalendarCard';
 import { AgentFilter } from './AgentFilter';
 import { ShowMyActivityToggle } from './ShowMyActivityToggle';
@@ -252,9 +254,19 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
       </div>
       {unscheduledSchedules.length > 0 ? (
         <Card className="mb-6 p-3 lg:p-4 mx-2 lg:mx-0">
-          <h3 className="text-base lg:text-lg font-medium mb-3 text-gray-700">
-            לא מתוזמן
-          </h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-base lg:text-lg font-medium text-gray-700">
+              לא מתוזמן
+            </h3>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <Map className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <Printer className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
           <div className="flex gap-3 lg:gap-4 overflow-x-auto pb-4 -mx-1">
             {unscheduledSchedules.map(schedule => (
               <div key={schedule.schedule_id} className="flex-shrink-0 min-w-[280px] lg:min-w-[320px]">

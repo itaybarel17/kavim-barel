@@ -4,9 +4,10 @@ import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Package, Monitor, X } from 'lucide-react';
+import { Package, Monitor, X, Map } from 'lucide-react';
 import { SirenButton } from './SirenButton';
 import { MessageBadge } from './MessageBadge';
+import { OrderMapDialog } from '../map/OrderMapDialog';
 import { supabase } from '@/integrations/supabase/client';
 
 // Path for prominent customer blue/red icons
@@ -180,6 +181,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   
   // State for manual customer area lookup
   const [manualCustomerArea, setManualCustomerArea] = useState<string>('');
+  
+  // State for map dialog
+  const [isMapDialogOpen, setIsMapDialogOpen] = useState(false);
 
 
   // Size for prominent icon
@@ -308,7 +312,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         {isOrder && (
           <div className="flex justify-between items-center mb-2">
             {/* אזורי הפצה */}
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1 items-center">
               {(() => {
                 const orderData = data as Order;
                 
@@ -349,14 +353,31 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                   areas.push({ name: area2, day: day2 });
                 }
                 
-                return areas.map((area, index) => (
-                  <Badge 
-                    key={index} 
-                    className={`text-xs px-2 py-1 font-medium ${getAreaColor(area.name)}`}
-                  >
-                    {area.name} <span className="font-bold bg-white/20 px-1 rounded text-white shadow-sm">{area.day}</span>
-                  </Badge>
-                ));
+                return (
+                  <>
+                    {areas.map((area, index) => (
+                      <Badge 
+                        key={index} 
+                        className={`text-xs px-2 py-1 font-medium ${getAreaColor(area.name)}`}
+                      >
+                        {area.name} <span className="font-bold bg-white/20 px-1 rounded text-white shadow-sm">{area.day}</span>
+                      </Badge>
+                    ))}
+                    {areas.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 ml-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsMapDialogOpen(true);
+                        }}
+                      >
+                        <Map className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </>
+                );
               })()}
             </div>
             
@@ -519,5 +540,15 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           </div>
         </div>
       )}
+      
+      {/* Map Dialog */}
+      <OrderMapDialog
+        isOpen={isMapDialogOpen}
+        onClose={() => setIsMapDialogOpen(false)}
+        customerName={data.customername}
+        address={data.address}
+        city={data.city}
+        kanbanAreas={[]} // This will be populated from parent component data
+      />
     </Card>;
 };
