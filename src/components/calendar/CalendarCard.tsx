@@ -55,6 +55,7 @@ interface CalendarCardProps {
   dualActiveOrderReturnCustomers?: { name: string; city: string }[];
   currentUser?: { agentnumber: string; agentname: string };
   customerReplacementMap?: Map<string, CustomerReplacement>;
+  selectedAgent?: string;
 }
 
 export const CalendarCard: React.FC<CalendarCardProps> = ({

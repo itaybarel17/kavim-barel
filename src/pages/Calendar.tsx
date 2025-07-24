@@ -413,18 +413,79 @@ const Calendar = () => {
   const allowedGroupIds = useMemo(() => {
     if (!currentUser) return [];
     
-    // Determine which agent to use for filtering
-    let agentForFiltering = currentUser.agentnumber;
+    // Admin (Agent 4) can filter by selected agent
     if (currentUser.agentnumber === "4") {
-      // Admin user - use selected agent for filtering
       if (selectedAgent === '4') {
         return null; // Show all groups when "משרד" is selected
       }
-      agentForFiltering = selectedAgent; // Use selected agent for filtering
+      // Use selected agent for filtering when admin selects specific agent
+      const agentForFiltering = selectedAgent;
+      
+      // Special logic for Agent 99 when admin filters by 99
+      if (agentForFiltering === "99") {
+        const agent99ScheduleIds = new Set<number>();
+      distributionSchedules.forEach(schedule => {
+        const hasAgent99Orders = orders.some(order => {
+          const relevantScheduleIds = [];
+          if (typeof order.schedule_id === 'number') relevantScheduleIds.push(order.schedule_id);
+          if (order.schedule_id_if_changed) {
+            if (typeof order.schedule_id_if_changed === 'number') {
+              relevantScheduleIds.push(order.schedule_id_if_changed);
+            } else if (Array.isArray(order.schedule_id_if_changed)) {
+              order.schedule_id_if_changed.forEach(sid => {
+                if (typeof sid === 'number') relevantScheduleIds.push(sid);
+              });
+            } else if (typeof order.schedule_id_if_changed === 'object' && order.schedule_id_if_changed.schedule_id) {
+              relevantScheduleIds.push(order.schedule_id_if_changed.schedule_id);
+            }
+          }
+          return relevantScheduleIds.includes(schedule.schedule_id) && order.agentnumber === '99';
+        });
+        const hasAgent99Returns = returns.some(returnItem => {
+          const relevantScheduleIds = [];
+          if (typeof returnItem.schedule_id === 'number') relevantScheduleIds.push(returnItem.schedule_id);
+          if (returnItem.schedule_id_if_changed) {
+            if (typeof returnItem.schedule_id_if_changed === 'number') {
+              relevantScheduleIds.push(returnItem.schedule_id_if_changed);
+            } else if (Array.isArray(returnItem.schedule_id_if_changed)) {
+              returnItem.schedule_id_if_changed.forEach(sid => {
+                if (typeof sid === 'number') relevantScheduleIds.push(sid);
+              });
+            } else if (typeof returnItem.schedule_id_if_changed === 'object' && returnItem.schedule_id_if_changed.schedule_id) {
+              relevantScheduleIds.push(returnItem.schedule_id_if_changed.schedule_id);
+            }
+          }
+          return relevantScheduleIds.includes(schedule.schedule_id) && returnItem.agentnumber === '99';
+        });
+        if (hasAgent99Orders || hasAgent99Returns) {
+          agent99ScheduleIds.add(schedule.schedule_id);
+        }
+      });
+      return Array.from(agent99ScheduleIds);
+      }
+
+      // Allow only groups where agent is in distribution_groups.agents (array of agentnumbers in jsonb)
+      return distributionGroups.filter(group => {
+        if (!group.agents) return false;
+        if (Array.isArray(group.agents)) {
+          // Convert agentForFiltering to integer for comparison
+          return group.agents.includes(parseInt(agentForFiltering));
+        }
+        // fallback in case agents is not an array (shouldn't happen)
+        if (typeof group.agents === "string") {
+          try {
+            const arr = JSON.parse(group.agents);
+            return arr.includes(parseInt(agentForFiltering));
+          } catch {
+            return false;
+          }
+        }
+        return false;
+      }).map(group => group.groups_id);
     }
 
-    // Special logic for Agent 99 - only see specific schedule_ids that have his orders/returns
-    if (agentForFiltering === "99") {
+    // Special logic for Agent 99 - only see specific schedule_ids that have his orders/returns  
+    if (currentUser.agentnumber === "99") {
       const agent99ScheduleIds = new Set<number>();
       distributionSchedules.forEach(schedule => {
         const hasAgent99Orders = orders.some(order => {
@@ -470,14 +531,14 @@ const Calendar = () => {
     return distributionGroups.filter(group => {
       if (!group.agents) return false;
       if (Array.isArray(group.agents)) {
-        // Convert agentForFiltering to integer for comparison
-        return group.agents.includes(parseInt(agentForFiltering));
+        // Convert currentUser.agentnumber to integer for comparison
+        return group.agents.includes(parseInt(currentUser.agentnumber));
       }
       // fallback in case agents is not an array (shouldn't happen)
       if (typeof group.agents === "string") {
         try {
           const arr = JSON.parse(group.agents);
-          return arr.includes(parseInt(agentForFiltering));
+          return arr.includes(parseInt(currentUser.agentnumber));
         } catch {
           return false;
         }
@@ -781,7 +842,7 @@ const Calendar = () => {
       </div>
 
       {/* Calendar Grid */}
-      <CalendarGrid currentWeekStart={currentWeekStart} distributionSchedules={filteredSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={filteredOrders} returns={filteredReturns} onDropToDate={currentUser?.agentnumber === "4" ? handleDropToDate : undefined} currentUser={currentUser} onRefreshData={handleRefreshData} customerReplacementMap={orderOnAnotherCustomerDetails} />
+      <CalendarGrid currentWeekStart={currentWeekStart} distributionSchedules={filteredSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={filteredOrders} returns={filteredReturns} onDropToDate={currentUser?.agentnumber === "4" ? handleDropToDate : undefined} currentUser={currentUser} onRefreshData={handleRefreshData} customerReplacementMap={orderOnAnotherCustomerDetails} selectedAgent={selectedAgent} />
     </div>
   );
 };
