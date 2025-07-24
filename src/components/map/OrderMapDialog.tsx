@@ -32,7 +32,8 @@ interface CustomerWithCoordinates {
   city: string;
   lat: number;
   lng: number;
-  schedule_id: number;
+  orderCount: number;
+  travelTime?: string;
 }
 
 
@@ -54,6 +55,7 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
   const [closestCustomers, setClosestCustomers] = useState<Array<{
     customer: CustomerWithCoordinates;
     distance: number;
+    travelTime?: string;
   }>>([]);
   const [showingClosest, setShowingClosest] = useState(false);
   const [isCalculatingClosest, setIsCalculatingClosest] = useState(false);
@@ -73,7 +75,7 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
     return R * c;
   };
   
-  // Fetch active customers with coordinates from database
+  // Fetch active customers with coordinates from database (one record per customer)
   const fetchActiveCustomersWithCoordinates = async (): Promise<CustomerWithCoordinates[]> => {
     try {
       console.log('Fetching active customers from database...');
@@ -96,8 +98,14 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
         return [];
       }
 
-      // Get unique customer numbers
-      const customerNumbers = [...new Set(activeOrders.map(order => order.customernumber))];
+      // Get unique customer numbers and count orders per customer
+      const customerOrderCounts = new Map<string, number>();
+      activeOrders.forEach(order => {
+        const count = customerOrderCounts.get(order.customernumber) || 0;
+        customerOrderCounts.set(order.customernumber, count + 1);
+      });
+
+      const customerNumbers = Array.from(customerOrderCounts.keys());
       console.log('Unique customer numbers:', customerNumbers.length);
 
       // Fetch customer coordinates from customerlist
@@ -119,26 +127,26 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
         return [];
       }
 
-      // Combine the data
-      const customersWithSchedules: CustomerWithCoordinates[] = [];
-      
-      customersWithCoords.forEach(customer => {
-        const customerOrders = activeOrders.filter(order => order.customernumber === customer.customernumber);
-        customerOrders.forEach(order => {
-          customersWithSchedules.push({
-            customernumber: customer.customernumber,
-            customername: customer.customername || order.customername,
-            address: customer.address || '',
-            city: customer.city || '',
-            lat: customer.lat,
-            lng: customer.lng,
-            schedule_id: order.schedule_id
-          });
-        });
+      // Combine the data - one record per customer with order count
+      const uniqueCustomers: CustomerWithCoordinates[] = customersWithCoords.map(customer => {
+        const orderCount = customerOrderCounts.get(customer.customernumber) || 1;
+        const sampleOrder = activeOrders.find(order => order.customernumber === customer.customernumber);
+        
+        return {
+          customernumber: customer.customernumber,
+          customername: customer.customername || sampleOrder?.customername || '',
+          address: customer.address || '',
+          city: customer.city || '',
+          lat: customer.lat,
+          lng: customer.lng,
+          orderCount: orderCount
+        };
       });
 
-      console.log('Final customers with schedules:', customersWithSchedules.length);
-      return customersWithSchedules;
+      console.log('Final unique customers:', uniqueCustomers.length);
+      console.log('Sample customer data:', uniqueCustomers[0]);
+      
+      return uniqueCustomers;
       
     } catch (error) {
       console.error('Error in fetchActiveCustomersWithCoordinates:', error);
@@ -185,14 +193,63 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
       
       console.log('3 closest customers:', closest);
       
-      setClosestCustomers(closest);
+      // Calculate travel times for the 3 closest customers
+      const closestWithTravelTime = await calculateTravelTimes(closest);
+      
+      setClosestCustomers(closestWithTravelTime);
       setShowingClosest(true);
-      displayClosestCustomersOnMap(closest);
+      displayClosestCustomersOnMap(closestWithTravelTime);
       
     } catch (error) {
       console.error('Error finding closest customers:', error);
     } finally {
       setIsCalculatingClosest(false);
+    }
+  };
+
+  // Calculate travel times using Google Maps Distance Matrix API
+  const calculateTravelTimes = async (customers: Array<{customer: CustomerWithCoordinates; distance: number}>) => {
+    if (!window.google || !lat || !lng) return customers;
+    
+    try {
+      const service = new window.google.maps.DistanceMatrixService();
+      const destinations = customers.map(item => 
+        new window.google.maps.LatLng(item.customer.lat, item.customer.lng)
+      );
+      
+      return new Promise<Array<{customer: CustomerWithCoordinates; distance: number; travelTime?: string}>>((resolve) => {
+        service.getDistanceMatrix({
+          origins: [new window.google.maps.LatLng(lat, lng)],
+          destinations: destinations,
+          travelMode: window.google.maps.TravelMode.DRIVING,
+          unitSystem: window.google.maps.UnitSystem.METRIC,
+          avoidHighways: false,
+          avoidTolls: false
+        }, (response: any, status: any) => {
+          if (status === 'OK' && response.rows[0]) {
+            const results = customers.map((customer, index) => {
+              const element = response.rows[0].elements[index];
+              let travelTime = 'לא זמין';
+              
+              if (element.status === 'OK' && element.duration) {
+                travelTime = element.duration.text;
+              }
+              
+              return {
+                ...customer,
+                travelTime
+              };
+            });
+            resolve(results);
+          } else {
+            console.log('Distance Matrix API failed, using distance only');
+            resolve(customers);
+          }
+        });
+      });
+    } catch (error) {
+      console.error('Error calculating travel times:', error);
+      return customers;
     }
   };
   
@@ -519,8 +576,18 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
                           </div>
                           <span className="font-medium">{item.customer.customername}</span>
                         </div>
-                        <p className="text-xs text-muted-foreground">{item.customer.address}, {item.customer.city}</p>
-                        <p className="text-xs text-muted-foreground">מרחק: {item.distance.toFixed(2)} ק"מ</p>
+                         <p className="text-xs text-muted-foreground">{item.customer.address}, {item.customer.city}</p>
+                         <div className="flex justify-between items-center text-xs text-muted-foreground">
+                           <span>מרחק: {item.distance.toFixed(2)} ק"מ</span>
+                           {item.customer.orderCount > 1 && (
+                             <span className="bg-primary text-primary-foreground px-1 rounded text-xs">
+                               {item.customer.orderCount} הזמנות
+                             </span>
+                           )}
+                         </div>
+                         {item.travelTime && (
+                           <p className="text-xs text-muted-foreground">זמן נסיעה: {item.travelTime}</p>
+                         )}
                       </div>
                     ))}
                   </div>
