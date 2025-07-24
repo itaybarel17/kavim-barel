@@ -21,6 +21,7 @@ interface Order {
   address: string;
   city: string;
   totalorder: number;
+  totalinvoice?: number;
   schedule_id?: number;
   customernumber?: string;
   agentnumber?: string;
@@ -217,6 +218,20 @@ export const DropZone: React.FC<DropZoneProps> = ({
     });
     return uniqueCustomers.size;
   }, [assignedOrders, assignedReturns]);
+
+  // Calculate total orders sum
+  const totalOrdersSum = useMemo(() => {
+    return assignedOrders
+      .filter(order => order.totalorder != null && order.totalorder !== undefined)
+      .reduce((sum, order) => sum + order.totalorder, 0);
+  }, [assignedOrders]);
+
+  // Calculate total invoices sum
+  const totalInvoicesSum = useMemo(() => {
+    return assignedOrders
+      .filter(order => order.totalinvoice != null && order.totalinvoice !== undefined)
+      .reduce((sum, order) => sum + order.totalinvoice, 0);
+  }, [assignedOrders]);
 
   // Get delivery date for display
   const currentSchedule = distributionSchedules.find(schedule => schedule.schedule_id === scheduleId);
@@ -529,6 +544,16 @@ export const DropZone: React.FC<DropZoneProps> = ({
               {scheduleId && (
                 <div className="font-medium text-blue-600 mt-1">
                   סה"כ נקודות: {uniqueCustomerPoints}
+                </div>
+              )}
+              {scheduleId && (
+                <div className="font-medium text-blue-600 mt-1">
+                  סה"כ הזמנות: {totalOrdersSum.toLocaleString('he-IL')}
+                </div>
+              )}
+              {scheduleId && (
+                <div className="font-medium text-blue-600 mt-1">
+                  סה"כ חשבוניות: {totalInvoicesSum.toLocaleString('he-IL')}
                 </div>
               )}
               {deliveryDate && (
