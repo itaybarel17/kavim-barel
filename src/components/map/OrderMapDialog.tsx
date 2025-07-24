@@ -26,8 +26,6 @@ interface OrderMapDialogProps {
   lat?: number;
   lng?: number;
   scheduleId?: number;
-  customerCoordinatesMap?: Record<string, { lat: number; lng: number }>;
-  customerNumber?: string;
 }
 
 interface Customer {
@@ -56,16 +54,16 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
   customerName,
   address,
   city,
-  lat,
-  lng,
+  lat: propLat,
+  lng: propLng,
   scheduleId,
-  customerCoordinatesMap = {},
-  customerNumber
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [currentLat, setCurrentLat] = useState<number | undefined>(propLat);
+  const [currentLng, setCurrentLng] = useState<number | undefined>(propLng);
   const [departureTime, setDepartureTime] = useState(() => {
     const now = new Date();
     return now.toTimeString().slice(0, 5);
@@ -312,18 +310,42 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
     }));
   };
 
+  // Fetch current customer coordinates if not provided
+  const fetchCurrentCustomerCoordinates = async () => {
+    if (currentLat && currentLng) return;
+
+    try {
+      // First try to get coordinates from customerlist
+      const { data: customerData } = await supabase
+        .from('customerlist')
+        .select('lat, lng')
+        .eq('customername', customerName)
+        .maybeSingle();
+
+      if (customerData?.lat && customerData?.lng) {
+        setCurrentLat(customerData.lat);
+        setCurrentLng(customerData.lng);
+        return;
+      }
+
+      // If not found, try to get coordinates from cities
+      const { data: cityData } = await supabase
+        .from('cities')
+        .select('lat, lng')
+        .eq('city', city)
+        .maybeSingle();
+
+      if (cityData?.lat && cityData?.lng) {
+        setCurrentLat(cityData.lat);
+        setCurrentLng(cityData.lng);
+      }
+    } catch (error) {
+      console.error('Error fetching coordinates:', error);
+    }
+  };
+
   // Find 3 closest customers
   const findClosestCustomers = async () => {
-    // Get coordinates from props or customerCoordinatesMap
-    let currentLat = lat;
-    let currentLng = lng;
-    
-    if ((!currentLat || !currentLng) && customerNumber && customerCoordinatesMap[customerNumber]) {
-      const coords = customerCoordinatesMap[customerNumber];
-      currentLat = coords.lat;
-      currentLng = coords.lng;
-    }
-    
     if (!map || !currentLat || !currentLng) return;
     
     setIsCalculatingClosest(true);
@@ -378,16 +400,6 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
 
   // Calculate travel times using Google Maps Distance Matrix API
   const calculateTravelTimes = async (customers: Array<{customer: CustomerWithCoordinates; distance: number}>) => {
-    // Get coordinates from props or customerCoordinatesMap
-    let currentLat = lat;
-    let currentLng = lng;
-    
-    if ((!currentLat || !currentLng) && customerNumber && customerCoordinatesMap[customerNumber]) {
-      const coords = customerCoordinatesMap[customerNumber];
-      currentLat = coords.lat;
-      currentLng = coords.lng;
-    }
-    
     if (!window.google || !currentLat || !currentLng) {
       console.log('Missing Google Maps API or coordinates');
       return customers;
@@ -471,7 +483,7 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
   
   // Display closest customers on map with arrows
   const displayClosestCustomersOnMap = (closest: typeof closestCustomers) => {
-    if (!map || !window.google) return;
+    if (!map || !window.google || !currentLat || !currentLng) return;
     
     // Clear existing markers and directions
     clearMarkersAndDirections();
@@ -518,7 +530,7 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
       });
       
       directionsService.route({
-        origin: { lat: currentLat!, lng: currentLng! },
+        origin: { lat: currentLat, lng: currentLng },
         destination: { lat: customer.lat, lng: customer.lng },
         travelMode: window.google.maps.TravelMode.DRIVING
       }, (result: any, status: any) => {
@@ -535,20 +547,7 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
     
     // Adjust map bounds to show all points
     const bounds = new window.google.maps.LatLngBounds();
-    
-    // Get coordinates from props or customerCoordinatesMap
-    let currentLat = lat;
-    let currentLng = lng;
-    
-    if ((!currentLat || !currentLng) && customerNumber && customerCoordinatesMap[customerNumber]) {
-      const coords = customerCoordinatesMap[customerNumber];
-      currentLat = coords.lat;
-      currentLng = coords.lng;
-    }
-    
-    if (currentLat && currentLng) {
-      bounds.extend({ lat: currentLat, lng: currentLng });
-    }
+    bounds.extend({ lat: currentLat, lng: currentLng });
     closest.forEach(item => {
       bounds.extend({ lat: item.customer.lat, lng: item.customer.lng });
     });
@@ -570,16 +569,6 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
     setShowingClosest(false);
     
     // Reset map to original view
-    // Get coordinates from props or customerCoordinatesMap
-    let currentLat = lat;
-    let currentLng = lng;
-    
-    if ((!currentLat || !currentLng) && customerNumber && customerCoordinatesMap[customerNumber]) {
-      const coords = customerCoordinatesMap[customerNumber];
-      currentLat = coords.lat;
-      currentLng = coords.lng;
-    }
-    
     if (map && currentLat && currentLng) {
       const coords = { lat: currentLat, lng: currentLng };
       map.setCenter(coords);
@@ -608,119 +597,68 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
     }
   };
 
-  // Initialize map when dialog opens with improved timing and retry
   useEffect(() => {
-    if (!isOpen) {
-      setIsLoading(false);
-      setRetryCount(0);
-      return;
-    }
+    fetchCurrentCustomerCoordinates();
+  }, [customerName, city]);
 
-    const attemptMapInitialization = () => {
-      console.log('=== Map initialization attempt ===');
-      console.log('Conditions check:', {
-        isOpen,
-        mapRef: !!mapRef.current,
-        windowGoogle: !!window.google,
-        googleMaps: !!(window.google?.maps),
-        googleMapsMap: !!(window.google?.maps?.Map),
-        retryCount
-      });
-
-      if (!mapRef.current) {
-        console.log('❌ Map ref not ready');
-        return false;
+  useEffect(() => {
+    const initializeMap = async () => {
+      if (!isOpen || !mapRef.current || map) return;
+      
+      // Check if coordinates are available
+      if (!currentLat || !currentLng) {
+        console.error('Missing coordinates for map initialization');
+        return;
       }
-
-      if (!window.google || !window.google.maps || !window.google.maps.Map) {
-        console.log('❌ Google Maps API not fully loaded');
-        return false;
-      }
-
-      console.log('✅ All conditions met, initializing map for:', customerName);
-      setIsLoading(true);
 
       try {
-        // Get coordinates from props or customerCoordinatesMap
-        let currentLat = lat;
-        let currentLng = lng;
+        setIsLoading(true);
         
-        // If no coordinates in props, try to get from customerCoordinatesMap
-        if ((!currentLat || !currentLng) && customerNumber && customerCoordinatesMap[customerNumber]) {
-          const coords = customerCoordinatesMap[customerNumber];
-          currentLat = coords.lat;
-          currentLng = coords.lng;
-          console.log('Using coordinates from customerCoordinatesMap:', coords);
+        // Ensure Google Maps is loaded
+        if (!window.google || !window.google.maps) {
+          console.log('Google Maps not loaded, retrying...');
+          if (retryCount < 5) {
+            setTimeout(() => {
+              setRetryCount(prev => prev + 1);
+            }, 1000);
+          }
+          return;
         }
-        
-        // Create a simple empty map first
-        const coords = currentLat && currentLng ? { lat: currentLat, lng: currentLng } : { lat: 32.0853, lng: 34.7818 }; // Default to Tel Aviv
-        console.log('Using coordinates:', coords);
 
+        // Initialize map
         const mapInstance = new window.google.maps.Map(mapRef.current, {
-          zoom: currentLat && currentLng ? 15 : 10,
-          center: coords,
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: false,
+          center: { lat: currentLat, lng: currentLng },
+          zoom: 15,
+          mapTypeId: window.google.maps.MapTypeId.ROADMAP,
         });
 
-        console.log('✅ Map instance created successfully');
-
-        // Add starting point marker (the clicked customer) if we have coordinates
-        if (currentLat && currentLng) {
-          new window.google.maps.Marker({
-            position: coords,
-            map: mapInstance,
-            title: customerName,
-            icon: {
-              path: window.google.maps.SymbolPath.CIRCLE,
-              fillColor: '#FF6B6B',
-              fillOpacity: 1,
-              strokeColor: '#ffffff',
-              strokeWeight: 3,
-              scale: 15
-            },
-            label: {
-              text: 'מוצא',
-              color: 'white',
-              fontSize: '12px',
-              fontWeight: 'bold'
-            }
-          });
-          console.log('✅ Starting point marker added with coordinates');
-        }
+        // Add marker for the current customer
+        new window.google.maps.Marker({
+          position: { lat: currentLat, lng: currentLng },
+          map: mapInstance,
+          title: customerName,
+          icon: {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="red">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+              </svg>
+            `),
+            scaledSize: new window.google.maps.Size(40, 40),
+          },
+        });
 
         setMap(mapInstance);
-        setIsLoading(false);
-        setRetryCount(0);
-        console.log('✅ Map initialization completed successfully');
-        return true;
+        console.log('Map initialized successfully');
+        
       } catch (error) {
-        console.error('❌ Error during map initialization:', error);
+        console.error('Error initializing map:', error);
+      } finally {
         setIsLoading(false);
-        return false;
       }
     };
 
-    // Initial attempt with delay
-    const initializeWithDelay = () => {
-      setTimeout(() => {
-        const success = attemptMapInitialization();
-        
-        // Retry mechanism if failed and we haven't exceeded max retries
-        if (!success && retryCount < 3) {
-          console.log(`Retrying map initialization (attempt ${retryCount + 1})`);
-          setRetryCount(prev => prev + 1);
-          setTimeout(() => {
-            attemptMapInitialization();
-          }, 500 * (retryCount + 1)); // Increasing delay
-        }
-      }, 100);
-    };
-
-    initializeWithDelay();
-  }, [isOpen, customerName, lat, lng, retryCount]);
+    initializeMap();
+  }, [isOpen, currentLat, currentLng, customerName, retryCount]);
 
   const handleClose = () => {
     clearMarkersAndDirections();
@@ -770,23 +708,11 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
               <h3 className="font-semibold mb-2">{customerName}</h3>
               <p className="text-sm text-muted-foreground">{address}</p>
               <p className="text-sm text-muted-foreground">{city}</p>
-              {(() => {
-                // Get coordinates from props or customerCoordinatesMap
-                let currentLat = lat;
-                let currentLng = lng;
-                
-                if ((!currentLat || !currentLng) && customerNumber && customerCoordinatesMap[customerNumber]) {
-                  const coords = customerCoordinatesMap[customerNumber];
-                  currentLat = coords.lat;
-                  currentLng = coords.lng;
-                }
-                
-                return currentLat && currentLng && (
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    <p>קואורדינטות: {currentLat.toFixed(6)}, {currentLng.toFixed(6)}</p>
-                  </div>
-                );
-              })()}
+              {currentLat && currentLng && (
+                <div className="mt-2 text-xs text-muted-foreground">
+                  <p>קואורדינטות: {currentLat.toFixed(6)}, {currentLng.toFixed(6)}</p>
+                </div>
+              )}
             </div>
 
             {/* Route Planning */}
@@ -816,19 +742,7 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
               {!showingClosest ? (
                 <Button 
                   onClick={findClosestCustomers}
-                  disabled={isCalculatingClosest || (() => {
-                    // Check if we have coordinates from props or customerCoordinatesMap
-                    let currentLat = lat;
-                    let currentLng = lng;
-                    
-                    if ((!currentLat || !currentLng) && customerNumber && customerCoordinatesMap[customerNumber]) {
-                      const coords = customerCoordinatesMap[customerNumber];
-                      currentLat = coords.lat;
-                      currentLng = coords.lng;
-                    }
-                    
-                    return !currentLat || !currentLng;
-                  })()}
+                  disabled={isCalculatingClosest || !currentLat || !currentLng}
                   className="w-full"
                   variant="outline"
                 >
@@ -891,23 +805,11 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
                 </div>
               )}
               
-              {(() => {
-                // Check if we have coordinates from props or customerCoordinatesMap
-                let currentLat = lat;
-                let currentLng = lng;
-                
-                if ((!currentLat || !currentLng) && customerNumber && customerCoordinatesMap[customerNumber]) {
-                  const coords = customerCoordinatesMap[customerNumber];
-                  currentLat = coords.lat;
-                  currentLng = coords.lng;
-                }
-                
-                return (!currentLat || !currentLng) && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    אין קואורדינטות ללקוח זה
-                  </p>
-                );
-              })()}
+              {(!currentLat || !currentLng) && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  אין קואורדינטות ללקוח זה
+                </p>
+              )}
             </div>
           </div>
         </div>
