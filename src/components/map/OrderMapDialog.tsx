@@ -153,9 +153,11 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
         const lat = parseFloat(latStr);
         const lng = parseFloat(lngStr);
         
-        // Validate coordinates are valid numbers and within Israel's geographical bounds
-        const isValidLat = !isNaN(lat) && lat >= 29 && lat <= 34;
-        const isValidLng = !isNaN(lng) && lng >= 33 && lng <= 36;
+        // Validate coordinates are valid numbers (removed strict geographical bounds)
+        const isValidLat = !isNaN(lat) && lat !== 0 && latStr !== '' && latStr !== 'undefined';
+        const isValidLng = !isNaN(lng) && lng !== 0 && lngStr !== '' && lngStr !== 'undefined';
+        
+        console.log(`🔍 Customer ${customer.customernumber} (${customer.customername}): lat=${latStr}→${lat}, lng=${lngStr}→${lng}, valid=${isValidLat && isValidLng}`);
         
         if (isValidLat && isValidLng) {
           validCoordinatesCount++;
@@ -168,9 +170,10 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
             lng: lng,
             orderCount: orderCount
           });
+          console.log(`✅ Added customer ${customer.customernumber} with coordinates (${lat}, ${lng})`);
         } else {
           invalidCoordinatesCount++;
-          console.log(`❌ Invalid coordinates for ${customer.customername || customer.customernumber}: lat=${latStr} (${lat}), lng=${lngStr} (${lng})`);
+          console.log(`❌ Rejected customer ${customer.customernumber} (${customer.customername}): lat=${latStr}→${lat} (valid: ${isValidLat}), lng=${lngStr}→${lng} (valid: ${isValidLng})`);
         }
       });
 
