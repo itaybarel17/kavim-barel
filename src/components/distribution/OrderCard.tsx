@@ -367,13 +367,13 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-6 w-6 p-0 ml-1"
+                        className="rounded-full p-1 h-auto transition-all duration-200 active:scale-95 pointer-events-auto relative z-10 text-gray-400 hover:text-gray-600 hover:bg-gray-100"
                         onClick={(e) => {
                           e.stopPropagation();
                           setIsMapDialogOpen(true);
                         }}
                       >
-                        <Map className="h-3 w-3" />
+                        <Map className="h-4 w-4" />
                       </Button>
                     )}
                   </>
