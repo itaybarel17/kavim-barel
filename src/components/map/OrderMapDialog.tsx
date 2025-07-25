@@ -26,6 +26,7 @@ interface OrderMapDialogProps {
   lat?: number;
   lng?: number;
   scheduleId?: number;
+  customerNumber?: string;
 }
 
 interface Customer {
@@ -57,6 +58,7 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
   lat: propLat,
   lng: propLng,
   scheduleId,
+  customerNumber,
 }) => {
   // Default coordinates for Israel (Tel Aviv center) as fallback
   const DEFAULT_COORDINATES = { lat: 32.0853, lng: 34.7818 };
@@ -103,30 +105,20 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
     try {
       console.log('Fetching customers from all zone kanbans...');
 
-      // Get orders from all scheduled zone kanbans
+      // Get orders from all scheduled zone kanbans (only uncompleted orders)
       const { data: orders, error: ordersError } = await supabase
         .from('mainorder')
-        .select('customername, city, address, schedule_id')
-        .not('schedule_id', 'is', null);
+        .select('customername, customernumber, city, address, schedule_id, ordernumber')
+        .not('schedule_id', 'is', null)
+        .is('done_mainorder', null)
+        .is('ordercancel', null);
 
       if (ordersError) throw ordersError;
 
-      // Get returns from all scheduled zone kanbans
-      const { data: returns, error: returnsError } = await supabase
-        .from('mainreturns')
-        .select('customername, city, address, schedule_id')
-        .not('schedule_id', 'is', null);
-
-      if (returnsError) throw returnsError;
-
-      // Combine orders and returns
-      const allItems = [
-        ...(orders || []),
-        ...(returns || [])
-      ];
+      const allItems = orders || [];
 
       if (allItems.length === 0) {
-        console.log('No scheduled orders or returns found');
+        console.log('No scheduled orders found');
         return [];
       }
 
@@ -150,32 +142,21 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
     try {
       console.log(`Fetching customers from other zone kanbans (excluding schedule ${currentScheduleId})...`);
 
-      // Get orders from all scheduled zone kanbans except current
+      // Get orders from all scheduled zone kanbans except current (only uncompleted orders)
       const { data: orders, error: ordersError } = await supabase
         .from('mainorder')
-        .select('customername, city, address, schedule_id')
+        .select('customername, customernumber, city, address, schedule_id, ordernumber')
         .not('schedule_id', 'is', null)
-        .not('schedule_id', 'eq', currentScheduleId);
+        .not('schedule_id', 'eq', currentScheduleId)
+        .is('done_mainorder', null)
+        .is('ordercancel', null);
 
       if (ordersError) throw ordersError;
 
-      // Get returns from all scheduled zone kanbans except current
-      const { data: returns, error: returnsError } = await supabase
-        .from('mainreturns')
-        .select('customername, city, address, schedule_id')
-        .not('schedule_id', 'is', null)
-        .not('schedule_id', 'eq', currentScheduleId);
-
-      if (returnsError) throw returnsError;
-
-      // Combine orders and returns
-      const allItems = [
-        ...(orders || []),
-        ...(returns || [])
-      ];
+      const allItems = orders || [];
 
       if (allItems.length === 0) {
-        console.log('No scheduled orders or returns found in other zones');
+        console.log('No scheduled orders found in other zones');
         return [];
       }
 
@@ -199,23 +180,21 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
     // Get customer replacement data from messages
     let replacementMap = new Map();
     
-    // Find all relevant order and return numbers from the database
+    // Find all relevant order numbers from the database
     const orderNumbers = allItems.filter(item => item.ordernumber).map(item => item.ordernumber);
-    const returnNumbers = allItems.filter(item => item.returnnumber).map(item => item.returnnumber);
 
-    if (orderNumbers.length > 0 || returnNumbers.length > 0) {
+    if (orderNumbers.length > 0) {
       const { data: replacements } = await supabase
         .from('messages')
-        .select('ordernumber, returnnumber, correctcustomer, city')
+        .select('ordernumber, correctcustomer, city')
         .eq('subject', 'הזמנה על לקוח אחר')
         .not('correctcustomer', 'is', null)
-        .or(`ordernumber.in.(${orderNumbers.join(',')}),returnnumber.in.(${returnNumbers.join(',')})`);
+        .in('ordernumber', orderNumbers);
 
       if (replacements) {
         replacements.forEach(replacement => {
-          const key = replacement.ordernumber || replacement.returnnumber;
-          if (key) {
-            replacementMap.set(key.toString(), {
+          if (replacement.ordernumber) {
+            replacementMap.set(replacement.ordernumber.toString(), {
               customername: replacement.correctcustomer,
               city: replacement.city
             });
@@ -271,14 +250,11 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
       
       // Look for replacements in orders
       const orderItem = allItems.find(item => item.customername === customerName && item.ordernumber);
-      const returnItem = allItems.find(item => item.customername === customerName && item.returnnumber);
 
       const orderNumber = orderItem?.ordernumber;
-      const returnNumber = returnItem?.returnnumber;
       
-      const replacementKey = orderNumber?.toString() || returnNumber?.toString();
-      if (replacementKey && replacementMap.has(replacementKey)) {
-        const replacement = replacementMap.get(replacementKey);
+      if (orderNumber && replacementMap.has(orderNumber.toString())) {
+        const replacement = replacementMap.get(orderNumber.toString());
         finalCustomerName = replacement.customername;
         finalCityName = replacement.city;
       }
@@ -330,15 +306,29 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
 
   // Convert ScheduleMap Customer interface to CustomerWithCoordinates
   const convertToCustomerWithCoordinates = (customers: Customer[]): CustomerWithCoordinates[] => {
-    return customers.map(customer => ({
-      customernumber: customer.customername, // Use name as number for now
-      customername: customer.customername,
-      address: customer.address,
-      city: customer.city,
-      lat: customer.lat,
-      lng: customer.lng,
-      orderCount: 1 // Default to 1
-    }));
+    // Group customers by customernumber to count orders per customer
+    const customerGroups = new Map<string, Customer[]>();
+    
+    customers.forEach(customer => {
+      const key = customer.customername; // Using customername as the grouping key
+      if (!customerGroups.has(key)) {
+        customerGroups.set(key, []);
+      }
+      customerGroups.get(key)!.push(customer);
+    });
+
+    return Array.from(customerGroups.entries()).map(([customerName, customerGroup]) => {
+      const representative = customerGroup[0]; // Use first customer as representative
+      return {
+        customernumber: customerName,
+        customername: customerName,
+        address: representative.address,
+        city: representative.city,
+        lat: representative.lat,
+        lng: representative.lng,
+        orderCount: customerGroup.length
+      };
+    });
   };
 
   // Fetch current customer coordinates if not provided
@@ -444,10 +434,11 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
         return;
       }
 
-      // Filter customers with valid coordinates, excluding those at the same location as starting point
+      // Filter customers with valid coordinates, excluding the current customer by customer number
       const validCustomers = activeCustomers.filter(customer => 
         customer.lat && customer.lng && 
-        !(customer.lat === currentLat && customer.lng === currentLng)
+        customer.customernumber !== customerNumber && 
+        customer.customername !== customerName
       );
       
       console.log('Valid customers with coordinates:', validCustomers.length);
