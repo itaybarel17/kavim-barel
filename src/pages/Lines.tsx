@@ -156,20 +156,34 @@ const Lines = () => {
       area2GroupId: number; 
       area2Order: number; 
     }) => {
-      // Update both areas in a transaction-like manner
+      console.log('Swapping area orders:', { area1GroupId, area1Order, area2GroupId, area2Order });
+      
+      // Use a temporary negative value to avoid duplicate constraint violation
+      const tempValue = -Math.max(area1Order, area2Order) - 1;
+      
+      // Step 1: Set first area to temporary value
       const { error: error1 } = await supabase
         .from('distribution_groups')
-        .update({ orderlabelinkavim: area2Order } as any)
+        .update({ orderlabelinkavim: tempValue } as any)
         .eq('groups_id', area1GroupId);
       
       if (error1) throw error1;
 
+      // Step 2: Set second area to first area's original order
       const { error: error2 } = await supabase
         .from('distribution_groups')
         .update({ orderlabelinkavim: area1Order } as any)
         .eq('groups_id', area2GroupId);
       
       if (error2) throw error2;
+
+      // Step 3: Set first area to second area's original order
+      const { error: error3 } = await supabase
+        .from('distribution_groups')
+        .update({ orderlabelinkavim: area2Order } as any)
+        .eq('groups_id', area1GroupId);
+      
+      if (error3) throw error3;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lines-distribution-groups'] });
@@ -237,8 +251,8 @@ const Lines = () => {
     
     distributionGroups.forEach(group => {
       if (group.separation) {
-        const area = group.separation.replace(/\s+\d+$/, '').trim();
-        areaOrderMap.set(area, group.orderlabelinkavim || 0);
+        // Use separation directly without stripping numbers to match the area exactly
+        areaOrderMap.set(group.separation, group.orderlabelinkavim || 0);
       }
     });
     
@@ -447,11 +461,13 @@ const Lines = () => {
 
   // Handle area order change
   const handleAreaOrderChange = (area: string, direction: 'up' | 'down') => {
-    // Get all unique areas with their order values
+    console.log('handleAreaOrderChange called:', { area, direction });
+    
+    // Get all unique areas with their order values - use separation directly without stripping numbers
     const areaGroups = distributionGroups
       .filter(group => group.separation)
       .map(group => ({
-        area: group.separation!.replace(/\s+\d+$/, '').trim(),
+        area: group.separation!,
         groups_id: group.groups_id,
         orderlabelinkavim: group.orderlabelinkavim || 0
       }))
@@ -460,14 +476,24 @@ const Lines = () => {
       )
       .sort((a, b) => (a.orderlabelinkavim || 0) - (b.orderlabelinkavim || 0));
 
+    console.log('Available area groups:', areaGroups);
+    
     const currentIndex = areaGroups.findIndex(group => group.area === area);
-    if (currentIndex === -1) return;
+    if (currentIndex === -1) {
+      console.log('Area not found:', area);
+      return;
+    }
 
     const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    if (targetIndex < 0 || targetIndex >= areaGroups.length) return;
+    if (targetIndex < 0 || targetIndex >= areaGroups.length) {
+      console.log('Cannot move area - out of bounds');
+      return;
+    }
 
     const currentGroup = areaGroups[currentIndex];
     const targetGroup = areaGroups[targetIndex];
+    
+    console.log('Swapping:', { currentGroup, targetGroup });
 
     updateAreaOrderMutation.mutate({
       area1GroupId: currentGroup.groups_id,
