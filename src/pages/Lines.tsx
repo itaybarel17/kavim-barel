@@ -17,6 +17,7 @@ interface DistributionGroup {
   separation: string;
   days: string[] | null;
   freq: number[] | null;
+  orderlabelinkavim: number | null;
 }
 
 interface City {
@@ -40,11 +41,12 @@ const Lines = () => {
       console.log('Fetching distribution groups for lines...');
       const { data, error } = await supabase
         .from('distribution_groups')
-        .select('groups_id, separation, days, freq');
+        .select('groups_id, separation, days, freq, orderlabelinkavim')
+        .order('orderlabelinkavim', { ascending: true, nullsFirst: false });
       
       if (error) throw error;
       console.log('Lines distribution groups fetched:', data);
-      return data as DistributionGroup[];
+      return data as any as DistributionGroup[];
     }
   });
 
@@ -141,6 +143,46 @@ const Lines = () => {
       toast({
         title: "שגיאה בשמירה",
         description: "לא הצלחנו לעדכן את האזור",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Update area order mutation
+  const updateAreaOrderMutation = useMutation({
+    mutationFn: async ({ area1GroupId, area1Order, area2GroupId, area2Order }: { 
+      area1GroupId: number; 
+      area1Order: number; 
+      area2GroupId: number; 
+      area2Order: number; 
+    }) => {
+      // Update both areas in a transaction-like manner
+      const { error: error1 } = await supabase
+        .from('distribution_groups')
+        .update({ orderlabelinkavim: area2Order } as any)
+        .eq('groups_id', area1GroupId);
+      
+      if (error1) throw error1;
+
+      const { error: error2 } = await supabase
+        .from('distribution_groups')
+        .update({ orderlabelinkavim: area1Order } as any)
+        .eq('groups_id', area2GroupId);
+      
+      if (error2) throw error2;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lines-distribution-groups'] });
+      toast({
+        title: "נשמר בהצלחה",
+        description: "סדר האזורים עודכן במערכת",
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating area order:', error);
+      toast({
+        title: "שגיאה בשמירה",
+        description: "לא הצלחנו לעדכן את סדר האזורים",
         variant: "destructive",
       });
     }
@@ -379,6 +421,38 @@ const Lines = () => {
     updateCityAreaMutation.mutate({ cityid: cityId, newArea });
   };
 
+  // Handle area order change
+  const handleAreaOrderChange = (area: string, direction: 'up' | 'down') => {
+    // Get all unique areas with their order values
+    const areaGroups = distributionGroups
+      .filter(group => group.separation)
+      .map(group => ({
+        area: group.separation!.replace(/\s+\d+$/, '').trim(),
+        groups_id: group.groups_id,
+        orderlabelinkavim: group.orderlabelinkavim || 0
+      }))
+      .filter((value, index, self) => 
+        index === self.findIndex(item => item.area === value.area)
+      )
+      .sort((a, b) => (a.orderlabelinkavim || 0) - (b.orderlabelinkavim || 0));
+
+    const currentIndex = areaGroups.findIndex(group => group.area === area);
+    if (currentIndex === -1) return;
+
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= areaGroups.length) return;
+
+    const currentGroup = areaGroups[currentIndex];
+    const targetGroup = areaGroups[targetIndex];
+
+    updateAreaOrderMutation.mutate({
+      area1GroupId: currentGroup.groups_id,
+      area1Order: currentGroup.orderlabelinkavim || 0,
+      area2GroupId: targetGroup.groups_id,
+      area2Order: targetGroup.orderlabelinkavim || 0,
+    });
+  };
+
   if (groupsLoading || citiesLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -402,6 +476,7 @@ const Lines = () => {
         <AreaPool 
           distributionGroups={distributionGroups}
           onAreaAssign={handleAreaAssign}
+          onAreaOrderChange={handleAreaOrderChange}
         />
 
         {/* Weekly Area Kanban */}

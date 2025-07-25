@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDrop } from 'react-dnd';
-import { Plus } from 'lucide-react';
+import { Plus, ChevronUp, ChevronDown } from 'lucide-react';
 import { AreaTag } from './AreaTag';
 import { getAreaColor } from '@/utils/areaColors';
 import { Button } from '@/components/ui/button';
@@ -11,16 +11,19 @@ interface DistributionGroup {
   separation: string;
   days: string[] | null;
   freq: number[] | null;
+  orderlabelinkavim: number | null;
 }
 
 interface AreaPoolProps {
   distributionGroups: DistributionGroup[];
   onAreaAssign: (area: string, day: string) => void;
+  onAreaOrderChange?: (area: string, direction: 'up' | 'down') => void;
 }
 
 export const AreaPool: React.FC<AreaPoolProps> = ({
   distributionGroups,
-  onAreaAssign
+  onAreaAssign,
+  onAreaOrderChange
 }) => {
   const [draggedAreas, setDraggedAreas] = useState<Set<string>>(new Set());
 
@@ -51,13 +54,19 @@ export const AreaPool: React.FC<AreaPoolProps> = ({
     });
   };
 
-  // Get all unique areas from distribution groups
-  const allAreas = [...new Set(
-    distributionGroups
-      .map(group => group.separation)
-      .filter(Boolean)
-      .map(separation => separation!.replace(/\s+\d+$/, '').trim())
-  )];
+  // Get all unique areas from distribution groups with their order
+  const areasWithOrder = distributionGroups
+    .filter(group => group.separation)
+    .map(group => ({
+      area: group.separation!.replace(/\s+\d+$/, '').trim(),
+      orderlabelinkavim: group.orderlabelinkavim || 0
+    }))
+    .filter((value, index, self) => 
+      index === self.findIndex(item => item.area === value.area)
+    )
+    .sort((a, b) => a.orderlabelinkavim - b.orderlabelinkavim);
+
+  const allAreas = areasWithOrder.map(item => item.area);
 
   // Check if area is assigned to any day
   const isAreaAssigned = (area: string) => {
@@ -96,14 +105,40 @@ export const AreaPool: React.FC<AreaPoolProps> = ({
           ref={drop}
           className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 ${
             isOver ? 'bg-muted/50 rounded-lg p-2' : ''
-          }`}
+          } ${onAreaOrderChange ? 'ml-8' : ''}`}
         >
-          {allAreas.map(area => {
+          {allAreas.map((area, index) => {
             const isDragged = draggedAreas.has(area);
             const isAssigned = isAreaAssigned(area);
+            const isFirst = index === 0;
+            const isLast = index === allAreas.length - 1;
             
             return (
               <div key={area} className="relative">
+                {/* Order arrows */}
+                {onAreaOrderChange && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 flex flex-col gap-0.5 z-10">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-4 w-4 p-0 hover:bg-primary/10"
+                      onClick={() => onAreaOrderChange(area, 'up')}
+                      disabled={isFirst}
+                    >
+                      <ChevronUp className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-4 w-4 p-0 hover:bg-primary/10"
+                      onClick={() => onAreaOrderChange(area, 'down')}
+                      disabled={isLast}
+                    >
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+                
                 <div 
                   className={`${
                     isDragged || isAssigned ? 'grayscale opacity-50' : ''
