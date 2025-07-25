@@ -137,17 +137,16 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
     }
   };
 
-  // Fetch customers from other zone kanbans (excluding current schedule)
-  const fetchOtherZoneKanbanCustomers = async (currentScheduleId: number): Promise<Customer[]> => {
+  // Fetch customers from all zone kanbans (including current schedule)
+  const fetchAllZoneKanbanCustomers = async (currentScheduleId: number): Promise<Customer[]> => {
     try {
-      console.log(`Fetching customers from other zone kanbans (excluding schedule ${currentScheduleId})...`);
+      console.log(`Fetching customers from all zone kanbans (including schedule ${currentScheduleId})...`);
 
-      // Get orders from all scheduled zone kanbans except current (only uncompleted orders)
+      // Get orders from all scheduled zone kanbans (only uncompleted orders)
       const { data: orders, error: ordersError } = await supabase
         .from('mainorder')
         .select('customername, customernumber, city, address, schedule_id, ordernumber')
         .not('schedule_id', 'is', null)
-        .not('schedule_id', 'eq', currentScheduleId)
         .is('done_mainorder', null)
         .is('ordercancel', null);
 
@@ -417,9 +416,9 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
       
       // Determine search scope based on whether we have a scheduleId
       if (scheduleId) {
-        // Order from zone kanban - search in other zone kanbans only
-        console.log('Searching in other zone kanbans (excluding current schedule)...');
-        scheduleCustomers = await fetchOtherZoneKanbanCustomers(scheduleId);
+        // Order from zone kanban - search in all zone kanbans including current
+        console.log('Searching in all zone kanbans (including current schedule)...');
+        scheduleCustomers = await fetchAllZoneKanbanCustomers(scheduleId);
       } else {
         // Order from horizontal kanban - search in all zone kanbans
         console.log('Searching in all zone kanbans...');
