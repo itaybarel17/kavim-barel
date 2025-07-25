@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDrop } from 'react-dnd';
-import { Plus } from 'lucide-react';
+import { Plus, ChevronUp, ChevronDown } from 'lucide-react';
 import { CityTag } from './CityTag';
 import { getAreaColor } from '@/utils/areaColors';
 import { Button } from '@/components/ui/button';
@@ -51,13 +51,15 @@ interface CityPoolProps {
   cities: City[];
   onCityAssign: (cityId: number, week: number, day: string, truck: number) => void;
   onCityAreaChange: (cityId: number, newArea: string) => void;
+  onAreaOrderChange?: (area: string, direction: 'up' | 'down') => void;
 }
 
 export const CityPool: React.FC<CityPoolProps> = ({
   citiesByArea,
   cities,
   onCityAssign,
-  onCityAreaChange
+  onCityAreaChange,
+  onAreaOrderChange
 }) => {
   const [openAreas, setOpenAreas] = useState<Record<string, boolean>>({});
   const [draggedCities, setDraggedCities] = useState<Set<number>>(new Set());
@@ -133,8 +135,37 @@ export const CityPool: React.FC<CityPoolProps> = ({
           ref={drop}
           className={`space-y-4 ${isOver ? 'bg-muted/50 rounded-lg p-2' : ''}`}
         >
-          {Object.entries(citiesByArea).map(([area, areaCities]) => (
-            <div key={area} className="border rounded-lg">
+          {Object.entries(citiesByArea).map(([area, areaCities], index) => {
+            const allAreas = Object.keys(citiesByArea);
+            const isFirst = index === 0;
+            const isLast = index === allAreas.length - 1;
+            
+            return (
+            <div key={area} className="border rounded-lg relative">
+              {/* Order arrows */}
+              {onAreaOrderChange && (
+                <div className="absolute left-2 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 z-10">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-4 w-4 p-0 hover:bg-primary/10"
+                    onClick={() => onAreaOrderChange(area, 'up')}
+                    disabled={isFirst}
+                  >
+                    <ChevronUp className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-4 w-4 p-0 hover:bg-primary/10"
+                    onClick={() => onAreaOrderChange(area, 'down')}
+                    disabled={isLast}
+                  >
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+              
               <Collapsible
                 open={openAreas[area]}
                 onOpenChange={() => toggleArea(area)}
@@ -142,7 +173,7 @@ export const CityPool: React.FC<CityPoolProps> = ({
                 <CollapsibleTrigger asChild>
                   <Button
                     variant="ghost"
-                    className={`w-full justify-between p-3 h-auto ${getAreaColor(area)}`}
+                    className={`w-full justify-between p-3 h-auto ${getAreaColor(area)} ${onAreaOrderChange ? 'pl-12' : ''}`}
                   >
                     <span className="font-medium">{area}</span>
                     <span className="text-xs">
@@ -199,7 +230,7 @@ export const CityPool: React.FC<CityPoolProps> = ({
                 </CollapsibleContent>
               </Collapsible>
             </div>
-          ))}
+          )})}
         </div>
       </CardContent>
     </Card>

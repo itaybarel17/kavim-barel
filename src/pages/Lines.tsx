@@ -220,16 +220,40 @@ const Lines = () => {
     return schedule;
   }, [distributionGroups]);
 
-  // Group cities by area for the pool
+  // Group cities by area with sorted areas by orderlabelinkavim
   const citiesByArea = useMemo(() => {
     const grouped: Record<string, City[]> = {};
     cities.forEach(city => {
       const area = city.area || 'לא מוגדר';
-      if (!grouped[area]) grouped[area] = [];
+      if (!grouped[area]) {
+        grouped[area] = [];
+      }
       grouped[area].push(city);
     });
-    return grouped;
-  }, [cities]);
+    
+    // Sort areas by orderlabelinkavim from distribution_groups
+    const sortedGrouped: Record<string, City[]> = {};
+    const areaOrderMap = new Map<string, number>();
+    
+    distributionGroups.forEach(group => {
+      if (group.separation) {
+        const area = group.separation.replace(/\s+\d+$/, '').trim();
+        areaOrderMap.set(area, group.orderlabelinkavim || 0);
+      }
+    });
+    
+    const sortedAreas = Object.keys(grouped).sort((a, b) => {
+      const orderA = areaOrderMap.get(a) || 0;
+      const orderB = areaOrderMap.get(b) || 0;
+      return orderA - orderB;
+    });
+    
+    sortedAreas.forEach(area => {
+      sortedGrouped[area] = grouped[area];
+    });
+    
+    return sortedGrouped;
+  }, [cities, distributionGroups]);
 
   // Handle city assignment to truck
   const handleCityAssign = (cityId: number, week: number, day: string, truck: number) => {
@@ -476,7 +500,6 @@ const Lines = () => {
         <AreaPool 
           distributionGroups={distributionGroups}
           onAreaAssign={handleAreaAssign}
-          onAreaOrderChange={handleAreaOrderChange}
         />
 
         {/* Weekly Area Kanban */}
@@ -498,6 +521,7 @@ const Lines = () => {
           cities={cities}
           onCityAssign={handleCityAssign}
           onCityAreaChange={handleCityAreaChange}
+          onAreaOrderChange={handleAreaOrderChange}
         />
 
         {/* Weekly Grid */}

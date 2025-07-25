@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDrop } from 'react-dnd';
-import { Plus, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { AreaTag } from './AreaTag';
 import { getAreaColor } from '@/utils/areaColors';
 import { Button } from '@/components/ui/button';
@@ -17,13 +17,11 @@ interface DistributionGroup {
 interface AreaPoolProps {
   distributionGroups: DistributionGroup[];
   onAreaAssign: (area: string, day: string) => void;
-  onAreaOrderChange?: (area: string, direction: 'up' | 'down') => void;
 }
 
 export const AreaPool: React.FC<AreaPoolProps> = ({
   distributionGroups,
-  onAreaAssign,
-  onAreaOrderChange
+  onAreaAssign
 }) => {
   const [draggedAreas, setDraggedAreas] = useState<Set<string>>(new Set());
 
@@ -105,40 +103,14 @@ export const AreaPool: React.FC<AreaPoolProps> = ({
           ref={drop}
           className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 ${
             isOver ? 'bg-muted/50 rounded-lg p-2' : ''
-          } ${onAreaOrderChange ? 'ml-8' : ''}`}
+          }`}
         >
           {allAreas.map((area, index) => {
             const isDragged = draggedAreas.has(area);
             const isAssigned = isAreaAssigned(area);
-            const isFirst = index === 0;
-            const isLast = index === allAreas.length - 1;
             
             return (
               <div key={area} className="relative">
-                {/* Order arrows */}
-                {onAreaOrderChange && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 flex flex-col gap-0.5 z-10">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-4 w-4 p-0 hover:bg-primary/10"
-                      onClick={() => onAreaOrderChange(area, 'up')}
-                      disabled={isFirst}
-                    >
-                      <ChevronUp className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-4 w-4 p-0 hover:bg-primary/10"
-                      onClick={() => onAreaOrderChange(area, 'down')}
-                      disabled={isLast}
-                    >
-                      <ChevronDown className="h-3 w-3" />
-                    </Button>
-                  </div>
-                )}
-                
                 <div 
                   className={`${
                     isDragged || isAssigned ? 'grayscale opacity-50' : ''
