@@ -98,29 +98,24 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
     return R * c;
   };
   
-  // Fetch customers for the specific schedule - using ScheduleMap logic
-  const fetchScheduleCustomers = async (): Promise<Customer[]> => {
-    if (!scheduleId) {
-      console.log('No schedule ID provided, skipping customer fetch');
-      return [];
-    }
-
+  // Fetch customers from zone kanbans (all scheduled customers)
+  const fetchZoneKanbanCustomers = async (): Promise<Customer[]> => {
     try {
-      console.log(`Fetching customers for schedule ${scheduleId}...`);
+      console.log('Fetching customers from all zone kanbans...');
 
-      // Get orders for this schedule
+      // Get orders from all scheduled zone kanbans
       const { data: orders, error: ordersError } = await supabase
         .from('mainorder')
-        .select('customername, city, address')
-        .eq('schedule_id', scheduleId);
+        .select('customername, city, address, schedule_id')
+        .not('schedule_id', 'is', null);
 
       if (ordersError) throw ordersError;
 
-      // Get returns for this schedule
+      // Get returns from all scheduled zone kanbans
       const { data: returns, error: returnsError } = await supabase
         .from('mainreturns')
-        .select('customername, city, address')
-        .eq('schedule_id', scheduleId);
+        .select('customername, city, address, schedule_id')
+        .not('schedule_id', 'is', null);
 
       if (returnsError) throw returnsError;
 
@@ -131,7 +126,7 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
       ];
 
       if (allItems.length === 0) {
-        console.log('No orders or returns found for this schedule');
+        console.log('No scheduled orders or returns found');
         return [];
       }
 
@@ -140,166 +135,197 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
         new Set(allItems.map(item => item.customername))
       );
 
-      console.log(`Found ${uniqueCustomers.length} unique customers for schedule ${scheduleId}`);
+      console.log(`Found ${uniqueCustomers.length} unique customers in zone kanbans`);
 
-      // Get customer replacement data from messages
-      let replacementMap = new Map();
-      
-      // Find all relevant order and return numbers from the database
-      const { data: orderIds } = await supabase
+      return await processCustomersData(uniqueCustomers, allItems);
+
+    } catch (error) {
+      console.error('Error in fetchZoneKanbanCustomers:', error);
+      return [];
+    }
+  };
+
+  // Fetch customers from other zone kanbans (excluding current schedule)
+  const fetchOtherZoneKanbanCustomers = async (currentScheduleId: number): Promise<Customer[]> => {
+    try {
+      console.log(`Fetching customers from other zone kanbans (excluding schedule ${currentScheduleId})...`);
+
+      // Get orders from all scheduled zone kanbans except current
+      const { data: orders, error: ordersError } = await supabase
         .from('mainorder')
-        .select('ordernumber, customername')
-        .eq('schedule_id', scheduleId)
-        .in('customername', uniqueCustomers);
-        
-      const { data: returnIds } = await supabase
+        .select('customername, city, address, schedule_id')
+        .not('schedule_id', 'is', null)
+        .not('schedule_id', 'eq', currentScheduleId);
+
+      if (ordersError) throw ordersError;
+
+      // Get returns from all scheduled zone kanbans except current
+      const { data: returns, error: returnsError } = await supabase
         .from('mainreturns')
-        .select('returnnumber, customername')
-        .eq('schedule_id', scheduleId)
-        .in('customername', uniqueCustomers);
+        .select('customername, city, address, schedule_id')
+        .not('schedule_id', 'is', null)
+        .not('schedule_id', 'eq', currentScheduleId);
 
-      const orderNumbersForMessages = orderIds?.map(o => o.ordernumber) || [];
-      const returnNumbersForMessages = returnIds?.map(r => r.returnnumber) || [];
+      if (returnsError) throw returnsError;
 
-      if (orderNumbersForMessages.length > 0 || returnNumbersForMessages.length > 0) {
-        const { data: replacements } = await supabase
-          .from('messages')
-          .select('ordernumber, returnnumber, correctcustomer, city')
-          .eq('subject', 'הזמנה על לקוח אחר')
-          .not('correctcustomer', 'is', null)
-          .or(`ordernumber.in.(${orderNumbersForMessages.join(',')}),returnnumber.in.(${returnNumbersForMessages.join(',')})`);
+      // Combine orders and returns
+      const allItems = [
+        ...(orders || []),
+        ...(returns || [])
+      ];
 
-        if (replacements) {
-          replacements.forEach(replacement => {
-            const key = replacement.ordernumber || replacement.returnnumber;
-            if (key) {
-              replacementMap.set(key.toString(), {
-                customername: replacement.correctcustomer,
-                city: replacement.city
-              });
-            }
-          });
-        }
-      }
-
-      // City name mappings for fallback
-      const cityNameMappings: Record<string, string> = {
-        'פ"ת': 'פתח תקווה',
-        'ת"א': 'תל אביב',
-        'י-ם': 'ירושלים'
-      };
-
-      // Get customer coordinates
-      const { data: customerList, error } = await supabase
-        .from('customerlist')
-        .select('customername, city, address, lat, lng')
-        .in('customername', uniqueCustomers);
-
-      if (error) {
-        console.error('Error fetching customer coordinates:', error);
+      if (allItems.length === 0) {
+        console.log('No scheduled orders or returns found in other zones');
         return [];
       }
 
-      // Get city coordinates for fallback
-      const { data: cityCoordinates, error: cityError } = await supabase
-        .from('cities')
-        .select('city, lat, lng');
+      // Get unique customers
+      const uniqueCustomers = Array.from(
+        new Set(allItems.map(item => item.customername))
+      );
 
-      if (cityError) {
-        console.error('Error fetching city coordinates:', cityError);
-      }
+      console.log(`Found ${uniqueCustomers.length} unique customers in other zone kanbans`);
 
-      const cityCoordMap = new Map();
-      cityCoordinates?.forEach(city => {
-        if (city.lat && city.lng) {
-          cityCoordMap.set(city.city, { lat: city.lat, lng: city.lng });
-        }
-      });
-
-      // Process customers to ensure all have coordinates
-      const processedCustomers: Customer[] = [];
-      
-      for (const customerName of uniqueCustomers) {
-        const orderDataItem = allItems.find(item => item.customername === customerName);
-        if (!orderDataItem) continue;
-
-        // Check if this customer has been replaced
-        let finalCustomerName = customerName;
-        let finalCityName = orderDataItem.city;
-        
-        // Look for replacements
-        const { data: orderCheck } = await supabase
-          .from('mainorder')
-          .select('ordernumber')
-          .eq('schedule_id', scheduleId)
-          .eq('customername', customerName)
-          .limit(1);
-          
-        const { data: returnCheck } = await supabase
-          .from('mainreturns')
-          .select('returnnumber')
-          .eq('schedule_id', scheduleId)
-          .eq('customername', customerName)
-          .limit(1);
-
-        const orderNumber = orderCheck?.[0]?.ordernumber;
-        const returnNumber = returnCheck?.[0]?.returnnumber;
-        
-        const replacementKey = orderNumber?.toString() || returnNumber?.toString();
-        if (replacementKey && replacementMap.has(replacementKey)) {
-          const replacement = replacementMap.get(replacementKey);
-          finalCustomerName = replacement.customername;
-          finalCityName = replacement.city;
-        }
-
-        // Find customer in customerlist
-        let customerRecord = customerList?.find(c => c.customername === finalCustomerName);
-        if (!customerRecord) {
-          customerRecord = customerList?.find(c => c.customername === customerName);
-        }
-        
-        let customer: Customer;
-        
-        if (customerRecord?.lat && customerRecord?.lng) {
-          // Use existing precise coordinates
-          customer = {
-            customername: finalCustomerName,
-            city: customerRecord.city || finalCityName,
-            address: customerRecord.address || orderDataItem.address,
-            lat: customerRecord.lat,
-            lng: customerRecord.lng
-          };
-        } else {
-          // Try to get city coordinates as fallback
-          const cityName = finalCityName;
-          const mappedCityName = cityNameMappings[cityName] || cityName;
-          const cityCoords = cityCoordMap.get(mappedCityName) || cityCoordMap.get(cityName);
-          
-          if (cityCoords) {
-            customer = {
-              customername: finalCustomerName,
-              city: cityName,
-              address: customerRecord?.address || orderDataItem.address || 'כתובת לא זמינה',
-              lat: cityCoords.lat,
-              lng: cityCoords.lng
-            };
-          } else {
-            // Skip customers without any coordinates
-            console.warn(`No coordinates found for customer: ${finalCustomerName} in city: ${cityName}`);
-            continue;
-          }
-        }
-        
-        processedCustomers.push(customer);
-      }
-
-      console.log(`Processed ${processedCustomers.length} customers with coordinates`);
-      return processedCustomers;
+      return await processCustomersData(uniqueCustomers, allItems);
 
     } catch (error) {
-      console.error('Error in fetchScheduleCustomers:', error);
+      console.error('Error in fetchOtherZoneKanbanCustomers:', error);
       return [];
     }
+  };
+
+  // Process customers data (shared logic)
+  const processCustomersData = async (uniqueCustomers: string[], allItems: any[]): Promise<Customer[]> => {
+    // Get customer replacement data from messages
+    let replacementMap = new Map();
+    
+    // Find all relevant order and return numbers from the database
+    const orderNumbers = allItems.filter(item => item.ordernumber).map(item => item.ordernumber);
+    const returnNumbers = allItems.filter(item => item.returnnumber).map(item => item.returnnumber);
+
+    if (orderNumbers.length > 0 || returnNumbers.length > 0) {
+      const { data: replacements } = await supabase
+        .from('messages')
+        .select('ordernumber, returnnumber, correctcustomer, city')
+        .eq('subject', 'הזמנה על לקוח אחר')
+        .not('correctcustomer', 'is', null)
+        .or(`ordernumber.in.(${orderNumbers.join(',')}),returnnumber.in.(${returnNumbers.join(',')})`);
+
+      if (replacements) {
+        replacements.forEach(replacement => {
+          const key = replacement.ordernumber || replacement.returnnumber;
+          if (key) {
+            replacementMap.set(key.toString(), {
+              customername: replacement.correctcustomer,
+              city: replacement.city
+            });
+          }
+        });
+      }
+    }
+
+    // City name mappings for fallback
+    const cityNameMappings: Record<string, string> = {
+      'פ"ת': 'פתח תקווה',
+      'ת"א': 'תל אביב',
+      'י-ם': 'ירושלים'
+    };
+
+    // Get customer coordinates
+    const { data: customerList, error } = await supabase
+      .from('customerlist')
+      .select('customername, city, address, lat, lng')
+      .in('customername', uniqueCustomers);
+
+    if (error) {
+      console.error('Error fetching customer coordinates:', error);
+      return [];
+    }
+
+    // Get city coordinates for fallback
+    const { data: cityCoordinates, error: cityError } = await supabase
+      .from('cities')
+      .select('city, lat, lng');
+
+    if (cityError) {
+      console.error('Error fetching city coordinates:', cityError);
+    }
+
+    const cityCoordMap = new Map();
+    cityCoordinates?.forEach(city => {
+      if (city.lat && city.lng) {
+        cityCoordMap.set(city.city, { lat: city.lat, lng: city.lng });
+      }
+    });
+
+    // Process customers to ensure all have coordinates
+    const processedCustomers: Customer[] = [];
+    
+    for (const customerName of uniqueCustomers) {
+      const orderDataItem = allItems.find(item => item.customername === customerName);
+      if (!orderDataItem) continue;
+
+      // Check if this customer has been replaced
+      let finalCustomerName = customerName;
+      let finalCityName = orderDataItem.city;
+      
+      // Look for replacements in orders
+      const orderItem = allItems.find(item => item.customername === customerName && item.ordernumber);
+      const returnItem = allItems.find(item => item.customername === customerName && item.returnnumber);
+
+      const orderNumber = orderItem?.ordernumber;
+      const returnNumber = returnItem?.returnnumber;
+      
+      const replacementKey = orderNumber?.toString() || returnNumber?.toString();
+      if (replacementKey && replacementMap.has(replacementKey)) {
+        const replacement = replacementMap.get(replacementKey);
+        finalCustomerName = replacement.customername;
+        finalCityName = replacement.city;
+      }
+
+      // Find customer in customerlist
+      let customerRecord = customerList?.find(c => c.customername === finalCustomerName);
+      if (!customerRecord) {
+        customerRecord = customerList?.find(c => c.customername === customerName);
+      }
+      
+      let customer: Customer;
+      
+      if (customerRecord?.lat && customerRecord?.lng) {
+        // Use existing precise coordinates
+        customer = {
+          customername: finalCustomerName,
+          city: customerRecord.city || finalCityName,
+          address: customerRecord.address || orderDataItem.address,
+          lat: customerRecord.lat,
+          lng: customerRecord.lng
+        };
+      } else {
+        // Try to get city coordinates as fallback
+        const cityName = finalCityName;
+        const mappedCityName = cityNameMappings[cityName] || cityName;
+        const cityCoords = cityCoordMap.get(mappedCityName) || cityCoordMap.get(cityName);
+        
+        if (cityCoords) {
+          customer = {
+            customername: finalCustomerName,
+            city: cityName,
+            address: customerRecord?.address || orderDataItem.address || 'כתובת לא זמינה',
+            lat: cityCoords.lat,
+            lng: cityCoords.lng
+          };
+        } else {
+          // Skip customers without any coordinates
+          console.warn(`No coordinates found for customer: ${finalCustomerName} in city: ${cityName}`);
+          continue;
+        }
+      }
+      
+      processedCustomers.push(customer);
+    }
+
+    console.log(`Processed ${processedCustomers.length} customers with coordinates`);
+    return processedCustomers;
   };
 
   // Convert ScheduleMap Customer interface to CustomerWithCoordinates
@@ -397,8 +423,19 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
     console.log('Starting point (clicked customer):', { lat: currentLat, lng: currentLng });
     
     try {
-      // Fetch customers from schedule or general active customers
-      const scheduleCustomers = await fetchScheduleCustomers();
+      let scheduleCustomers: Customer[];
+      
+      // Determine search scope based on whether we have a scheduleId
+      if (scheduleId) {
+        // Order from zone kanban - search in other zone kanbans only
+        console.log('Searching in other zone kanbans (excluding current schedule)...');
+        scheduleCustomers = await fetchOtherZoneKanbanCustomers(scheduleId);
+      } else {
+        // Order from horizontal kanban - search in all zone kanbans
+        console.log('Searching in all zone kanbans...');
+        scheduleCustomers = await fetchZoneKanbanCustomers();
+      }
+      
       const activeCustomers = convertToCustomerWithCoordinates(scheduleCustomers);
       
       if (activeCustomers.length === 0) {
