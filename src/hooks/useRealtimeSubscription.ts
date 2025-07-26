@@ -64,6 +64,7 @@ export const useRealtimeSubscription = () => {
           console.log('distribution_groups changed:', payload);
           queryClient.invalidateQueries({ queryKey: ['distribution-groups'] });
           queryClient.invalidateQueries({ queryKey: ['calendar-distribution-groups'] });
+          queryClient.invalidateQueries({ queryKey: ['lines-distribution-groups'] });
         }
       )
       .on(
@@ -77,6 +78,19 @@ export const useRealtimeSubscription = () => {
           console.log('messages changed:', payload);
           queryClient.invalidateQueries({ queryKey: ['messages'] });
           queryClient.invalidateQueries({ queryKey: ['warehouse-messages'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'cities'
+        },
+        (payload) => {
+          console.log('cities changed:', payload);
+          queryClient.invalidateQueries({ queryKey: ['cities'] });
+          queryClient.invalidateQueries({ queryKey: ['lines-cities'] });
         }
       )
       .subscribe();
