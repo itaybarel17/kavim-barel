@@ -124,7 +124,7 @@ export const AreaPoolVisit: React.FC<AreaPoolVisitProps> = ({
                     day=""
                     onRemove={() => {}}
                     isInPool={true}
-                    agentsWorkArea={areaItem.agentsworkarea}
+                    agentsWorkArea={areaItem.agentsworkarea as unknown as number[]}
                   />
                 </div>
                 

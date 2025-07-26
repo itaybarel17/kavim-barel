@@ -10,7 +10,7 @@ interface AreaTagVisitProps {
   onRemove: () => void;
   isInPool?: boolean;
   groupId?: number;
-  agentsWorkArea?: string | null;
+  agentsWorkArea?: number[] | null;
 }
 
 export const AreaTagVisit: React.FC<AreaTagVisitProps> = ({
@@ -33,13 +33,9 @@ export const AreaTagVisit: React.FC<AreaTagVisitProps> = ({
 
   // Parse agent numbers from agentsworkarea
   const getAgentNumbers = () => {
-    if (!agentsWorkArea) return '';
+    if (!agentsWorkArea || !Array.isArray(agentsWorkArea) || agentsWorkArea.length === 0) return '';
     
-    // Extract numbers from the string (assuming they're separated by commas or spaces)
-    const numbers = agentsWorkArea.match(/\d+/g);
-    if (!numbers || numbers.length === 0) return '';
-    
-    return ` (${numbers.join(', ')})`;
+    return ` (${agentsWorkArea.join(', ')})`;
   };
 
   return (

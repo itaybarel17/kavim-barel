@@ -93,7 +93,7 @@ export const WeeklyAreaKanbanVisit: React.FC<WeeklyAreaKanbanVisitProps> = ({
               area={areaItem.area}
               day={day}
               groupId={areaItem.groupId}
-              agentsWorkArea={areaItem.agentsworkarea}
+              agentsWorkArea={areaItem.agentsworkarea as unknown as number[]}
               onRemove={() => onAreaRemove(areaItem.area, day)}
             />
           ))}
