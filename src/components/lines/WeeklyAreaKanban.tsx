@@ -11,7 +11,7 @@ interface DistributionGroup {
 
 interface WeeklyAreaKanbanProps {
   distributionGroups: DistributionGroup[];
-  onAreaAssign: (area: string, day: string) => void;
+  onAreaAssign: (area: string, day: string, isDayToDay?: boolean) => void;
   onAreaRemove: (area: string, day: string) => void;
 }
 
@@ -56,11 +56,10 @@ export const WeeklyAreaKanban: React.FC<WeeklyAreaKanbanProps> = ({
       accept: ['area-from-pool', 'area-from-day'],
       drop: (item: any) => {
         if (item.type === 'area-from-pool') {
-          onAreaAssign(item.area, day);
+          onAreaAssign(item.area, day, false);
         } else if (item.type === 'area-from-day' && item.day !== day) {
-          // Move area from one day to another
-          onAreaRemove(item.area, item.day);
-          onAreaAssign(item.area, day);
+          // Move area from one day to another - use isDayToDay flag
+          onAreaAssign(item.area, day, true);
         }
       },
       collect: (monitor) => ({

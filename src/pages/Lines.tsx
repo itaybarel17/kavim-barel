@@ -380,7 +380,7 @@ const Lines = () => {
   };
 
   // Handle area assignment to day
-  const handleAreaAssign = (area: string, day: string) => {
+  const handleAreaAssign = (area: string, day: string, isDayToDay: boolean = false) => {
     const groupsForArea = distributionGroups.filter(group => {
       if (!group.separation) return false;
       const mainArea = group.separation.replace(/\s+\d+$/, '').trim();
@@ -389,31 +389,38 @@ const Lines = () => {
 
     groupsForArea.forEach(group => {
       const currentDays = group.days || [];
-      const newDays = [...currentDays];
       
-      // Check if this day is already included in any day string
-      let dayExists = false;
-      newDays.forEach((dayString, index) => {
-        const daysArray = dayString.split(',').map(d => d.trim());
-        if (daysArray.includes(day)) {
-          dayExists = true;
-        }
-      });
-      
-      if (!dayExists) {
-        // Add the day to the first day string, or create a new one
-        if (newDays.length > 0) {
-          const firstDayString = newDays[0];
-          const daysArray = firstDayString.split(',').map(d => d.trim());
-          if (!daysArray.includes(day)) {
-            daysArray.push(day);
-            newDays[0] = daysArray.join(',');
-          }
-        } else {
-          newDays.push(day);
-        }
+      if (isDayToDay) {
+        // For day-to-day moves, replace all days with just the new day
+        updateAreaDaysMutation.mutate({ groupId: group.groups_id, newDays: [day] });
+      } else {
+        // For pool-to-day moves, add to existing days if not already present
+        const newDays = [...currentDays];
         
-        updateAreaDaysMutation.mutate({ groupId: group.groups_id, newDays });
+        // Check if this day is already included in any day string
+        let dayExists = false;
+        newDays.forEach((dayString, index) => {
+          const daysArray = dayString.split(',').map(d => d.trim());
+          if (daysArray.includes(day)) {
+            dayExists = true;
+          }
+        });
+        
+        if (!dayExists) {
+          // Add the day to the first day string, or create a new one
+          if (newDays.length > 0) {
+            const firstDayString = newDays[0];
+            const daysArray = firstDayString.split(',').map(d => d.trim());
+            if (!daysArray.includes(day)) {
+              daysArray.push(day);
+              newDays[0] = daysArray.join(',');
+            }
+          } else {
+            newDays.push(day);
+          }
+          
+          updateAreaDaysMutation.mutate({ groupId: group.groups_id, newDays });
+        }
       }
     });
   };
