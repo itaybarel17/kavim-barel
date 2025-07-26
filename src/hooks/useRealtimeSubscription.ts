@@ -91,6 +91,7 @@ export const useRealtimeSubscription = () => {
           console.log('cities changed:', payload);
           queryClient.invalidateQueries({ queryKey: ['cities'] });
           queryClient.invalidateQueries({ queryKey: ['lines-cities'] });
+          queryClient.invalidateQueries({ queryKey: ['lines-distribution-groups'] });
         }
       )
       .subscribe();
