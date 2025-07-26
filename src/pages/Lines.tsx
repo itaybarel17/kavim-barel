@@ -8,6 +8,8 @@ import { CityPool } from '@/components/lines/CityPool';
 import { AreaSchedule } from '@/components/lines/AreaSchedule';
 import { AreaPool } from '@/components/lines/AreaPool';
 import { WeeklyAreaKanban } from '@/components/lines/WeeklyAreaKanban';
+import { AreaPoolVisit } from '@/components/lines/AreaPoolVisit';
+import { WeeklyAreaKanbanVisit } from '@/components/lines/WeeklyAreaKanbanVisit';
 import { MapComponent } from '@/components/lines/MapComponent';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -16,8 +18,10 @@ interface DistributionGroup {
   groups_id: number;
   separation: string;
   days: string[] | null;
+  dayvisit: string[] | null;
   freq: number[] | null;
   orderlabelinkavim: number | null;
+  agentsworkarea: string | null;
 }
 
 interface City {
@@ -41,7 +45,7 @@ const Lines = () => {
       console.log('Fetching distribution groups for lines...');
       const { data, error } = await supabase
         .from('distribution_groups')
-        .select('groups_id, separation, days, freq, orderlabelinkavim')
+        .select('groups_id, separation, days, dayvisit, freq, orderlabelinkavim, agentsworkarea')
         .order('orderlabelinkavim', { ascending: true, nullsFirst: false });
       
       if (error) throw error;
@@ -89,6 +93,33 @@ const Lines = () => {
       toast({
         title: "שגיאה בשמירה",
         description: "לא הצלחנו לעדכן את שיוך האזור",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Update area visit assignment
+  const updateAreaDayVisitMutation = useMutation({
+    mutationFn: async ({ groupId, newDays }: { groupId: number; newDays: string[] }) => {
+      const { error } = await supabase
+        .from('distribution_groups')
+        .update({ dayvisit: newDays } as any)
+        .eq('groups_id', groupId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lines-distribution-groups'] });
+      toast({
+        title: "נשמר בהצלחה",
+        description: "שיוך הביקור עודכן במערכת",
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating area day visit:', error);
+      toast({
+        title: "שגיאה בשמירה",
+        description: "לא הצלחנו לעדכן את שיוך הביקור",
         variant: "destructive",
       });
     }
@@ -445,6 +476,72 @@ const Lines = () => {
     });
   };
 
+  // Handle area visit assignment to day
+  const handleAreaAssignVisit = (area: string, day: string, isDayToDay: boolean = false, groupId?: number) => {
+    if (isDayToDay && groupId) {
+      // For day-to-day moves with specific groupId, update only that group
+      updateAreaDayVisitMutation.mutate({ groupId, newDays: [day] });
+    } else {
+      // For pool-to-day moves or when no specific groupId, use area-based logic
+      const groupsForArea = distributionGroups.filter(group => {
+        if (!group.separation) return false;
+        const mainArea = group.separation.replace(/\s+\d+$/, '').trim();
+        return mainArea === area;
+      });
+
+      groupsForArea.forEach(group => {
+        const currentDays = group.dayvisit || [];
+        // For pool-to-day moves, add to existing days if not already present
+        const newDays = [...currentDays];
+        
+        // Check if this day is already included in any day string
+        let dayExists = false;
+        newDays.forEach((dayString, index) => {
+          const daysArray = dayString.split(',').map(d => d.trim());
+          if (daysArray.includes(day)) {
+            dayExists = true;
+          }
+        });
+        
+        if (!dayExists) {
+          // Add the day to the first day string, or create a new one
+          if (newDays.length > 0) {
+            const firstDayString = newDays[0];
+            const daysArray = firstDayString.split(',').map(d => d.trim());
+            if (!daysArray.includes(day)) {
+              daysArray.push(day);
+              newDays[0] = daysArray.join(',');
+            }
+          } else {
+            newDays.push(day);
+          }
+          
+          updateAreaDayVisitMutation.mutate({ groupId: group.groups_id, newDays });
+        }
+      });
+    }
+  };
+
+  // Handle area visit removal from day
+  const handleAreaRemoveVisit = (area: string, day: string) => {
+    const groupsForArea = distributionGroups.filter(group => {
+      if (!group.separation) return false;
+      const mainArea = group.separation.replace(/\s+\d+$/, '').trim();
+      return mainArea === area;
+    });
+
+    groupsForArea.forEach(group => {
+      const currentDays = group.dayvisit || [];
+      const newDays = currentDays.map(dayString => {
+        const daysArray = dayString.split(',').map(d => d.trim());
+        const filteredDays = daysArray.filter(d => d !== day);
+        return filteredDays.join(',');
+      }).filter(dayString => dayString.length > 0);
+      
+      updateAreaDayVisitMutation.mutate({ groupId: group.groups_id, newDays });
+    });
+  };
+
   // Handle moving all cities from one truck to another
   const handleMoveTruck = (fromWeek: number, fromDay: string, fromTruck: number, toWeek: number, toDay: string, toTruck: number) => {
     const citiesToMove = cities.filter(city => {
@@ -542,6 +639,22 @@ const Lines = () => {
             distributionGroups={distributionGroups}
             onAreaAssign={handleAreaAssign}
             onAreaRemove={handleAreaRemove}
+          />
+        </div>
+
+        {/* Area Pool Visit */}
+        <AreaPoolVisit 
+          distributionGroups={distributionGroups}
+          onAreaAssign={handleAreaAssignVisit}
+        />
+
+        {/* Weekly Area Kanban Visit */}
+        <div className={`border rounded-lg ${isMobile ? 'p-3' : 'p-4'} bg-card`}>
+          <h2 className={`${isMobile ? 'text-lg' : 'text-xl'} font-semibold mb-4`}>שיוך אזורים לימים (ביקורים)</h2>
+          <WeeklyAreaKanbanVisit 
+            distributionGroups={distributionGroups}
+            onAreaAssign={handleAreaAssignVisit}
+            onAreaRemove={handleAreaRemoveVisit}
           />
         </div>
 
