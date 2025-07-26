@@ -22,7 +22,7 @@ export const WeeklyAreaKanbanVisit: React.FC<WeeklyAreaKanbanVisitProps> = ({
   onAreaAssign,
   onAreaRemove
 }) => {
-  const days = ['א', 'ב', 'ג', 'ד', 'ה'];
+  const days = ['ה', 'ד', 'ג', 'ב', 'א'];
   const dayNames = {
     'א': 'ראשון',
     'ב': 'שני',
