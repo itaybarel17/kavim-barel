@@ -380,20 +380,20 @@ const Lines = () => {
   };
 
   // Handle area assignment to day
-  const handleAreaAssign = (area: string, day: string, isDayToDay: boolean = false) => {
-    const groupsForArea = distributionGroups.filter(group => {
-      if (!group.separation) return false;
-      const mainArea = group.separation.replace(/\s+\d+$/, '').trim();
-      return mainArea === area;
-    });
+  const handleAreaAssign = (area: string, day: string, isDayToDay: boolean = false, groupId?: number) => {
+    if (isDayToDay && groupId) {
+      // For day-to-day moves with specific groupId, update only that group
+      updateAreaDaysMutation.mutate({ groupId, newDays: [day] });
+    } else {
+      // For pool-to-day moves or when no specific groupId, use area-based logic
+      const groupsForArea = distributionGroups.filter(group => {
+        if (!group.separation) return false;
+        const mainArea = group.separation.replace(/\s+\d+$/, '').trim();
+        return mainArea === area;
+      });
 
-    groupsForArea.forEach(group => {
-      const currentDays = group.days || [];
-      
-      if (isDayToDay) {
-        // For day-to-day moves, replace all days with just the new day
-        updateAreaDaysMutation.mutate({ groupId: group.groups_id, newDays: [day] });
-      } else {
+      groupsForArea.forEach(group => {
+        const currentDays = group.days || [];
         // For pool-to-day moves, add to existing days if not already present
         const newDays = [...currentDays];
         
@@ -421,8 +421,8 @@ const Lines = () => {
           
           updateAreaDaysMutation.mutate({ groupId: group.groups_id, newDays });
         }
-      }
-    });
+      });
+    }
   };
 
   // Handle area removal from day

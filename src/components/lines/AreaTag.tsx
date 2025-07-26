@@ -9,17 +9,19 @@ interface AreaTagProps {
   day: string;
   onRemove: () => void;
   isInPool?: boolean;
+  groupId?: number;
 }
 
 export const AreaTag: React.FC<AreaTagProps> = ({
   area,
   day,
   onRemove,
-  isInPool = false
+  isInPool = false,
+  groupId
 }) => {
   const [{ isDragging }, drag] = useDrag({
     type: isInPool ? 'area-from-pool' : 'area-from-day',
-    item: { area, day, type: isInPool ? 'area-from-pool' : 'area-from-day' },
+    item: { area, day, groupId, type: isInPool ? 'area-from-pool' : 'area-from-day' },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),

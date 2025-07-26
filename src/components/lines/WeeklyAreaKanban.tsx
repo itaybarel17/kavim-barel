@@ -11,7 +11,7 @@ interface DistributionGroup {
 
 interface WeeklyAreaKanbanProps {
   distributionGroups: DistributionGroup[];
-  onAreaAssign: (area: string, day: string, isDayToDay?: boolean) => void;
+  onAreaAssign: (area: string, day: string, isDayToDay?: boolean, groupId?: number) => void;
   onAreaRemove: (area: string, day: string) => void;
 }
 
@@ -29,9 +29,9 @@ export const WeeklyAreaKanban: React.FC<WeeklyAreaKanbanProps> = ({
     'ה': 'חמישי'
   };
 
-  // Get areas assigned to each day
+  // Get areas assigned to each day with their group IDs
   const getAreasForDay = (targetDay: string) => {
-    const areas: string[] = [];
+    const areas: { area: string; groupId: number }[] = [];
     
     distributionGroups.forEach(group => {
       if (!group.days || !group.separation) return;
@@ -41,8 +41,10 @@ export const WeeklyAreaKanban: React.FC<WeeklyAreaKanbanProps> = ({
       group.days.forEach(dayString => {
         const daysArray = dayString.split(',').map(d => d.trim());
         if (daysArray.includes(targetDay)) {
-          if (!areas.includes(mainArea)) {
-            areas.push(mainArea);
+          // Check if this exact area already exists (to avoid duplicates)
+          const existingArea = areas.find(a => a.area === mainArea && a.groupId === group.groups_id);
+          if (!existingArea) {
+            areas.push({ area: mainArea, groupId: group.groups_id });
           }
         }
       });
@@ -58,8 +60,8 @@ export const WeeklyAreaKanban: React.FC<WeeklyAreaKanbanProps> = ({
         if (item.type === 'area-from-pool') {
           onAreaAssign(item.area, day, false);
         } else if (item.type === 'area-from-day' && item.day !== day) {
-          // Move area from one day to another - use isDayToDay flag
-          onAreaAssign(item.area, day, true);
+          // Move area from one day to another - use isDayToDay flag with groupId
+          onAreaAssign(item.area, day, true, item.groupId);
         }
       },
       collect: (monitor) => ({
@@ -81,12 +83,13 @@ export const WeeklyAreaKanban: React.FC<WeeklyAreaKanbanProps> = ({
         </h3>
         
         <div className="space-y-2">
-          {areas.map(area => (
+          {areas.map(areaItem => (
             <AreaTag
-              key={`${area}-${day}`}
-              area={area}
+              key={`${areaItem.area}-${areaItem.groupId}-${day}`}
+              area={areaItem.area}
               day={day}
-              onRemove={() => onAreaRemove(area, day)}
+              groupId={areaItem.groupId}
+              onRemove={() => onAreaRemove(areaItem.area, day)}
             />
           ))}
         </div>
