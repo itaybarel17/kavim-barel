@@ -12,6 +12,7 @@ interface DistributionGroup {
   days: string[] | null;
   freq: number[] | null;
   orderlabelinkavim: number | null;
+  totalsupplyspots: number | null;
 }
 
 interface AreaPoolProps {
@@ -52,19 +53,18 @@ export const AreaPool: React.FC<AreaPoolProps> = ({
     });
   };
 
-  // Get all unique areas from distribution groups with their order
+  // Get all unique areas from distribution groups with their order and totalsupplyspots
   const areasWithOrder = distributionGroups
     .filter(group => group.separation)
     .map(group => ({
       area: group.separation!.replace(/\s+\d+$/, '').trim(),
-      orderlabelinkavim: group.orderlabelinkavim || 0
+      orderlabelinkavim: group.orderlabelinkavim || 0,
+      totalsupplyspots: group.totalsupplyspots || 0
     }))
     .filter((value, index, self) => 
       index === self.findIndex(item => item.area === value.area)
     )
     .sort((a, b) => a.orderlabelinkavim - b.orderlabelinkavim);
-
-  const allAreas = areasWithOrder.map(item => item.area);
 
   // Check if area is assigned to any day
   const isAreaAssigned = (area: string) => {
@@ -105,24 +105,28 @@ export const AreaPool: React.FC<AreaPoolProps> = ({
             isOver ? 'bg-muted/50 rounded-lg p-2' : ''
           }`}
         >
-          {allAreas.map((area, index) => {
-            const isDragged = draggedAreas.has(area);
-            const isAssigned = isAreaAssigned(area);
+          {areasWithOrder.map((areaItem, index) => {
+            const isDragged = draggedAreas.has(areaItem.area);
+            const isAssigned = isAreaAssigned(areaItem.area);
             
             return (
-              <div key={area} className="relative">
+              <div key={areaItem.area} className="relative">
                 <div 
                   className={`${
                     isDragged || isAssigned ? 'grayscale opacity-50' : ''
                   }`}
-                  onDragStart={() => handleAreaDrag(area)}
+                  onDragStart={() => handleAreaDrag(areaItem.area)}
                 >
-                  <AreaTag
-                    area={area}
-                    day=""
-                    onRemove={() => {}}
-                    isInPool={true}
-                  />
+                  <div className={`relative flex items-center justify-between text-sm rounded px-3 py-2 cursor-move transition-all ${
+                    isDragged || isAssigned ? 'opacity-50 scale-95' : 'opacity-100'
+                  } ${getAreaColor(areaItem.area)}`}>
+                    <span className="truncate flex-1 font-medium">
+                      {areaItem.area}
+                      <span className="text-xs text-muted-foreground ml-1">
+                        ({areaItem.totalsupplyspots})
+                      </span>
+                    </span>
+                  </div>
                 </div>
                 
                 {(isDragged || isAssigned) && (
@@ -131,7 +135,7 @@ export const AreaPool: React.FC<AreaPoolProps> = ({
                       variant="secondary"
                       size="sm"
                       className="h-5 w-5 p-0 rounded-full"
-                      onClick={() => handleRestoreArea(area)}
+                      onClick={() => handleRestoreArea(areaItem.area)}
                     >
                       <Plus className="h-3 w-3" />
                     </Button>

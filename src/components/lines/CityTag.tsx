@@ -13,6 +13,7 @@ interface City {
   cityid: number;
   city: string;
   area: string | null;
+  averagesupplyweek?: number | null;
 }
 
 interface CityTagProps {
@@ -56,7 +57,14 @@ export const CityTag: React.FC<CityTagProps> = ({
         isDragging ? 'opacity-50 scale-95' : 'opacity-100'
       } ${colorClass}`}
     >
-      <span className="truncate flex-1">{city.city}</span>
+      <span className="truncate flex-1">
+        {city.city}
+        {city.averagesupplyweek && (
+          <span className="text-xs text-muted-foreground ml-1">
+            ({city.averagesupplyweek})
+          </span>
+        )}
+      </span>
       
       <div className="flex items-center gap-1 ml-1">
         {/* Future dropdown for customers */}

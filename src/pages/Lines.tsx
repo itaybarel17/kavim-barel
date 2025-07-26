@@ -22,6 +22,7 @@ interface DistributionGroup {
   freq: number[] | null;
   orderlabelinkavim: number | null;
   agentsworkarea: string | null;
+  totalsupplyspots: number | null;
 }
 
 interface City {
@@ -31,6 +32,7 @@ interface City {
   day: Record<string, any> | null;
   lat: number | null;
   lng: number | null;
+  averagesupplyweek: number | null;
 }
 
 const Lines = () => {
@@ -45,7 +47,7 @@ const Lines = () => {
       console.log('Fetching distribution groups for lines...');
       const { data, error } = await supabase
         .from('distribution_groups')
-        .select('groups_id, separation, days, dayvisit, freq, orderlabelinkavim, agentsworkarea')
+        .select('groups_id, separation, days, dayvisit, freq, orderlabelinkavim, agentsworkarea, totalsupplyspots')
         .order('orderlabelinkavim', { ascending: true, nullsFirst: false });
       
       if (error) throw error;
@@ -61,7 +63,7 @@ const Lines = () => {
       console.log('Fetching cities for lines...');
       const { data, error } = await supabase
         .from('cities')
-        .select('cityid, city, area, day, lat, lng')
+        .select('cityid, city, area, day, lat, lng, averagesupplyweek')
         .order('area')
         .order('city');
       
@@ -665,6 +667,7 @@ const Lines = () => {
         <CityPool 
           citiesByArea={citiesByArea}
           cities={cities}
+          distributionGroups={distributionGroups}
           onCityAssign={handleCityAssign}
           onCityAreaChange={handleCityAreaChange}
           onAreaOrderChange={handleAreaOrderChange}

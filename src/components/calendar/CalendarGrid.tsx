@@ -13,6 +13,7 @@ interface DistributionGroup {
   separation: string;
   days: string[];
   agents?: number[] | string;
+  totalsupplyspots?: number | null;
 }
 interface DistributionSchedule {
   schedule_id: number;
@@ -197,6 +198,9 @@ const CalendarDay: React.FC<{
                 className={`${areaColorClass} text-xs px-2 py-1 font-bold border rounded-sm`}
               >
                 {group.separation}
+                <span className="text-xs ml-1 opacity-75">
+                  ({group.totalsupplyspots || 0})
+                </span>
               </Badge>
             );
           })}

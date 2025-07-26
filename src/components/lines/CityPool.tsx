@@ -46,9 +46,16 @@ interface City {
   day: Record<string, any> | null;
 }
 
+interface DistributionGroup {
+  groups_id: number;
+  separation: string;
+  totalsupplyspots: number | null;
+}
+
 interface CityPoolProps {
   citiesByArea: Record<string, City[]>;
   cities: City[];
+  distributionGroups: DistributionGroup[];
   onCityAssign: (cityId: number, week: number, day: string, truck: number) => void;
   onCityAreaChange: (cityId: number, newArea: string) => void;
   onAreaOrderChange?: (area: string, direction: 'up' | 'down') => void;
@@ -57,6 +64,7 @@ interface CityPoolProps {
 export const CityPool: React.FC<CityPoolProps> = ({
   citiesByArea,
   cities,
+  distributionGroups,
   onCityAssign,
   onCityAreaChange,
   onAreaOrderChange
@@ -175,7 +183,22 @@ export const CityPool: React.FC<CityPoolProps> = ({
                     variant="ghost"
                     className={`w-full justify-between p-3 h-auto ${getAreaColor(area)} ${onAreaOrderChange ? 'pl-12' : ''}`}
                   >
-                    <span className="font-medium">{area}</span>
+                    <span className="font-medium">
+                      {area}
+                      {(() => {
+                        // Find totalsupplyspots for this area
+                        const areaGroup = distributionGroups.find(group => 
+                          group.separation && group.separation.replace(/\s+\d+$/, '').trim() === area
+                        );
+                        const totalsupplyspots = areaGroup?.totalsupplyspots || 0;
+                        
+                        return (
+                          <span className="text-xs text-muted-foreground ml-1">
+                            ({totalsupplyspots})
+                          </span>
+                        );
+                      })()}
+                    </span>
                     <span className="text-xs">
                       {areaCities.length} עירים
                     </span>

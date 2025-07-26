@@ -13,6 +13,7 @@ interface DistributionGroup {
   freq: number[] | null;
   orderlabelinkavim: number | null;
   agentsworkarea: string | null;
+  totalsupplyspots: number | null;
 }
 
 interface AreaPoolVisitProps {
@@ -59,7 +60,8 @@ export const AreaPoolVisit: React.FC<AreaPoolVisitProps> = ({
     .map(group => ({
       area: group.separation!.replace(/\s+\d+$/, '').trim(),
       orderlabelinkavim: group.orderlabelinkavim || 0,
-      agentsworkarea: group.agentsworkarea
+      agentsworkarea: group.agentsworkarea,
+      totalsupplyspots: group.totalsupplyspots || 0
     }))
     .filter((value, index, self) => 
       index === self.findIndex(item => item.area === value.area)
@@ -119,13 +121,23 @@ export const AreaPoolVisit: React.FC<AreaPoolVisitProps> = ({
                   }`}
                   onDragStart={() => handleAreaDrag(areaItem.area)}
                 >
-                  <AreaTagVisit
-                    area={areaItem.area}
-                    day=""
-                    onRemove={() => {}}
-                    isInPool={true}
-                    agentsWorkArea={areaItem.agentsworkarea as unknown as number[]}
-                  />
+                  <div className={`relative flex items-center justify-between text-sm rounded px-3 py-2 cursor-move transition-all ${
+                    isDragged || isAssigned ? 'opacity-50 scale-95' : 'opacity-100'
+                  } ${getAreaColor(areaItem.area)}`}>
+                    <span className="truncate flex-1 font-medium">
+                      {areaItem.area}
+                      {(() => {
+                        const getAgentNumbers = () => {
+                          if (!areaItem.agentsworkarea || !Array.isArray(areaItem.agentsworkarea) || areaItem.agentsworkarea.length === 0) return '';
+                          return ` (${areaItem.agentsworkarea.join(', ')})`;
+                        };
+                        return getAgentNumbers();
+                      })()}
+                      <span className="text-xs text-muted-foreground ml-1">
+                        ({areaItem.totalsupplyspots})
+                      </span>
+                    </span>
+                  </div>
                 </div>
                 
                 {(isDragged || isAssigned) && (
