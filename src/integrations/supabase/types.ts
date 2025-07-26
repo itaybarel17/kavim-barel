@@ -61,6 +61,7 @@ export type Database = {
           agentname: string
           agentnumber: string
           id: string
+          lastsignin: string | null
           monday1: string | null
           monday2: Json | null
           password_hash: string | null
@@ -77,6 +78,7 @@ export type Database = {
           agentname: string
           agentnumber: string
           id?: string
+          lastsignin?: string | null
           monday1?: string | null
           monday2?: Json | null
           password_hash?: string | null
@@ -93,6 +95,7 @@ export type Database = {
           agentname?: string
           agentnumber?: string
           id?: string
+          lastsignin?: string | null
           monday1?: string | null
           monday2?: Json | null
           password_hash?: string | null
@@ -110,6 +113,8 @@ export type Database = {
       cities: {
         Row: {
           area: string | null
+          averagesupplyweek: number | null
+          centralcity: boolean | null
           city: string
           cityid: number
           day: Json | null
@@ -119,6 +124,8 @@ export type Database = {
         }
         Insert: {
           area?: string | null
+          averagesupplyweek?: number | null
+          centralcity?: boolean | null
           city: string
           cityid?: number
           day?: Json | null
@@ -128,6 +135,8 @@ export type Database = {
         }
         Update: {
           area?: string | null
+          averagesupplyweek?: number | null
+          centralcity?: boolean | null
           city?: string
           cityid?: number
           day?: Json | null
@@ -139,76 +148,103 @@ export type Database = {
       }
       customerlist: {
         Row: {
+          activemonth: number | null
           address: string | null
           agentnumber: string | null
           arvot: string | null
+          average_inv_month: number | null
+          averagesupply: number | null
           city: string | null
           city_area: string | null
           customername: string | null
           customernumber: string
+          deliverhour: Json | null
           discount: number | null
           discountdetails: string | null
           extraarea: string | null
+          final_score: number | null
           lat: number | null
           lng: number | null
           mobile: string | null
+          monthopen_calc: number | null
           newarea: string | null
+          nodeliverday: Json | null
           obligolimit: number | null
           obligotoday: number | null
           opencustomer: string | null
           phone: string | null
+          recency: number | null
           shotefname: string | null
           shotefnumber: number | null
+          spread: number | null
           sumcustomer: number | null
           supplydetails: string | null
           type: string | null
         }
         Insert: {
+          activemonth?: number | null
           address?: string | null
           agentnumber?: string | null
           arvot?: string | null
+          average_inv_month?: number | null
+          averagesupply?: number | null
           city?: string | null
           city_area?: string | null
           customername?: string | null
           customernumber: string
+          deliverhour?: Json | null
           discount?: number | null
           discountdetails?: string | null
           extraarea?: string | null
+          final_score?: number | null
           lat?: number | null
           lng?: number | null
           mobile?: string | null
+          monthopen_calc?: number | null
           newarea?: string | null
+          nodeliverday?: Json | null
           obligolimit?: number | null
           obligotoday?: number | null
           opencustomer?: string | null
           phone?: string | null
+          recency?: number | null
           shotefname?: string | null
           shotefnumber?: number | null
+          spread?: number | null
           sumcustomer?: number | null
           supplydetails?: string | null
           type?: string | null
         }
         Update: {
+          activemonth?: number | null
           address?: string | null
           agentnumber?: string | null
           arvot?: string | null
+          average_inv_month?: number | null
+          averagesupply?: number | null
           city?: string | null
           city_area?: string | null
           customername?: string | null
           customernumber?: string
+          deliverhour?: Json | null
           discount?: number | null
           discountdetails?: string | null
           extraarea?: string | null
+          final_score?: number | null
           lat?: number | null
           lng?: number | null
           mobile?: string | null
+          monthopen_calc?: number | null
           newarea?: string | null
+          nodeliverday?: Json | null
           obligolimit?: number | null
           obligotoday?: number | null
           opencustomer?: string | null
           phone?: string | null
+          recency?: number | null
           shotefname?: string | null
           shotefnumber?: number | null
+          spread?: number | null
           sumcustomer?: number | null
           supplydetails?: string | null
           type?: string | null
@@ -233,27 +269,39 @@ export type Database = {
       distribution_groups: {
         Row: {
           agents: Json | null
+          agentsworkarea: Json | null
           day: string | null
           days: Json | null
+          dayvisit: Json | null
           freq: Json | null
           groups_id: number
+          orderlabelinkavim: number | null
           separation: string | null
+          totalsupplyspots: number | null
         }
         Insert: {
           agents?: Json | null
+          agentsworkarea?: Json | null
           day?: string | null
           days?: Json | null
+          dayvisit?: Json | null
           freq?: Json | null
           groups_id?: number
+          orderlabelinkavim?: number | null
           separation?: string | null
+          totalsupplyspots?: number | null
         }
         Update: {
           agents?: Json | null
+          agentsworkarea?: Json | null
           day?: string | null
           days?: Json | null
+          dayvisit?: Json | null
           freq?: Json | null
           groups_id?: number
+          orderlabelinkavim?: number | null
           separation?: string | null
+          totalsupplyspots?: number | null
         }
         Relationships: []
       }
@@ -322,6 +370,45 @@ export type Database = {
             referencedColumns: ["groups_id"]
           },
         ]
+      }
+      invoice_history: {
+        Row: {
+          address: string | null
+          agentnumber: string | null
+          city: string | null
+          customername: string | null
+          customernumber: string | null
+          doctypename: string | null
+          icecream: string | null
+          invoicedate: string | null
+          invoicenumber: number
+          totalinvoice: number | null
+        }
+        Insert: {
+          address?: string | null
+          agentnumber?: string | null
+          city?: string | null
+          customername?: string | null
+          customernumber?: string | null
+          doctypename?: string | null
+          icecream?: string | null
+          invoicedate?: string | null
+          invoicenumber: number
+          totalinvoice?: number | null
+        }
+        Update: {
+          address?: string | null
+          agentnumber?: string | null
+          city?: string | null
+          customername?: string | null
+          customernumber?: string | null
+          doctypename?: string | null
+          icecream?: string | null
+          invoicedate?: string | null
+          invoicenumber?: number
+          totalinvoice?: number | null
+        }
+        Relationships: []
       }
       likut_summary: {
         Row: {
@@ -414,7 +501,6 @@ export type Database = {
           agentnumber: string | null
           alert_status: boolean | null
           american_pallet: number | null
-          average_time_for_carton: string | null
           city: string | null
           create_at_order: string | null
           customergroup: string | null
@@ -449,8 +535,6 @@ export type Database = {
           return_reason: Json | null
           schedule_id: number | null
           schedule_id_if_changed: Json | null
-          start_picking_time: string | null
-          time: string | null
           tnuva_pallet: number | null
           Total_cartons: number | null
           totalinvoice: number | null
@@ -463,7 +547,6 @@ export type Database = {
           agentnumber?: string | null
           alert_status?: boolean | null
           american_pallet?: number | null
-          average_time_for_carton?: string | null
           city?: string | null
           create_at_order?: string | null
           customergroup?: string | null
@@ -498,8 +581,6 @@ export type Database = {
           return_reason?: Json | null
           schedule_id?: number | null
           schedule_id_if_changed?: Json | null
-          start_picking_time?: string | null
-          time?: string | null
           tnuva_pallet?: number | null
           Total_cartons?: number | null
           totalinvoice?: number | null
@@ -512,7 +593,6 @@ export type Database = {
           agentnumber?: string | null
           alert_status?: boolean | null
           american_pallet?: number | null
-          average_time_for_carton?: string | null
           city?: string | null
           create_at_order?: string | null
           customergroup?: string | null
@@ -547,8 +627,6 @@ export type Database = {
           return_reason?: Json | null
           schedule_id?: number | null
           schedule_id_if_changed?: Json | null
-          start_picking_time?: string | null
-          time?: string | null
           tnuva_pallet?: number | null
           Total_cartons?: number | null
           totalinvoice?: number | null
