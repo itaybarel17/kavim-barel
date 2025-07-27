@@ -117,16 +117,13 @@ export const AreaPool: React.FC<AreaPoolProps> = ({
                   }`}
                   onDragStart={() => handleAreaDrag(areaItem.area)}
                 >
-                  <div className={`relative flex items-center justify-between text-sm rounded px-3 py-2 cursor-move transition-all ${
-                    isDragged || isAssigned ? 'opacity-50 scale-95' : 'opacity-100'
-                  } ${getAreaColor(areaItem.area)}`}>
-                    <span className="truncate flex-1 font-medium">
-                      {areaItem.area}
-                      <span className="text-xs text-muted-foreground ml-1">
-                        ({areaItem.totalsupplyspots})
-                      </span>
-                    </span>
-                  </div>
+                  <AreaTag
+                    area={areaItem.area}
+                    day=""
+                    onRemove={() => {}}
+                    isInPool={true}
+                    totalsupplyspots={areaItem.totalsupplyspots}
+                  />
                 </div>
                 
                 {(isDragged || isAssigned) && (

@@ -10,6 +10,7 @@ interface AreaTagProps {
   onRemove: () => void;
   isInPool?: boolean;
   groupId?: number;
+  totalsupplyspots?: number;
 }
 
 export const AreaTag: React.FC<AreaTagProps> = ({
@@ -17,7 +18,8 @@ export const AreaTag: React.FC<AreaTagProps> = ({
   day,
   onRemove,
   isInPool = false,
-  groupId
+  groupId,
+  totalsupplyspots
 }) => {
   const [{ isDragging }, drag] = useDrag({
     type: isInPool ? 'area-from-pool' : 'area-from-day',
@@ -36,7 +38,14 @@ export const AreaTag: React.FC<AreaTagProps> = ({
         isDragging ? 'opacity-50 scale-95' : 'opacity-100'
       } ${colorClass}`}
     >
-      <span className="truncate flex-1 font-medium">{area}</span>
+      <span className="truncate flex-1 font-medium">
+        {area}
+        {totalsupplyspots && (
+          <span className="text-xs text-muted-foreground ml-1">
+            ({totalsupplyspots})
+          </span>
+        )}
+      </span>
       
       {!isInPool && (
         <Button
