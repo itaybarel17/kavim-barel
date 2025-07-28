@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription';
+
 import { Loader2, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -97,8 +97,6 @@ const Calendar = () => {
   // Show only my activity state for non-admin agents
   const [showOnlyMyActivity, setShowOnlyMyActivity] = useState(false);
 
-  // Set up realtime subscriptions
-  useRealtimeSubscription();
 
   // Helper function to filter orders based on user permissions and show my activity toggle
   const filterOrdersByUser = (orders: Order[]) => {

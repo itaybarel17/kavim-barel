@@ -4,7 +4,7 @@ import { DropZone } from '@/components/distribution/DropZone';
 import { UnassignedArea } from '@/components/distribution/UnassignedArea';
 import { HorizontalKanban } from '@/components/calendar/HorizontalKanban';
 import { useQuery } from '@tanstack/react-query';
-import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription';
+
 import { Loader2, Calendar, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -109,8 +109,6 @@ const Distribution = () => {
   
   const isMobile = useIsMobile();
 
-  // Set up realtime subscriptions
-  useRealtimeSubscription();
 
   // Add simple page refresh every 10 minutes for desktop only
   useEffect(() => {
