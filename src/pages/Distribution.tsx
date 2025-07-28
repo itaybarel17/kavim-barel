@@ -328,7 +328,6 @@ const Distribution = () => {
   // Add query for warehouse messages (only for user 4)
   const { data: warehouseMessages = [] } = useQuery({
     queryKey: ['warehouse-messages'],
-    staleTime: 10 * 60 * 1000, // 10 minutes
     queryFn: async () => {
       if (currentUser?.agentnumber !== "4") {
         return [];
@@ -352,7 +351,6 @@ const Distribution = () => {
   // Simplified query for customer messages with message_alert = true
   const { data: customerMessages = [] } = useQuery({
     queryKey: ['customer-messages'],
-    staleTime: 5 * 60 * 1000, // 5 minutes
     queryFn: async () => {
       console.log('Fetching customer messages...');
       

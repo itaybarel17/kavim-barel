@@ -312,7 +312,6 @@ const Calendar = () => {
     isLoading: agentsLoading
   } = useQuery({
     queryKey: ['calendar-agents'],
-    staleTime: 15 * 60 * 1000, // 15 minutes
     queryFn: async () => {
       console.log('Fetching agents for calendar filter...');
       const {
