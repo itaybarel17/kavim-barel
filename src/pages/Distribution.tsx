@@ -328,6 +328,7 @@ const Distribution = () => {
   // Add query for warehouse messages (only for user 4)
   const { data: warehouseMessages = [] } = useQuery({
     queryKey: ['warehouse-messages'],
+    staleTime: 10 * 60 * 1000, // 10 minutes
     queryFn: async () => {
       if (currentUser?.agentnumber !== "4") {
         return [];
@@ -351,6 +352,7 @@ const Distribution = () => {
   // Simplified query for customer messages with message_alert = true
   const { data: customerMessages = [] } = useQuery({
     queryKey: ['customer-messages'],
+    staleTime: 5 * 60 * 1000, // 5 minutes
     queryFn: async () => {
       console.log('Fetching customer messages...');
       
@@ -502,6 +504,7 @@ const Distribution = () => {
   // Fetch messages for orders and returns
   const { data: messageData = [] } = useQuery({
     queryKey: ['order-return-messages'],
+    staleTime: 3 * 60 * 1000, // 3 minutes
     queryFn: async () => {
       console.log('Fetching order/return messages...');
       const { data, error } = await supabase
@@ -533,6 +536,7 @@ const Distribution = () => {
   // Fetch cancellation messages specifically for red X overlay
   const { data: cancellationData = [] } = useQuery({
     queryKey: ['cancellation-messages'],
+    staleTime: 2 * 60 * 1000, // 2 minutes
     queryFn: async () => {
       console.log('Fetching cancellation messages...');
       const { data, error } = await supabase
@@ -550,6 +554,7 @@ const Distribution = () => {
   // Fetch schedule messages - messages associated only with schedules
   const { data: scheduleMessages = [] } = useQuery({
     queryKey: ['schedule-messages'],
+    staleTime: 3 * 60 * 1000, // 3 minutes
     queryFn: async () => {
       console.log('Fetching schedule messages...');
       const { data, error } = await supabase

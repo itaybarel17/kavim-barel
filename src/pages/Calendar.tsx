@@ -177,6 +177,7 @@ const Calendar = () => {
   // Fetch order replacement details for "הזמנה על לקוח אחר" messages
   const { data: orderReplacementData = [] } = useQuery({
     queryKey: ['order-replacement-details'],
+    staleTime: 5 * 60 * 1000, // 5 minutes
     queryFn: async () => {
       console.log('Fetching order replacement details...');
       const { data, error } = await supabase
@@ -199,6 +200,7 @@ const Calendar = () => {
   // Fetch customer details for replacement validation
   const { data: customerDetails = [] } = useQuery({
     queryKey: ['customer-details-for-replacement'],
+    staleTime: 10 * 60 * 1000, // 10 minutes
     queryFn: async () => {
       console.log('Fetching customer details for replacement...');
       const { data, error } = await supabase
@@ -310,6 +312,7 @@ const Calendar = () => {
     isLoading: agentsLoading
   } = useQuery({
     queryKey: ['calendar-agents'],
+    staleTime: 15 * 60 * 1000, // 15 minutes
     queryFn: async () => {
       console.log('Fetching agents for calendar filter...');
       const {
