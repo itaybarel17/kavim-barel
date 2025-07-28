@@ -154,7 +154,7 @@ export const useWaitingCustomers = (currentUserAgent?: string) => {
         totalCustomers: totalCustomers
       };
     },
-    refetchInterval: 30000, // Refetch every 30 seconds
-    staleTime: 25000, // Consider data stale after 25 seconds
+    refetchInterval: 60000, // Refetch every 60 seconds
+    staleTime: 55000, // Consider data stale after 55 seconds
   });
 };

@@ -233,6 +233,7 @@ const Calendar = () => {
     isLoading: customerSupplyLoading
   } = useQuery({
     queryKey: ['customer-supply'],
+    staleTime: 3 * 60 * 1000, // 3 minutes
     queryFn: async () => {
       console.log('Fetching customer supply details...');
       const {
@@ -251,6 +252,7 @@ const Calendar = () => {
     isLoading: groupsLoading
   } = useQuery({
     queryKey: ['calendar-distribution-groups'],
+    staleTime: 5 * 60 * 1000, // 5 minutes
     queryFn: async () => {
       console.log('Fetching distribution groups for calendar...');
       const {
@@ -289,6 +291,7 @@ const Calendar = () => {
     isLoading: driversLoading
   } = useQuery({
     queryKey: ['calendar-drivers'],
+    staleTime: 10 * 60 * 1000, // 10 minutes
     queryFn: async () => {
       console.log('Fetching drivers for calendar...');
       const {

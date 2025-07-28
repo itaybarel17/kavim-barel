@@ -195,6 +195,7 @@ const Distribution = () => {
     isLoading: customerSupplyLoading
   } = useQuery({
     queryKey: ['customer-supply'],
+    staleTime: 3 * 60 * 1000, // 3 minutes
     queryFn: async () => {
       console.log('Fetching customer supply details...');
       const {
@@ -213,6 +214,7 @@ const Distribution = () => {
     isLoading: groupsLoading
   } = useQuery({
     queryKey: ['distribution-groups'],
+    staleTime: 5 * 60 * 1000, // 5 minutes
     queryFn: async () => {
       console.log('Fetching distribution groups...');
       const {
@@ -251,6 +253,7 @@ const Distribution = () => {
     isLoading: driversLoading
   } = useQuery({
     queryKey: ['drivers'],
+    staleTime: 10 * 60 * 1000, // 10 minutes
     queryFn: async () => {
       console.log('Fetching drivers...');
       const {
@@ -516,6 +519,7 @@ const Distribution = () => {
   // Fetch agent names for tagged agents
   const { data: agentData = [] } = useQuery({
     queryKey: ['agents-for-messages'],
+    staleTime: 5 * 60 * 1000, // 5 minutes
     queryFn: async () => {
       const { data, error } = await supabase
         .from('agents')
