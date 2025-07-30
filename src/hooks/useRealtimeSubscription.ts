@@ -23,6 +23,7 @@ export const useRealtimeSubscription = () => {
           console.log('mainorder changed:', payload);
           queryClient.invalidateQueries({ queryKey: ['orders'] });
           queryClient.invalidateQueries({ queryKey: ['calendar-orders'] });
+          queryClient.invalidateQueries({ queryKey: ['customer-messages'] });
         }
       )
       .on(
@@ -36,6 +37,7 @@ export const useRealtimeSubscription = () => {
           console.log('mainreturns changed:', payload);
           queryClient.invalidateQueries({ queryKey: ['returns'] });
           queryClient.invalidateQueries({ queryKey: ['calendar-returns'] });
+          queryClient.invalidateQueries({ queryKey: ['customer-messages'] });
         }
       )
       .on(
@@ -60,6 +62,8 @@ export const useRealtimeSubscription = () => {
         },
         (payload) => {
           console.log('distribution_groups changed:', payload);
+          queryClient.invalidateQueries({ queryKey: ['distribution-groups'] });
+          queryClient.invalidateQueries({ queryKey: ['calendar-distribution-groups'] });
           queryClient.invalidateQueries({ queryKey: ['lines-distribution-groups'] });
         }
       )
@@ -73,6 +77,7 @@ export const useRealtimeSubscription = () => {
         (payload) => {
           console.log('messages changed:', payload);
           queryClient.invalidateQueries({ queryKey: ['messages'] });
+          queryClient.invalidateQueries({ queryKey: ['warehouse-messages'] });
         }
       )
       .on(
@@ -84,7 +89,9 @@ export const useRealtimeSubscription = () => {
         },
         (payload) => {
           console.log('cities changed:', payload);
+          queryClient.invalidateQueries({ queryKey: ['cities'] });
           queryClient.invalidateQueries({ queryKey: ['lines-cities'] });
+          queryClient.invalidateQueries({ queryKey: ['lines-distribution-groups'] });
         }
       )
       .subscribe();

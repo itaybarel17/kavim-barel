@@ -43,7 +43,6 @@ const Lines = () => {
   // Fetch distribution groups
   const { data: distributionGroups = [], isLoading: groupsLoading } = useQuery({
     queryKey: ['lines-distribution-groups'],
-    staleTime: 5 * 60 * 1000, // 5 minutes
     queryFn: async () => {
       console.log('Fetching distribution groups for lines...');
       const { data, error } = await supabase

@@ -20,7 +20,6 @@ import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { NavBar } from "@/components/layout/NavBar";
-import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -65,62 +64,53 @@ function ProtectedRoute({
   return <>{children}</>;
 }
 
-function AppContent() {
-  // Set up centralized realtime subscriptions
-  useRealtimeSubscription();
-  
-  return (
-    <DndProvider backend={HTML5Backend}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <div className="min-h-screen bg-gray-50">
-            <NavBar />
-            <div className="px-4 lg:px-6 pb-6 bg-[#7c8788]/[0.02]">
-              <Routes>
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/" element={<ProtectedRoute>
-                    <Index />
-                  </ProtectedRoute>} />
-                <Route path="/distribution" element={<ProtectedRoute adminOnly>
-                    <Distribution />
-                  </ProtectedRoute>} />
-                <Route path="/calendar" element={<ProtectedRoute>
-                    <Calendar />
-                  </ProtectedRoute>} />
-                <Route path="/lines" element={<ProtectedRoute adminOnly>
-                    <Lines />
-                  </ProtectedRoute>} />
-                <Route path="/archive" element={<ProtectedRoute adminOnly>
-                    <Archive />
-                  </ProtectedRoute>} />
-                <Route path="/messages" element={<ProtectedRoute>
-                    <Messages />
-                  </ProtectedRoute>} />
-                <Route path="/zone-report/:zoneNumber" element={<ProtectedRoute>
-                    <ZoneReport />
-                  </ProtectedRoute>} />
-                <Route path="/production-summary/:scheduleId" element={<ProtectedRoute>
-                    <ProductionSummary />
-                  </ProtectedRoute>} />
-                <Route path="/schedule-map/:scheduleId" element={<ProtectedRoute>
-                    <ScheduleMap />
-                  </ProtectedRoute>} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </div>
-          </div>
-        </BrowserRouter>
-      </TooltipProvider>
-    </DndProvider>
-  );
-}
-
 function App() {
   return <AuthProvider>
       <QueryClientProvider client={queryClient}>
-        <AppContent />
+        <DndProvider backend={HTML5Backend}>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <div className="min-h-screen bg-gray-50">
+                <NavBar />
+                <div className="px-4 lg:px-6 pb-6 bg-[#7c8788]/[0.02]">
+                  <Routes>
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/" element={<ProtectedRoute>
+                        <Index />
+                      </ProtectedRoute>} />
+                    <Route path="/distribution" element={<ProtectedRoute adminOnly>
+                        <Distribution />
+                      </ProtectedRoute>} />
+                    <Route path="/calendar" element={<ProtectedRoute>
+                        <Calendar />
+                      </ProtectedRoute>} />
+                    <Route path="/lines" element={<ProtectedRoute adminOnly>
+                        <Lines />
+                      </ProtectedRoute>} />
+                    <Route path="/archive" element={<ProtectedRoute adminOnly>
+                        <Archive />
+                      </ProtectedRoute>} />
+                    <Route path="/messages" element={<ProtectedRoute>
+                        <Messages />
+                      </ProtectedRoute>} />
+                    <Route path="/zone-report/:zoneNumber" element={<ProtectedRoute>
+                        <ZoneReport />
+                      </ProtectedRoute>} />
+                    <Route path="/production-summary/:scheduleId" element={<ProtectedRoute>
+                        <ProductionSummary />
+                      </ProtectedRoute>} />
+                    <Route path="/schedule-map/:scheduleId" element={<ProtectedRoute>
+                        <ScheduleMap />
+                      </ProtectedRoute>} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </div>
+              </div>
+            </BrowserRouter>
+          </TooltipProvider>
+        </DndProvider>
       </QueryClientProvider>
     </AuthProvider>;
 }

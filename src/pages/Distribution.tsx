@@ -4,7 +4,7 @@ import { DropZone } from '@/components/distribution/DropZone';
 import { UnassignedArea } from '@/components/distribution/UnassignedArea';
 import { HorizontalKanban } from '@/components/calendar/HorizontalKanban';
 import { useQuery } from '@tanstack/react-query';
-
+import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription';
 import { Loader2, Calendar, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -109,6 +109,8 @@ const Distribution = () => {
   
   const isMobile = useIsMobile();
 
+  // Set up realtime subscriptions
+  useRealtimeSubscription();
 
   // Add simple page refresh every 10 minutes for desktop only
   useEffect(() => {
@@ -195,7 +197,6 @@ const Distribution = () => {
     isLoading: customerSupplyLoading
   } = useQuery({
     queryKey: ['customer-supply'],
-    staleTime: 3 * 60 * 1000, // 3 minutes
     queryFn: async () => {
       console.log('Fetching customer supply details...');
       const {
@@ -214,7 +215,6 @@ const Distribution = () => {
     isLoading: groupsLoading
   } = useQuery({
     queryKey: ['distribution-groups'],
-    staleTime: 5 * 60 * 1000, // 5 minutes
     queryFn: async () => {
       console.log('Fetching distribution groups...');
       const {
@@ -253,7 +253,6 @@ const Distribution = () => {
     isLoading: driversLoading
   } = useQuery({
     queryKey: ['drivers'],
-    staleTime: 10 * 60 * 1000, // 10 minutes
     queryFn: async () => {
       console.log('Fetching drivers...');
       const {
@@ -502,7 +501,6 @@ const Distribution = () => {
   // Fetch messages for orders and returns
   const { data: messageData = [] } = useQuery({
     queryKey: ['order-return-messages'],
-    staleTime: 3 * 60 * 1000, // 3 minutes
     queryFn: async () => {
       console.log('Fetching order/return messages...');
       const { data, error } = await supabase
@@ -520,7 +518,6 @@ const Distribution = () => {
   // Fetch agent names for tagged agents
   const { data: agentData = [] } = useQuery({
     queryKey: ['agents-for-messages'],
-    staleTime: 5 * 60 * 1000, // 5 minutes
     queryFn: async () => {
       const { data, error } = await supabase
         .from('agents')
@@ -534,7 +531,6 @@ const Distribution = () => {
   // Fetch cancellation messages specifically for red X overlay
   const { data: cancellationData = [] } = useQuery({
     queryKey: ['cancellation-messages'],
-    staleTime: 2 * 60 * 1000, // 2 minutes
     queryFn: async () => {
       console.log('Fetching cancellation messages...');
       const { data, error } = await supabase
@@ -552,7 +548,6 @@ const Distribution = () => {
   // Fetch schedule messages - messages associated only with schedules
   const { data: scheduleMessages = [] } = useQuery({
     queryKey: ['schedule-messages'],
-    staleTime: 3 * 60 * 1000, // 3 minutes
     queryFn: async () => {
       console.log('Fetching schedule messages...');
       const { data, error } = await supabase

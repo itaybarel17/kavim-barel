@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-
+import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription';
 import { Loader2, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -97,6 +97,8 @@ const Calendar = () => {
   // Show only my activity state for non-admin agents
   const [showOnlyMyActivity, setShowOnlyMyActivity] = useState(false);
 
+  // Set up realtime subscriptions
+  useRealtimeSubscription();
 
   // Helper function to filter orders based on user permissions and show my activity toggle
   const filterOrdersByUser = (orders: Order[]) => {
@@ -177,7 +179,6 @@ const Calendar = () => {
   // Fetch order replacement details for "הזמנה על לקוח אחר" messages
   const { data: orderReplacementData = [] } = useQuery({
     queryKey: ['order-replacement-details'],
-    staleTime: 5 * 60 * 1000, // 5 minutes
     queryFn: async () => {
       console.log('Fetching order replacement details...');
       const { data, error } = await supabase
@@ -200,7 +201,6 @@ const Calendar = () => {
   // Fetch customer details for replacement validation
   const { data: customerDetails = [] } = useQuery({
     queryKey: ['customer-details-for-replacement'],
-    staleTime: 10 * 60 * 1000, // 10 minutes
     queryFn: async () => {
       console.log('Fetching customer details for replacement...');
       const { data, error } = await supabase
@@ -235,7 +235,6 @@ const Calendar = () => {
     isLoading: customerSupplyLoading
   } = useQuery({
     queryKey: ['customer-supply'],
-    staleTime: 3 * 60 * 1000, // 3 minutes
     queryFn: async () => {
       console.log('Fetching customer supply details...');
       const {
@@ -254,7 +253,6 @@ const Calendar = () => {
     isLoading: groupsLoading
   } = useQuery({
     queryKey: ['calendar-distribution-groups'],
-    staleTime: 5 * 60 * 1000, // 5 minutes
     queryFn: async () => {
       console.log('Fetching distribution groups for calendar...');
       const {
@@ -293,7 +291,6 @@ const Calendar = () => {
     isLoading: driversLoading
   } = useQuery({
     queryKey: ['calendar-drivers'],
-    staleTime: 10 * 60 * 1000, // 10 minutes
     queryFn: async () => {
       console.log('Fetching drivers for calendar...');
       const {
