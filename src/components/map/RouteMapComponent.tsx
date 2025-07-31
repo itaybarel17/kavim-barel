@@ -38,12 +38,18 @@ interface RouteMapComponentProps {
   onRouteOptimized?: (order: number[]) => void;
   onRouteClear?: () => void;
   isMobile?: boolean;
+  fuelData?: {
+    kmPerLiter?: number;
+    pricePerLiter?: number;
+  };
 }
 
 interface TravelTimeData {
   totalDuration: string;
   totalDurationWithoutTraffic: string;
   totalDistance: string;
+  totalFuelCost?: string;
+  fuelCalculation?: string;
   segments: Array<{
     from: string;
     to: string;
@@ -72,7 +78,8 @@ export const RouteMapComponent = forwardRef<any, RouteMapComponentProps>(({
   departureTime,
   onRouteOptimized,
   onRouteClear,
-  isMobile = false
+  isMobile = false,
+  fuelData
 }, ref) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<any>(null);
@@ -303,10 +310,23 @@ export const RouteMapComponent = forwardRef<any, RouteMapComponentProps>(({
             });
           });
 
+          // Calculate fuel cost if data is available
+          let fuelCost = '';
+          let fuelCalculation = '';
+          if (fuelData?.kmPerLiter && fuelData?.pricePerLiter) {
+            const distanceKm = totalDistance / 1000;
+            const litersNeeded = distanceKm / fuelData.kmPerLiter;
+            const cost = litersNeeded * fuelData.pricePerLiter;
+            fuelCost = `${cost.toFixed(1)} ₪`;
+            fuelCalculation = `(${distanceKm.toFixed(1)} ÷ ${fuelData.kmPerLiter}) × ${fuelData.pricePerLiter.toFixed(2)} = ${cost.toFixed(1)} ₪`;
+          }
+
           setTravelTimeData({
             totalDuration: `${Math.floor(totalDuration / 3600)}:${Math.floor((totalDuration % 3600) / 60).toString().padStart(2, '0')}`,
             totalDurationWithoutTraffic: `${Math.floor(totalDurationWithoutTraffic / 3600)}:${Math.floor((totalDurationWithoutTraffic % 3600) / 60).toString().padStart(2, '0')}`,
             totalDistance: `${(totalDistance / 1000).toFixed(1)} ק"מ`,
+            totalFuelCost: fuelCost,
+            fuelCalculation: fuelCalculation,
             segments
           });
         } else {
@@ -415,6 +435,19 @@ export const RouteMapComponent = forwardRef<any, RouteMapComponentProps>(({
               <span className="font-medium">סה"כ מרחק:</span>
               <span className="font-bold">{travelTimeData.totalDistance}</span>
             </div>
+            {travelTimeData.totalFuelCost && (
+              <div className="space-y-1">
+                <div className="flex justify-between items-center p-2 bg-orange-50 rounded">
+                  <span className="font-medium">סה"כ דלק:</span>
+                  <span className="font-bold text-orange-600">{travelTimeData.totalFuelCost}</span>
+                </div>
+                {travelTimeData.fuelCalculation && (
+                  <div className="text-xs text-muted-foreground px-2">
+                    {travelTimeData.fuelCalculation}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="border-t pt-3">
@@ -485,6 +518,19 @@ export const RouteMapComponent = forwardRef<any, RouteMapComponentProps>(({
                   <span className="font-medium text-sm">סה"כ מרחק:</span>
                   <span className="font-bold">{travelTimeData.totalDistance}</span>
                 </div>
+                {travelTimeData.totalFuelCost && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
+                      <span className="font-medium text-sm">סה"כ דלק:</span>
+                      <span className="font-bold text-orange-600">{travelTimeData.totalFuelCost}</span>
+                    </div>
+                    {travelTimeData.fuelCalculation && (
+                      <div className="text-xs text-muted-foreground px-3">
+                        {travelTimeData.fuelCalculation}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="border-t pt-4">

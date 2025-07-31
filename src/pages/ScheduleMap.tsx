@@ -85,6 +85,17 @@ const ScheduleMap: React.FC = () => {
     queryFn: async () => {
       if (!scheduleId) throw new Error('Schedule ID is required');
 
+      // Fetch schedule info with driver
+      const { data: scheduleData, error: scheduleError } = await supabase
+        .from('distribution_schedule')
+        .select('driver_id')
+        .eq('schedule_id', parseInt(scheduleId))
+        .single();
+
+      if (scheduleError) {
+        console.error('Error fetching schedule data:', scheduleError);
+      }
+
       // Get orders
       const { data: orders, error: ordersError } = await supabase
         .from('mainorder')
@@ -101,6 +112,38 @@ const ScheduleMap: React.FC = () => {
 
       if (returnsError) throw returnsError;
 
+      // Fetch fuel data if driver exists
+      let fuelData = null;
+      if (scheduleData?.driver_id) {
+        // Get driver's truck
+        const { data: driverData, error: driverError } = await supabase
+          .from('nahagim')
+          .select('truck')
+          .eq('id', scheduleData.driver_id)
+          .single();
+
+        if (!driverError && driverData && (driverData as any).truck) {
+          // Get truck fuel consumption
+          const { data: truckData, error: truckError } = await supabase
+            .from('trucks')
+            .select('literperkm')
+            .eq('truck_id', (driverData as any).truck)
+            .single();
+
+          if (!truckError && truckData && (truckData as any).literperkm) {
+            // For now, use a default fuel price since fuelprice table is not in types
+            // In production, this should fetch from the fuelprice table
+            const defaultFuelPrice = 5.80; // ₪ per liter - can be updated
+            
+            // Convert literperkm to kmPerLiter (since literperkm means liters per km, we need km per liter)
+            fuelData = {
+              kmPerLiter: 1 / Number((truckData as any).literperkm),
+              pricePerLiter: defaultFuelPrice
+            };
+          }
+        }
+      }
+
       // Combine orders and returns
       const allItems: OrderData[] = [
         ...(orders || []).map(order => ({ ...order, type: 'order' as const })),
@@ -111,7 +154,7 @@ const ScheduleMap: React.FC = () => {
         }))
       ];
 
-      return allItems;
+      return { items: allItems, fuelData };
     },
     enabled: !!scheduleId
   });
@@ -119,11 +162,11 @@ const ScheduleMap: React.FC = () => {
   // Get customer coordinates
   useEffect(() => {
     const fetchCustomerCoordinates = async () => {
-      if (!orderData || orderData.length === 0) return;
+      if (!orderData?.items || orderData.items.length === 0) return;
 
       // Get unique customer numbers from order data
       const uniqueCustomerNumbers = Array.from(
-        new Set(orderData.map(item => item.customernumber))
+        new Set(orderData.items.map(item => item.customernumber))
       );
 
       // Fetch customer coordinates using customernumber from both tables
@@ -178,7 +221,7 @@ const ScheduleMap: React.FC = () => {
 
       // Fetch city coordinates for fallback
       const uniqueCityNames = Array.from(
-        new Set(orderData.map(item => item.city))
+        new Set(orderData.items.map(item => item.city))
       );
 
       const { data: citiesData, error: citiesError } = await supabase
@@ -204,7 +247,7 @@ const ScheduleMap: React.FC = () => {
       const processedCustomers: Customer[] = [];
       
       for (const customerNumber of uniqueCustomerNumbers) {
-        const orderDataItem = orderData.find(item => item.customernumber === customerNumber);
+        const orderDataItem = orderData.items.find(item => item.customernumber === customerNumber);
         if (!orderDataItem) continue;
 
         const coords = customerCoordsMap.get(customerNumber);
@@ -262,8 +305,8 @@ const ScheduleMap: React.FC = () => {
     );
   }
 
-  const ordersCount = orderData?.filter(item => item.type === 'order').length || 0;
-  const returnsCount = orderData?.filter(item => item.type === 'return').length || 0;
+  const ordersCount = orderData?.items?.filter(item => item.type === 'order').length || 0;
+  const returnsCount = orderData?.items?.filter(item => item.type === 'return').length || 0;
 
   // Get displayed customers in order (optimized or alphabetical)
   const getDisplayedCustomers = () => {
@@ -535,11 +578,12 @@ const ScheduleMap: React.FC = () => {
               <RouteMapComponent 
                 ref={mapComponentRef}
                 customers={customers}
-                orderData={orderData || []}
+                orderData={orderData?.items || []}
                 departureTime={departureTime}
                 onRouteOptimized={handleRouteOptimized}
                 onRouteClear={handleRouteClear}
                 isMobile={isMobile}
+                fuelData={orderData?.fuelData}
               />
             </CardContent>
           </Card>
