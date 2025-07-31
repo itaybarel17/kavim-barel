@@ -16,10 +16,12 @@ interface Customer {
   address: string;
   lat: number;
   lng: number;
+  isExcluded?: boolean;
 }
 
 interface OrderData {
   customername: string;
+  customernumber: string;
   city: string;
   address: string;
   totalorder?: number;
@@ -48,7 +50,7 @@ const ScheduleMap: React.FC = () => {
       // Get orders
       const { data: orders, error: ordersError } = await supabase
         .from('mainorder')
-        .select('customername, city, address, totalorder')
+        .select('customername, customernumber, city, address, totalorder')
         .eq('schedule_id', parseInt(scheduleId));
 
       if (ordersError) throw ordersError;
@@ -56,7 +58,7 @@ const ScheduleMap: React.FC = () => {
       // Get returns
       const { data: returns, error: returnsError } = await supabase
         .from('mainreturns')
-        .select('customername, city, address, totalreturn')
+        .select('customername, customernumber, city, address, totalreturn')
         .eq('schedule_id', parseInt(scheduleId));
 
       if (returnsError) throw returnsError;
@@ -83,7 +85,7 @@ const ScheduleMap: React.FC = () => {
 
       // Get unique customer numbers from order data
       const uniqueCustomerNumbers = Array.from(
-        new Set(orderData.map(item => item.customername))
+        new Set(orderData.map(item => item.customernumber))
       );
 
       // Fetch customer coordinates using customernumber from both tables
@@ -134,22 +136,64 @@ const ScheduleMap: React.FC = () => {
         }
       });
 
-      // Process customer data - include ALL customers, use default coordinates if needed
+      // Fetch city coordinates for fallback
+      const uniqueCityNames = Array.from(
+        new Set(orderData.map(item => item.city))
+      );
+
+      const { data: citiesData, error: citiesError } = await supabase
+        .from('cities')
+        .select('city, lat, lng')
+        .in('city', uniqueCityNames);
+
+      if (citiesError) {
+        console.error('Error fetching cities coordinates:', citiesError);
+      }
+
+      const cityCoordsMap = new Map();
+      citiesData?.forEach(city => {
+        if (city.lat && city.lng) {
+          cityCoordsMap.set(city.city, {
+            lat: Number(city.lat),
+            lng: Number(city.lng)
+          });
+        }
+      });
+
+      // Process customer data - include ALL customers
       const processedCustomers: Customer[] = [];
-      const defaultCoords = { lat: 32.0853, lng: 34.7818 }; // Center of Israel
       
       for (const customerNumber of uniqueCustomerNumbers) {
-        const orderDataItem = orderData.find(item => item.customername === customerNumber);
+        const orderDataItem = orderData.find(item => item.customernumber === customerNumber);
         if (!orderDataItem) continue;
 
         const coords = customerCoordsMap.get(customerNumber);
+        const cityCoords = cityCoordsMap.get(orderDataItem.city);
+        
+        let lat, lng, isExcluded = false;
+        
+        if (coords) {
+          // Use customer-specific coordinates
+          lat = coords.lat;
+          lng = coords.lng;
+        } else if (cityCoords) {
+          // Use city coordinates as fallback
+          lat = cityCoords.lat;
+          lng = cityCoords.lng;
+        } else {
+          // Mark as excluded if no coordinates found
+          lat = 32.0853; // Default center of Israel for display
+          lng = 34.7818;
+          isExcluded = true;
+        }
         
         const customer: Customer = {
-          customername: coords?.customername || customerNumber,
+          customername: coords?.customername || orderDataItem.customername,
           city: orderDataItem.city, // Use city name as-is from mainorder
           address: orderDataItem.address || coords?.address || 'כתובת לא זמינה',
-          lat: coords ? coords.lat : defaultCoords.lat,
-          lng: coords ? coords.lng : defaultCoords.lng
+          lat,
+          lng,
+          isExcluded
         };
         
         processedCustomers.push(customer);
@@ -332,14 +376,18 @@ const ScheduleMap: React.FC = () => {
               </div>
             </CardHeader>
             <CardContent className="p-4">
-              <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                <div className="space-y-2 max-h-[400px] overflow-y-auto">
                 {displayedCustomers.map((customer, index) => {
                   const originalIndex = customers.findIndex(c => c.customername === customer.customername);
                   const orderNumber = routeOptimized ? optimizedOrder.indexOf(originalIndex) + 1 : null;
                   return (
                     <div
                       key={`${customer.customername}-${index}`}
-                      className="p-2 border rounded-lg bg-background text-sm"
+                      className={`p-2 border rounded-lg text-sm ${
+                        customer.isExcluded 
+                          ? 'bg-red-50 border-red-200 text-red-800' 
+                          : 'bg-background'
+                      }`}
                     >
                       <div className="flex items-center gap-2">
                         {orderNumber && orderNumber > 0 && (
@@ -347,7 +395,12 @@ const ScheduleMap: React.FC = () => {
                             {orderNumber}
                           </span>
                         )}
-                        <div className="font-semibold">{customer.customername}</div>
+                        <div className="font-semibold flex items-center gap-1">
+                          {customer.customername}
+                          {customer.isExcluded && (
+                            <span className="text-xs bg-red-500 text-white px-1 rounded">מוחרג</span>
+                          )}
+                        </div>
                       </div>
                       <div className="text-muted-foreground">{customer.address}</div>
                       <div className="text-muted-foreground">{customer.city}</div>
@@ -452,7 +505,11 @@ const ScheduleMap: React.FC = () => {
                   return (
                     <div
                       key={`${customer.customername}-${index}`}
-                      className="p-3 border rounded-lg bg-background"
+                      className={`p-3 border rounded-lg ${
+                        customer.isExcluded 
+                          ? 'bg-red-50 border-red-200 text-red-800' 
+                          : 'bg-background'
+                      }`}
                     >
                       <div className="flex items-center gap-2 mb-1">
                         {orderNumber && orderNumber > 0 && (
@@ -460,7 +517,12 @@ const ScheduleMap: React.FC = () => {
                             {orderNumber}
                           </span>
                         )}
-                        <div className="font-semibold text-sm">{customer.customername}</div>
+                        <div className="font-semibold text-sm flex items-center gap-1">
+                          {customer.customername}
+                          {customer.isExcluded && (
+                            <span className="text-xs bg-red-500 text-white px-1 rounded">מוחרג</span>
+                          )}
+                        </div>
                       </div>
                       <div className="text-xs text-muted-foreground">{customer.address}</div>
                       <div className="text-xs text-muted-foreground">{customer.city}</div>
