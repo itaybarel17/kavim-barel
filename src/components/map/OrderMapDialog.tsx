@@ -209,14 +209,48 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
       'י-ם': 'ירושלים'
     };
 
-    // Get customer coordinates
-    const { data: customerList, error } = await supabase
-      .from('customerlist')
-      .select('customername, city, address, lat, lng')
-      .in('customername', uniqueCustomers);
+    // Get customer coordinates from both tables in parallel
+    const [customerListResult, candyCustomerListResult] = await Promise.all([
+      supabase
+        .from('customerlist')
+        .select('customername, city, address, lat, lng')
+        .in('customername', uniqueCustomers),
+      supabase
+        .from('candycustomerlist')
+        .select('customername, city, address, lat, lng')
+        .in('customername', uniqueCustomers)
+    ]);
 
-    if (error) {
-      console.error('Error fetching customer coordinates:', error);
+    if (customerListResult.error) {
+      console.error('Error fetching customer coordinates from customerlist:', customerListResult.error);
+    }
+
+    if (candyCustomerListResult.error) {
+      console.error('Error fetching customer coordinates from candycustomerlist:', candyCustomerListResult.error);
+    }
+
+    // Combine results with priority to customerlist
+    const customerList = customerListResult.data || [];
+    const candyCustomerList = candyCustomerListResult.data || [];
+    
+    // Create a map for fast lookup, prioritizing customerlist
+    const combinedCustomerMap = new Map();
+    
+    // First add all candy customers
+    candyCustomerList.forEach(customer => {
+      combinedCustomerMap.set(customer.customername, customer);
+    });
+    
+    // Then add regular customers (will override if exists in both)
+    customerList.forEach(customer => {
+      combinedCustomerMap.set(customer.customername, customer);
+    });
+
+    console.log(`Found ${customerList.length} customers in customerlist and ${candyCustomerList.length} in candycustomerlist`);
+    console.log(`Combined total: ${combinedCustomerMap.size} unique customers`);
+
+    if (combinedCustomerMap.size === 0) {
+      console.log('No customer coordinates found in either table');
       return [];
     }
 
@@ -258,10 +292,10 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
         finalCityName = replacement.city;
       }
 
-      // Find customer in customerlist
-      let customerRecord = customerList?.find(c => c.customername === finalCustomerName);
+      // Find customer in combined customer map (customerlist + candycustomerlist)
+      let customerRecord = combinedCustomerMap.get(finalCustomerName);
       if (!customerRecord) {
-        customerRecord = customerList?.find(c => c.customername === customerName);
+        customerRecord = combinedCustomerMap.get(customerName);
       }
       
       let customer: Customer;
@@ -354,22 +388,35 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
       setMapError(null);
       console.log('🔍 Searching for coordinates in database...');
       
-      // First try to get coordinates from customerlist
-      const { data: customerData } = await supabase
-        .from('customerlist')
-        .select('lat, lng')
-        .eq('customername', customerName)
-        .maybeSingle();
+      // Try to get coordinates from both customerlist and candycustomerlist
+      const [customerResult, candyCustomerResult] = await Promise.all([
+        supabase
+          .from('customerlist')
+          .select('lat, lng')
+          .eq('customername', customerName)
+          .maybeSingle(),
+        supabase
+          .from('candycustomerlist')
+          .select('lat, lng')
+          .eq('customername', customerName)
+          .maybeSingle()
+      ]);
+
+      // Prioritize customerlist over candycustomerlist
+      const customerData = customerResult.data?.lat && customerResult.data?.lng 
+        ? customerResult.data 
+        : candyCustomerResult.data;
 
       if (customerData?.lat && customerData?.lng) {
-        console.log('✅ Found customer coordinates:', customerData);
+        const source = customerResult.data?.lat ? 'customerlist' : 'candycustomerlist';
+        console.log(`✅ Found customer coordinates in ${source}:`, customerData);
         setCurrentLat(customerData.lat);
         setCurrentLng(customerData.lng);
         setCoordinatesReady(true);
         return;
       }
 
-      console.log('⚠️ Customer coordinates not found, trying city coordinates...');
+      console.log('⚠️ Customer coordinates not found in either table, trying city coordinates...');
       
       // If not found, try to get coordinates from cities
       const { data: cityData } = await supabase
