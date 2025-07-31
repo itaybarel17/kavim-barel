@@ -221,11 +221,8 @@ export const RouteMapComponent = forwardRef<any, RouteMapComponentProps>(({
         stopover: true
       }));
 
-      // Create departure time for today
-      const today = new Date();
-      const [hours, minutes] = departureTime.split(':');
-      const departureDateTime = new Date(today);
-      departureDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      // Always use current time for Google Maps API (for traffic data accuracy)
+      const currentDateTime = new Date();
 
       const request: any = {
         origin,
@@ -236,7 +233,7 @@ export const RouteMapComponent = forwardRef<any, RouteMapComponentProps>(({
         unitSystem: window.google.maps.UnitSystem.METRIC,
         region: 'IL',
         drivingOptions: {
-          departureTime: departureDateTime,
+          departureTime: currentDateTime,
           trafficModel: window.google.maps.TrafficModel.BEST_GUESS
         }
       };
@@ -260,12 +257,13 @@ export const RouteMapComponent = forwardRef<any, RouteMapComponentProps>(({
           const route = result.routes[0];
           const legs = route.legs;
           
-          let totalDuration = 0;
-          let totalDurationWithoutTraffic = 0;
-          let totalDistance = 0;
-          let currentTime = new Date();
-          const [hours, minutes] = departureTime.split(':');
-          currentTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+           let totalDuration = 0;
+           let totalDurationWithoutTraffic = 0;
+           let totalDistance = 0;
+           // Use user-defined departure time for display calculations
+           let currentTime = new Date();
+           const [hours, minutes] = departureTime.split(':');
+           currentTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
           
           const segments: TravelTimeData['segments'] = [];
 

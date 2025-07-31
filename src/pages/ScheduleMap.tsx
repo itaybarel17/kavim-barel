@@ -361,7 +361,7 @@ const ScheduleMap: React.FC = () => {
               <CardTitle className="text-lg">רשימת נקודות</CardTitle>
               <div className="space-y-2">
                 <Label htmlFor="departure-time" className="text-sm font-medium">
-                  שעת יציאה
+                  שעת יציאה (לתצוגה)
                 </Label>
                 <div className="flex items-center gap-2">
                   <Clock size={16} className="text-muted-foreground" />
@@ -373,6 +373,9 @@ const ScheduleMap: React.FC = () => {
                     className="w-full"
                   />
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  המסלול מחושב לפי השעה הנוכחית, זמני ההגעה לפי שעה זו
+                </p>
               </div>
             </CardHeader>
             <CardContent className="p-4">
@@ -416,20 +419,25 @@ const ScheduleMap: React.FC = () => {
         {isMobile && (
           <Card>
             <CardContent className="p-3">
-              <div className="flex items-center gap-3">
-                <Label htmlFor="departure-time-mobile" className="text-sm font-medium whitespace-nowrap">
-                  שעת יציאה:
-                </Label>
-                <div className="flex items-center gap-2 flex-1">
-                  <Clock size={16} className="text-muted-foreground" />
-                  <Input
-                    id="departure-time-mobile"
-                    type="time"
-                    value={departureTime}
-                    onChange={(e) => setDepartureTime(e.target.value)}
-                    className="flex-1"
-                  />
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <Label htmlFor="departure-time-mobile" className="text-sm font-medium whitespace-nowrap">
+                    שעת יציאה:
+                  </Label>
+                  <div className="flex items-center gap-2 flex-1">
+                    <Clock size={16} className="text-muted-foreground" />
+                    <Input
+                      id="departure-time-mobile"
+                      type="time"
+                      value={departureTime}
+                      onChange={(e) => setDepartureTime(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  המסלול מחושב לפי השעה הנוכחית, זמני ההגעה לפי שעה זו
+                </p>
               </div>
             </CardContent>
           </Card>
