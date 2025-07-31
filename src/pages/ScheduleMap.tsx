@@ -17,6 +17,7 @@ interface Customer {
   lat: number;
   lng: number;
   isExcluded?: boolean;
+  deliverHour?: string;
 }
 
 interface OrderData {
@@ -40,6 +41,43 @@ const ScheduleMap: React.FC = () => {
   const [routeOptimized, setRouteOptimized] = useState(false);
   const isMobile = useIsMobile();
   const mapComponentRef = useRef<any>(null);
+
+  // Function to format delivery hour from jsonb
+  const formatDeliveryHour = (deliverHour: any): string => {
+    if (!deliverHour || deliverHour === null) return '';
+    
+    let hours: string[] = [];
+    if (typeof deliverHour === 'string') {
+      try {
+        hours = JSON.parse(deliverHour);
+      } catch {
+        return '';
+      }
+    } else if (Array.isArray(deliverHour)) {
+      hours = deliverHour;
+    } else {
+      return '';
+    }
+
+    if (!hours || hours.length === 0 || (hours.length === 1 && hours[0] === '')) {
+      return '';
+    }
+
+    const formattedHours = hours.map(hour => {
+      if (hour.startsWith('-')) {
+        // Format like "-10:00" to "עד 10:00"
+        return `עד ${hour.substring(1)}`;
+      } else if (hour.includes('-')) {
+        // Format like "08:00-13:00" stays as is
+        return hour;
+      } else {
+        // Format like "11:00" to "משעה 11:00"
+        return `משעה ${hour}`;
+      }
+    });
+
+    return `אספקה: ${formattedHours.join(', ')}`;
+  };
 
   // Fetch orders and returns for this schedule
   const { data: orderData, isLoading } = useQuery({
@@ -91,7 +129,7 @@ const ScheduleMap: React.FC = () => {
       // Fetch customer coordinates using customernumber from both tables
       const { data: customerList, error: customerError } = await supabase
         .from('customerlist')
-        .select('customernumber, customername, city, address, lat, lng')
+        .select('customernumber, customername, city, address, lat, lng, deliverhour')
         .in('customernumber', uniqueCustomerNumbers);
 
       if (customerError) {
@@ -100,7 +138,7 @@ const ScheduleMap: React.FC = () => {
 
       const { data: candyCustomerList, error: candyError } = await supabase
         .from('candycustomerlist')
-        .select('customernumber, customername, city, address, lat, lng')
+        .select('customernumber, customername, city, address, lat, lng, deliverhour')
         .in('customernumber', uniqueCustomerNumbers);
 
       if (candyError) {
@@ -118,7 +156,8 @@ const ScheduleMap: React.FC = () => {
             lng: Number(customer.lng),
             city: customer.city,
             address: customer.address,
-            customername: customer.customername
+            customername: customer.customername,
+            deliverHour: formatDeliveryHour(customer.deliverhour)
           });
         }
       });
@@ -131,7 +170,8 @@ const ScheduleMap: React.FC = () => {
             lng: Number(customer.lng),
             city: customer.city,
             address: customer.address,
-            customername: customer.customername
+            customername: customer.customername,
+            deliverHour: formatDeliveryHour(customer.deliverhour)
           });
         }
       });
@@ -193,7 +233,8 @@ const ScheduleMap: React.FC = () => {
           address: orderDataItem.address || coords?.address || 'כתובת לא זמינה',
           lat,
           lng,
-          isExcluded
+          isExcluded,
+          deliverHour: coords?.deliverHour
         };
         
         processedCustomers.push(customer);
@@ -407,6 +448,11 @@ const ScheduleMap: React.FC = () => {
                       </div>
                       <div className="text-muted-foreground">{customer.address}</div>
                       <div className="text-muted-foreground">{customer.city}</div>
+                      {customer.deliverHour && (
+                        <div className="text-xs text-blue-600 mt-1">
+                          {customer.deliverHour}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -534,6 +580,11 @@ const ScheduleMap: React.FC = () => {
                       </div>
                       <div className="text-xs text-muted-foreground">{customer.address}</div>
                       <div className="text-xs text-muted-foreground">{customer.city}</div>
+                      {customer.deliverHour && (
+                        <div className="text-xs text-blue-600 mt-1">
+                          {customer.deliverHour}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
