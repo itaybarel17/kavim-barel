@@ -122,14 +122,18 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
         return [];
       }
 
-      // Get unique customers
-      const uniqueCustomers = Array.from(
-        new Set(allItems.map(item => item.customername))
+      // Get unique customer numbers
+      const uniqueCustomerNumbers = Array.from(
+        new Set(
+          allItems
+            .map(item => item.customernumber)
+            .filter(num => num) // Filter out null/undefined customer numbers
+        )
       );
 
-      console.log(`Found ${uniqueCustomers.length} unique customers in zone kanbans`);
+      console.log(`Found ${uniqueCustomerNumbers.length} unique customer numbers in zone kanbans`);
 
-      return await processCustomersData(uniqueCustomers, allItems);
+      return await processCustomersData(uniqueCustomerNumbers, allItems);
 
     } catch (error) {
       console.error('Error in fetchZoneKanbanCustomers:', error);
@@ -159,14 +163,18 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
         return [];
       }
 
-      // Get unique customers
-      const uniqueCustomers = Array.from(
-        new Set(allItems.map(item => item.customername))
+      // Get unique customer numbers
+      const uniqueCustomerNumbers = Array.from(
+        new Set(
+          allItems
+            .map(item => item.customernumber)
+            .filter(num => num) // Filter out null/undefined customer numbers
+        )
       );
 
-      console.log(`Found ${uniqueCustomers.length} unique customers in other zone kanbans`);
+      console.log(`Found ${uniqueCustomerNumbers.length} unique customer numbers in other zone kanbans`);
 
-      return await processCustomersData(uniqueCustomers, allItems);
+      return await processCustomersData(uniqueCustomerNumbers, allItems);
 
     } catch (error) {
       console.error('Error in fetchOtherZoneKanbanCustomers:', error);
@@ -175,7 +183,7 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
   };
 
   // Process customers data (shared logic)
-  const processCustomersData = async (uniqueCustomers: string[], allItems: any[]): Promise<Customer[]> => {
+  const processCustomersData = async (uniqueCustomerNumbers: string[], allItems: any[]): Promise<Customer[]> => {
     // Get customer replacement data from messages
     let replacementMap = new Map();
     
@@ -209,16 +217,16 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
       'י-ם': 'ירושלים'
     };
 
-    // Get customer coordinates from both tables in parallel
+    // Get customer coordinates from both tables in parallel using customernumber
     const [customerListResult, candyCustomerListResult] = await Promise.all([
       supabase
         .from('customerlist')
-        .select('customername, city, address, lat, lng')
-        .in('customername', uniqueCustomers),
+        .select('customernumber, customername, city, address, lat, lng')
+        .in('customernumber', uniqueCustomerNumbers),
       supabase
         .from('candycustomerlist')
-        .select('customername, city, address, lat, lng')
-        .in('customername', uniqueCustomers)
+        .select('customernumber, customername, city, address, lat, lng')
+        .in('customernumber', uniqueCustomerNumbers)
     ]);
 
     if (customerListResult.error) {
@@ -233,17 +241,17 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
     const customerList = customerListResult.data || [];
     const candyCustomerList = candyCustomerListResult.data || [];
     
-    // Create a map for fast lookup, prioritizing customerlist
+    // Create a map for fast lookup using customernumber, prioritizing customerlist
     const combinedCustomerMap = new Map();
     
     // First add all candy customers
     candyCustomerList.forEach(customer => {
-      combinedCustomerMap.set(customer.customername, customer);
+      combinedCustomerMap.set(customer.customernumber, customer);
     });
     
     // Then add regular customers (will override if exists in both)
     customerList.forEach(customer => {
-      combinedCustomerMap.set(customer.customername, customer);
+      combinedCustomerMap.set(customer.customernumber, customer);
     });
 
     console.log(`Found ${customerList.length} customers in customerlist and ${candyCustomerList.length} in candycustomerlist`);
@@ -273,16 +281,16 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
     // Process customers to ensure all have coordinates
     const processedCustomers: Customer[] = [];
     
-    for (const customerName of uniqueCustomers) {
-      const orderDataItem = allItems.find(item => item.customername === customerName);
+    for (const customerNumber of uniqueCustomerNumbers) {
+      const orderDataItem = allItems.find(item => item.customernumber === customerNumber);
       if (!orderDataItem) continue;
 
       // Check if this customer has been replaced
-      let finalCustomerName = customerName;
+      let finalCustomerName = orderDataItem.customername;
       let finalCityName = orderDataItem.city;
       
       // Look for replacements in orders
-      const orderItem = allItems.find(item => item.customername === customerName && item.ordernumber);
+      const orderItem = allItems.find(item => item.customernumber === customerNumber && item.ordernumber);
 
       const orderNumber = orderItem?.ordernumber;
       
@@ -293,9 +301,11 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
       }
 
       // Find customer in combined customer map (customerlist + candycustomerlist)
-      let customerRecord = combinedCustomerMap.get(finalCustomerName);
+      let customerRecord = combinedCustomerMap.get(customerNumber);
       if (!customerRecord) {
-        customerRecord = combinedCustomerMap.get(customerName);
+        // If not found by customer number, continue without this customer
+        console.warn(`Customer ${customerNumber} not found in either customer table`);
+        continue;
       }
       
       let customer: Customer;
@@ -366,7 +376,7 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
 
   // Fetch current customer coordinates if not provided
   const fetchCurrentCustomerCoordinates = async () => {
-    console.log('📍 Fetching coordinates for:', { customerName, city, propLat, propLng });
+    console.log('📍 Fetching coordinates for:', { customerName, customerNumber, city, propLat, propLng });
     
     // If we already have coordinates from props, use them
     if (propLat && propLng) {
@@ -388,32 +398,63 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
       setMapError(null);
       console.log('🔍 Searching for coordinates in database...');
       
-      // Try to get coordinates from both customerlist and candycustomerlist
-      const [customerResult, candyCustomerResult] = await Promise.all([
-        supabase
-          .from('customerlist')
-          .select('lat, lng')
-          .eq('customername', customerName)
-          .maybeSingle(),
-        supabase
-          .from('candycustomerlist')
-          .select('lat, lng')
-          .eq('customername', customerName)
-          .maybeSingle()
-      ]);
+      // If we have a customer number, search by that, otherwise fallback to name
+      if (customerNumber) {
+        // Search by customer number in both tables
+        const [customerResult, candyCustomerResult] = await Promise.all([
+          supabase
+            .from('customerlist')
+            .select('lat, lng')
+            .eq('customernumber', customerNumber)
+            .maybeSingle(),
+          supabase
+            .from('candycustomerlist')
+            .select('lat, lng')
+            .eq('customernumber', customerNumber)
+            .maybeSingle()
+        ]);
 
-      // Prioritize customerlist over candycustomerlist
-      const customerData = customerResult.data?.lat && customerResult.data?.lng 
-        ? customerResult.data 
-        : candyCustomerResult.data;
+        // Prioritize customerlist over candycustomerlist
+        const customerData = customerResult.data?.lat && customerResult.data?.lng 
+          ? customerResult.data 
+          : candyCustomerResult.data;
 
-      if (customerData?.lat && customerData?.lng) {
-        const source = customerResult.data?.lat ? 'customerlist' : 'candycustomerlist';
-        console.log(`✅ Found customer coordinates in ${source}:`, customerData);
-        setCurrentLat(customerData.lat);
-        setCurrentLng(customerData.lng);
-        setCoordinatesReady(true);
-        return;
+        if (customerData?.lat && customerData?.lng) {
+          const source = customerResult.data?.lat ? 'customerlist' : 'candycustomerlist';
+          console.log(`✅ Found customer coordinates by number in ${source}:`, customerData);
+          setCurrentLat(customerData.lat);
+          setCurrentLng(customerData.lng);
+          setCoordinatesReady(true);
+          return;
+        }
+      } else {
+        // Fallback to search by customer name if no number provided
+        const [customerResult, candyCustomerResult] = await Promise.all([
+          supabase
+            .from('customerlist')
+            .select('lat, lng')
+            .eq('customername', customerName)
+            .maybeSingle(),
+          supabase
+            .from('candycustomerlist')
+            .select('lat, lng')
+            .eq('customername', customerName)
+            .maybeSingle()
+        ]);
+
+        // Prioritize customerlist over candycustomerlist
+        const customerData = customerResult.data?.lat && customerResult.data?.lng 
+          ? customerResult.data 
+          : candyCustomerResult.data;
+
+        if (customerData?.lat && customerData?.lng) {
+          const source = customerResult.data?.lat ? 'customerlist' : 'candycustomerlist';
+          console.log(`✅ Found customer coordinates by name in ${source}:`, customerData);
+          setCurrentLat(customerData.lat);
+          setCurrentLng(customerData.lng);
+          setCoordinatesReady(true);
+          return;
+        }
       }
 
       console.log('⚠️ Customer coordinates not found in either table, trying city coordinates...');
