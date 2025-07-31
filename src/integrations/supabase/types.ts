@@ -110,9 +110,79 @@ export type Database = {
         }
         Relationships: []
       }
+      candycustomerlist: {
+        Row: {
+          address: string | null
+          agentnumber: string | null
+          city: string | null
+          city_area: string | null
+          customername: string | null
+          customernumber: string
+          deliverhour: Json | null
+          extraarea: string | null
+          lat: number | null
+          lng: number | null
+          mobile: string | null
+          newarea: string | null
+          nodeliverday: Json | null
+          phone: string | null
+          supplydetails: string | null
+        }
+        Insert: {
+          address?: string | null
+          agentnumber?: string | null
+          city?: string | null
+          city_area?: string | null
+          customername?: string | null
+          customernumber: string
+          deliverhour?: Json | null
+          extraarea?: string | null
+          lat?: number | null
+          lng?: number | null
+          mobile?: string | null
+          newarea?: string | null
+          nodeliverday?: Json | null
+          phone?: string | null
+          supplydetails?: string | null
+        }
+        Update: {
+          address?: string | null
+          agentnumber?: string | null
+          city?: string | null
+          city_area?: string | null
+          customername?: string | null
+          customernumber?: string
+          deliverhour?: Json | null
+          extraarea?: string | null
+          lat?: number | null
+          lng?: number | null
+          mobile?: string | null
+          newarea?: string | null
+          nodeliverday?: Json | null
+          phone?: string | null
+          supplydetails?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candycustomerlist_extraarea_fkey"
+            columns: ["extraarea"]
+            isOneToOne: false
+            referencedRelation: "distribution_groups"
+            referencedColumns: ["separation"]
+          },
+          {
+            foreignKeyName: "candycustomerlist_newarea_fkey"
+            columns: ["newarea"]
+            isOneToOne: false
+            referencedRelation: "distribution_groups"
+            referencedColumns: ["separation"]
+          },
+        ]
+      }
       cities: {
         Row: {
           area: string | null
+          averagesupply3month: number | null
           averagesupplyweek: number | null
           centralcity: boolean | null
           city: string
@@ -124,6 +194,7 @@ export type Database = {
         }
         Insert: {
           area?: string | null
+          averagesupply3month?: number | null
           averagesupplyweek?: number | null
           centralcity?: boolean | null
           city: string
@@ -135,6 +206,7 @@ export type Database = {
         }
         Update: {
           area?: string | null
+          averagesupply3month?: number | null
           averagesupplyweek?: number | null
           centralcity?: boolean | null
           city?: string
@@ -154,6 +226,7 @@ export type Database = {
           arvot: string | null
           average_inv_month: number | null
           averagesupply: number | null
+          averagesupply3month: number | null
           city: string | null
           city_area: string | null
           customername: string | null
@@ -188,6 +261,7 @@ export type Database = {
           arvot?: string | null
           average_inv_month?: number | null
           averagesupply?: number | null
+          averagesupply3month?: number | null
           city?: string | null
           city_area?: string | null
           customername?: string | null
@@ -222,6 +296,7 @@ export type Database = {
           arvot?: string | null
           average_inv_month?: number | null
           averagesupply?: number | null
+          averagesupply3month?: number | null
           city?: string | null
           city_area?: string | null
           customername?: string | null
