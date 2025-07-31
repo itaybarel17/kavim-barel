@@ -135,9 +135,9 @@ const ScheduleMap: React.FC = () => {
             // In production, this should fetch from the fuelprice table
             const defaultFuelPrice = 5.80; // ₪ per liter - can be updated
             
-            // Convert literperkm to kmPerLiter (since literperkm means liters per km, we need km per liter)
+            // literperkm actually represents km per liter, not liters per km
             fuelData = {
-              kmPerLiter: 1 / Number((truckData as any).literperkm),
+              kmPerLiter: Number((truckData as any).literperkm),
               pricePerLiter: defaultFuelPrice
             };
           }
