@@ -81,166 +81,76 @@ const ScheduleMap: React.FC = () => {
     const fetchCustomerCoordinates = async () => {
       if (!orderData || orderData.length === 0) return;
 
-      // First, get customer replacements from messages
-      const orderNumbers = orderData.filter(item => item.type === 'order').map(item => ({ customername: item.customername }));
-      const returnNumbers = orderData.filter(item => item.type === 'return').map(item => ({ customername: item.customername }));
-      
-      let replacementMap = new Map();
-      
-      if (orderNumbers.length > 0 || returnNumbers.length > 0) {
-        // Get replacement data for orders and returns
-        const allOrderNumbers = orderData.filter(item => item.type === 'order').map(item => item.customername);
-        const allReturnNumbers = orderData.filter(item => item.type === 'return').map(item => item.customername);
-        
-        // Find all relevant order and return numbers from the database
-        const { data: orderIds } = await supabase
-          .from('mainorder')
-          .select('ordernumber, customername')
-          .eq('schedule_id', parseInt(scheduleId!))
-          .in('customername', allOrderNumbers);
-          
-        const { data: returnIds } = await supabase
-          .from('mainreturns')
-          .select('returnnumber, customername')
-          .eq('schedule_id', parseInt(scheduleId!))
-          .in('customername', allReturnNumbers);
-
-        const orderNumbersForMessages = orderIds?.map(o => o.ordernumber) || [];
-        const returnNumbersForMessages = returnIds?.map(r => r.returnnumber) || [];
-
-        if (orderNumbersForMessages.length > 0 || returnNumbersForMessages.length > 0) {
-          const { data: replacements } = await supabase
-            .from('messages')
-            .select('ordernumber, returnnumber, correctcustomer, city')
-            .eq('subject', 'הזמנה על לקוח אחר')
-            .not('correctcustomer', 'is', null)
-            .or(`ordernumber.in.(${orderNumbersForMessages.join(',')}),returnnumber.in.(${returnNumbersForMessages.join(',')})`);
-
-          if (replacements) {
-            replacements.forEach(replacement => {
-              const key = replacement.ordernumber || replacement.returnnumber;
-              if (key) {
-                replacementMap.set(key.toString(), {
-                  customername: replacement.correctcustomer,
-                  city: replacement.city
-                });
-              }
-            });
-          }
-        }
-      }
-
-      const uniqueCustomers = Array.from(
+      // Get unique customer numbers from order data
+      const uniqueCustomerNumbers = Array.from(
         new Set(orderData.map(item => item.customername))
       );
 
-      // City name mappings for fallback
-      const cityNameMappings: Record<string, string> = {
-        'פ"ת': 'פתח תקווה',
-        'ת"א': 'תל אביב',
-        'י-ם': 'ירושלים'
-      };
-
-      // First try to get customers with existing coordinates
-      const { data: customerList, error } = await supabase
+      // Fetch customer coordinates using customernumber from both tables
+      const { data: customerList, error: customerError } = await supabase
         .from('customerlist')
-        .select('customername, city, address, lat, lng')
-        .in('customername', uniqueCustomers);
+        .select('customernumber, customername, city, address, lat, lng')
+        .in('customernumber', uniqueCustomerNumbers);
 
-      if (error) {
-        console.error('Error fetching customer coordinates:', error);
-        return;
+      if (customerError) {
+        console.error('Error fetching customer coordinates:', customerError);
       }
 
-      // Get city coordinates for fallback
-      const { data: cityCoordinates, error: cityError } = await supabase
-        .from('cities')
-        .select('city, lat, lng');
+      const { data: candyCustomerList, error: candyError } = await supabase
+        .from('candycustomerlist')
+        .select('customernumber, customername, city, address, lat, lng')
+        .in('customernumber', uniqueCustomerNumbers);
 
-      if (cityError) {
-        console.error('Error fetching city coordinates:', cityError);
+      if (candyError) {
+        console.error('Error fetching candy customer coordinates:', candyError);
       }
 
-      const cityCoordMap = new Map();
-      cityCoordinates?.forEach(city => {
-        if (city.lat && city.lng) {
-          cityCoordMap.set(city.city, { lat: city.lat, lng: city.lng });
+      // Create a map of customer numbers to their coordinates
+      const customerCoordsMap = new Map();
+      
+      // Add coordinates from customerlist
+      customerList?.forEach(customer => {
+        if (customer.lat && customer.lng) {
+          customerCoordsMap.set(customer.customernumber, {
+            lat: Number(customer.lat),
+            lng: Number(customer.lng),
+            city: customer.city,
+            address: customer.address,
+            customername: customer.customername
+          });
         }
       });
 
-      // Process customers to ensure all have coordinates
+      // Add coordinates from candycustomerlist (will override if exists)
+      candyCustomerList?.forEach(customer => {
+        if (customer.lat && customer.lng) {
+          customerCoordsMap.set(customer.customernumber, {
+            lat: Number(customer.lat),
+            lng: Number(customer.lng),
+            city: customer.city,
+            address: customer.address,
+            customername: customer.customername
+          });
+        }
+      });
+
+      // Process customer data - include ALL customers, use default coordinates if needed
       const processedCustomers: Customer[] = [];
+      const defaultCoords = { lat: 32.0853, lng: 34.7818 }; // Center of Israel
       
-      for (const customerName of uniqueCustomers) {
-        const orderDataItem = orderData.find(item => item.customername === customerName);
+      for (const customerNumber of uniqueCustomerNumbers) {
+        const orderDataItem = orderData.find(item => item.customername === customerNumber);
         if (!orderDataItem) continue;
 
-        // Check if this customer has been replaced
-        let finalCustomerName = customerName;
-        let finalCityName = orderDataItem.city;
+        const coords = customerCoordsMap.get(customerNumber);
         
-        // Look for replacements in the orderData by finding actual order/return numbers
-        const { data: orderCheck } = await supabase
-          .from('mainorder')
-          .select('ordernumber')
-          .eq('schedule_id', parseInt(scheduleId!))
-          .eq('customername', customerName)
-          .limit(1);
-          
-        const { data: returnCheck } = await supabase
-          .from('mainreturns')
-          .select('returnnumber')
-          .eq('schedule_id', parseInt(scheduleId!))
-          .eq('customername', customerName)
-          .limit(1);
-
-        const orderNumber = orderCheck?.[0]?.ordernumber;
-        const returnNumber = returnCheck?.[0]?.returnnumber;
-        
-        const replacementKey = orderNumber?.toString() || returnNumber?.toString();
-        if (replacementKey && replacementMap.has(replacementKey)) {
-          const replacement = replacementMap.get(replacementKey);
-          finalCustomerName = replacement.customername;
-          finalCityName = replacement.city;
-        }
-
-        // Find customer in customerlist (try both original and replacement name)
-        let customerRecord = customerList?.find(c => c.customername === finalCustomerName);
-        if (!customerRecord) {
-          customerRecord = customerList?.find(c => c.customername === customerName);
-        }
-        
-        let customer: Customer;
-        
-        if (customerRecord?.lat && customerRecord?.lng) {
-          // Use existing precise coordinates
-          customer = {
-            customername: finalCustomerName,
-            city: customerRecord.city || finalCityName,
-            address: customerRecord.address || orderDataItem.address,
-            lat: customerRecord.lat,
-            lng: customerRecord.lng
-          };
-        } else {
-          // Try to get city coordinates as fallback
-          const cityName = finalCityName;
-          const mappedCityName = cityNameMappings[cityName] || cityName;
-          const cityCoords = cityCoordMap.get(mappedCityName) || cityCoordMap.get(cityName);
-          
-          if (cityCoords) {
-            customer = {
-              customername: finalCustomerName,
-              city: cityName,
-              address: customerRecord?.address || orderDataItem.address || 'כתובת לא זמינה',
-              lat: cityCoords.lat,
-              lng: cityCoords.lng
-            };
-          } else {
-            // Skip customers without any coordinates
-            console.warn(`No coordinates found for customer: ${finalCustomerName} in city: ${cityName}`);
-            continue;
-          }
-        }
+        const customer: Customer = {
+          customername: coords?.customername || customerNumber,
+          city: orderDataItem.city, // Use city name as-is from mainorder
+          address: orderDataItem.address || coords?.address || 'כתובת לא זמינה',
+          lat: coords ? coords.lat : defaultCoords.lat,
+          lng: coords ? coords.lng : defaultCoords.lng
+        };
         
         processedCustomers.push(customer);
       }
