@@ -79,15 +79,97 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
   const isAdmin = currentUser?.agentnumber === "4";
   const isAgent99 = currentUser?.agentnumber === "99";
 
-  // Simplified: Admin and Agent 99 see all schedules, others see their assigned groups
+  // Calculate for each schedule if allowed for agent
   const allowedGroupIds = React.useMemo(() => {
     if (isAdmin) {
-      return null; // Show all schedules
-    }
-    if (isAgent99) {
-      return null; // Show all schedules
+      // Admin can filter by selected agent using actual orders/returns
+      if (selectedAgent && selectedAgent !== '4') {
+        const agentScheduleIds = new Set<number>();
+        distributionSchedules.forEach(schedule => {
+          const hasAgentOrders = orders.some(order => {
+            const relevantScheduleIds = [];
+            if (typeof order.schedule_id === 'number') relevantScheduleIds.push(order.schedule_id);
+            if (order.schedule_id_if_changed) {
+              if (typeof order.schedule_id_if_changed === 'number') {
+                relevantScheduleIds.push(order.schedule_id_if_changed);
+              } else if (Array.isArray(order.schedule_id_if_changed)) {
+                order.schedule_id_if_changed.forEach(sid => {
+                  if (typeof sid === 'number') relevantScheduleIds.push(sid);
+                });
+              } else if (typeof order.schedule_id_if_changed === 'object' && order.schedule_id_if_changed.schedule_id) {
+                relevantScheduleIds.push(order.schedule_id_if_changed.schedule_id);
+              }
+            }
+            return relevantScheduleIds.includes(schedule.schedule_id) && order.agentnumber === selectedAgent;
+          });
+          const hasAgentReturns = returns.some(returnItem => {
+            const relevantScheduleIds = [];
+            if (typeof returnItem.schedule_id === 'number') relevantScheduleIds.push(returnItem.schedule_id);
+            if (returnItem.schedule_id_if_changed) {
+              if (typeof returnItem.schedule_id_if_changed === 'number') {
+                relevantScheduleIds.push(returnItem.schedule_id_if_changed);
+              } else if (Array.isArray(returnItem.schedule_id_if_changed)) {
+                returnItem.schedule_id_if_changed.forEach(sid => {
+                  if (typeof sid === 'number') relevantScheduleIds.push(sid);
+                });
+              } else if (typeof returnItem.schedule_id_if_changed === 'object' && returnItem.schedule_id_if_changed.schedule_id) {
+                relevantScheduleIds.push(returnItem.schedule_id_if_changed.schedule_id);
+              }
+            }
+            return relevantScheduleIds.includes(schedule.schedule_id) && returnItem.agentnumber === selectedAgent;
+          });
+          if (hasAgentOrders || hasAgentReturns) {
+            agentScheduleIds.add(schedule.schedule_id);
+          }
+        });
+        return Array.from(agentScheduleIds);
+      }
+      return null; // Show all when "משרד" is selected
     }
     if (!currentUser) return [];
+
+    // Special logic for Agent 99 - only see specific schedule_ids that have his orders/returns
+    if (isAgent99) {
+      const agent99ScheduleIds = new Set<number>();
+      distributionSchedules.forEach(schedule => {
+        const hasAgent99Orders = orders.some(order => {
+          const relevantScheduleIds = [];
+          if (typeof order.schedule_id === 'number') relevantScheduleIds.push(order.schedule_id);
+          if (order.schedule_id_if_changed) {
+            if (typeof order.schedule_id_if_changed === 'number') {
+              relevantScheduleIds.push(order.schedule_id_if_changed);
+            } else if (Array.isArray(order.schedule_id_if_changed)) {
+              order.schedule_id_if_changed.forEach(sid => {
+                if (typeof sid === 'number') relevantScheduleIds.push(sid);
+              });
+            } else if (typeof order.schedule_id_if_changed === 'object' && order.schedule_id_if_changed.schedule_id) {
+              relevantScheduleIds.push(order.schedule_id_if_changed.schedule_id);
+            }
+          }
+          return relevantScheduleIds.includes(schedule.schedule_id) && order.agentnumber === '99';
+        });
+        const hasAgent99Returns = returns.some(returnItem => {
+          const relevantScheduleIds = [];
+          if (typeof returnItem.schedule_id === 'number') relevantScheduleIds.push(returnItem.schedule_id);
+          if (returnItem.schedule_id_if_changed) {
+            if (typeof returnItem.schedule_id_if_changed === 'number') {
+              relevantScheduleIds.push(returnItem.schedule_id_if_changed);
+            } else if (Array.isArray(returnItem.schedule_id_if_changed)) {
+              returnItem.schedule_id_if_changed.forEach(sid => {
+                if (typeof sid === 'number') relevantScheduleIds.push(sid);
+              });
+            } else if (typeof returnItem.schedule_id_if_changed === 'object' && returnItem.schedule_id_if_changed.schedule_id) {
+              relevantScheduleIds.push(returnItem.schedule_id_if_changed.schedule_id);
+            }
+          }
+          return relevantScheduleIds.includes(schedule.schedule_id) && returnItem.agentnumber === '99';
+        });
+        if (hasAgent99Orders || hasAgent99Returns) {
+          agent99ScheduleIds.add(schedule.schedule_id);
+        }
+      });
+      return Array.from(agent99ScheduleIds);
+    }
 
     // Get groups where agent is allowed
     const agentAllowedGroups = distributionGroups.filter(group => {
@@ -106,14 +188,17 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
       return false;
     }).map(group => group.groups_id);
     return agentAllowedGroups;
-  }, [currentUser, isAdmin, isAgent99, distributionGroups]);
+  }, [currentUser, isAdmin, isAgent99, distributionGroups, distributionSchedules, orders, returns, selectedAgent]);
   const filteredSchedulesWithItems = distributionSchedules.filter(schedule => {
-    // Group filtering (only for non-admin/non-agent99)
-    if (!isAdmin && !isAgent99 && allowedGroupIds && !allowedGroupIds.includes(schedule.groups_id)) {
+    if (isAdmin && selectedAgent && selectedAgent !== '4') {
+      // When admin filters by specific agent, check if schedule_id is in allowed list
+      if (!allowedGroupIds || !allowedGroupIds.includes(schedule.schedule_id)) return false;
+    } else if (!isAdmin && !isAgent99) {
+      if (!allowedGroupIds || !allowedGroupIds.includes(schedule.groups_id)) return false;
+    }
+    if (isAgent99 && (!allowedGroupIds || !allowedGroupIds.includes(schedule.schedule_id))) {
       return false;
     }
-    
-    // Only show schedules that have orders/returns
     const uniqueCustomers = getUniqueCustomersForSchedule(orders, returns, schedule.schedule_id);
     return uniqueCustomers.size > 0;
   });

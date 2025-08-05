@@ -105,10 +105,44 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   let scheduleOrders = getOrdersByScheduleId(orders, scheduleId);
   let scheduleReturns = getReturnsByScheduleId(returns, scheduleId);
 
-  // Simplified filtering: Only filter by selected agent for admin, no other complex logic
+  // Debug logging for schedule 219
+  if (scheduleId === 219) {
+    console.log(`=== DEBUG SCHEDULE 219 ===`);
+    console.log(`isProduced: ${isProduced}`);
+    console.log(`currentUser: ${currentUser?.agentnumber}`);
+    console.log(`Raw orders count: ${orders.length}`);
+    console.log(`Raw returns count: ${returns.length}`);
+    console.log(`Schedule orders count (before agent filter): ${scheduleOrders.length}`);
+    console.log(`Schedule returns count (before agent filter): ${scheduleReturns.length}`);
+    console.log(`Schedule orders:`, scheduleOrders.map(o => ({ 
+      ordernumber: o.ordernumber, 
+      customername: o.customername, 
+      agentnumber: o.agentnumber,
+      schedule_id: o.schedule_id 
+    })));
+    console.log(`Schedule returns:`, scheduleReturns.map(r => ({ 
+      returnnumber: r.returnnumber, 
+      customername: r.customername, 
+      agentnumber: r.agentnumber,
+      schedule_id: r.schedule_id 
+    })));
+  }
+
+  // Filter based on selected agent when admin uses agent filter  
   if (currentUser?.agentnumber === "4" && selectedAgent && selectedAgent !== '4') {
     scheduleOrders = scheduleOrders.filter(order => order.agentnumber === selectedAgent);
     scheduleReturns = scheduleReturns.filter(returnItem => returnItem.agentnumber === selectedAgent);
+  } 
+  // Agent 99 sees only his own orders/returns 
+  else if (currentUser?.agentnumber === "99") {
+    scheduleOrders = scheduleOrders.filter(order => order.agentnumber === '99');
+    scheduleReturns = scheduleReturns.filter(returnItem => returnItem.agentnumber === '99');
+  }
+
+  // Debug logging for schedule 219 after filtering
+  if (scheduleId === 219) {
+    console.log(`Schedule orders count (after agent filter): ${scheduleOrders.length}`);
+    console.log(`Schedule returns count (after agent filter): ${scheduleReturns.length}`);
   }
 
   // Calculate unique customers based on filtered data - with customer replacement
