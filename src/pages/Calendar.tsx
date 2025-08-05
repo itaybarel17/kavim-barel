@@ -100,6 +100,12 @@ const Calendar = () => {
   // Set up realtime subscriptions
   useRealtimeSubscription();
 
+  // Utility function to clean brackets from area strings
+  const cleanAreaString = (areaString: string | undefined | null): string => {
+    if (!areaString) return '';
+    return areaString.replace(/[\[\]{}]/g, '').trim();
+  };
+
   // Helper function to filter orders based on user permissions and show my activity toggle
   const filterOrdersByUser = (orders: Order[]) => {
     // Agent 99 can only see their own orders
