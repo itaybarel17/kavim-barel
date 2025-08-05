@@ -345,7 +345,6 @@ export type Database = {
         Row: {
           agents: Json | null
           agentsworkarea: Json | null
-          day: string | null
           days: Json | null
           dayvisit: Json | null
           freq: Json | null
@@ -357,7 +356,6 @@ export type Database = {
         Insert: {
           agents?: Json | null
           agentsworkarea?: Json | null
-          day?: string | null
           days?: Json | null
           dayvisit?: Json | null
           freq?: Json | null
@@ -369,7 +367,6 @@ export type Database = {
         Update: {
           agents?: Json | null
           agentsworkarea?: Json | null
-          day?: string | null
           days?: Json | null
           dayvisit?: Json | null
           freq?: Json | null
@@ -389,6 +386,7 @@ export type Database = {
           done_schedule: string | null
           driver_id: number | null
           europallet_return: number | null
+          fuelcost: number | null
           groups_id: number | null
           isPinned: boolean | null
           message_alert: boolean | null
@@ -405,6 +403,7 @@ export type Database = {
           done_schedule?: string | null
           driver_id?: number | null
           europallet_return?: number | null
+          fuelcost?: number | null
           groups_id?: number | null
           isPinned?: boolean | null
           message_alert?: boolean | null
@@ -421,6 +420,7 @@ export type Database = {
           done_schedule?: string | null
           driver_id?: number | null
           europallet_return?: number | null
+          fuelcost?: number | null
           groups_id?: number | null
           isPinned?: boolean | null
           message_alert?: boolean | null
@@ -445,6 +445,24 @@ export type Database = {
             referencedColumns: ["groups_id"]
           },
         ]
+      }
+      fuelprice: {
+        Row: {
+          date: string
+          id: number
+          price: number | null
+        }
+        Insert: {
+          date: string
+          id?: number
+          price?: number | null
+        }
+        Update: {
+          date?: string
+          id?: number
+          price?: number | null
+        }
+        Relationships: []
       }
       invoice_history: {
         Row: {
@@ -922,22 +940,25 @@ export type Database = {
         Row: {
           id: number
           nahag: string | null
-          truck_id: number | null
+          truck: number | null
+          updated_at: string | null
         }
         Insert: {
           id: number
           nahag?: string | null
-          truck_id?: number | null
+          truck?: number | null
+          updated_at?: string | null
         }
         Update: {
           id?: number
           nahag?: string | null
-          truck_id?: number | null
+          truck?: number | null
+          updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "nahagim_truck_id_fkey"
-            columns: ["truck_id"]
+            foreignKeyName: "nahagim_truck_fkey"
+            columns: ["truck"]
             isOneToOne: false
             referencedRelation: "trucks"
             referencedColumns: ["truck_id"]
@@ -1340,6 +1361,7 @@ export type Database = {
         Row: {
           height: number | null
           length: number | null
+          literperkm: number | null
           truck_id: number
           truck_model: string | null
           width: number | null
@@ -1347,6 +1369,7 @@ export type Database = {
         Insert: {
           height?: number | null
           length?: number | null
+          literperkm?: number | null
           truck_id: number
           truck_model?: string | null
           width?: number | null
@@ -1354,6 +1377,7 @@ export type Database = {
         Update: {
           height?: number | null
           length?: number | null
+          literperkm?: number | null
           truck_id?: number
           truck_model?: string | null
           width?: number | null
