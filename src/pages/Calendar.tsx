@@ -390,6 +390,24 @@ const Calendar = () => {
 
   // Calculate unassigned orders and returns with agent filtering
   const unassignedOrders = orders.filter(order => {
+    // Special handling for agent 99 - include orphaned orders
+    if (currentUser?.agentnumber === "99" && order.agentnumber === "99") {
+      // No schedule_id = unassigned
+      if (!order.schedule_id) return true;
+      
+      // Has schedule_id but schedule is not in current date range = orphaned
+      const schedule = distributionSchedules.find(s => s.schedule_id === order.schedule_id);
+      if (!schedule || !schedule.distribution_date) return true;
+      
+      const scheduleDate = new Date(schedule.distribution_date);
+      const startOfWeek = new Date(currentWeekStart);
+      const endOfSecondWeek = new Date(currentWeekStart);
+      endOfSecondWeek.setDate(startOfWeek.getDate() + 11); // Two weeks
+      
+      return scheduleDate < startOfWeek || scheduleDate > endOfSecondWeek;
+    }
+    
+    // Original logic for other users
     if (!order.schedule_id) {
       if (currentUser?.agentnumber === "4") {
         // Admin sees all, but filter by selected agent
@@ -400,6 +418,24 @@ const Calendar = () => {
     return false;
   });
   const unassignedReturns = returns.filter(returnItem => {
+    // Special handling for agent 99 - include orphaned returns
+    if (currentUser?.agentnumber === "99" && returnItem.agentnumber === "99") {
+      // No schedule_id = unassigned
+      if (!returnItem.schedule_id) return true;
+      
+      // Has schedule_id but schedule is not in current date range = orphaned
+      const schedule = distributionSchedules.find(s => s.schedule_id === returnItem.schedule_id);
+      if (!schedule || !schedule.distribution_date) return true;
+      
+      const scheduleDate = new Date(schedule.distribution_date);
+      const startOfWeek = new Date(currentWeekStart);
+      const endOfSecondWeek = new Date(currentWeekStart);
+      endOfSecondWeek.setDate(startOfWeek.getDate() + 11); // Two weeks
+      
+      return scheduleDate < startOfWeek || scheduleDate > endOfSecondWeek;
+    }
+    
+    // Original logic for other users
     if (!returnItem.schedule_id) {
       if (currentUser?.agentnumber === "4") {
         // Admin sees all, but filter by selected agent
@@ -511,9 +547,21 @@ const Calendar = () => {
     if (!currentUser) return [];
     let baseFiltered = orders;
     
-    // Special handling for agent 99 - show ALL their orders regardless of schedule connections
+    // Special handling for agent 99 - exclude orphaned orders (they appear in unassigned area)
     if (currentUser.agentnumber === "99") {
-      return orders; // Agent 99 sees all their orders (already filtered by filterOrdersByUser)
+      return orders.filter(order => {
+        if (!order.schedule_id) return false; // These go to unassigned
+        
+        const schedule = distributionSchedules.find(s => s.schedule_id === order.schedule_id);
+        if (!schedule || !schedule.distribution_date) return false; // These go to unassigned
+        
+        const scheduleDate = new Date(schedule.distribution_date);
+        const startOfWeek = new Date(currentWeekStart);
+        const endOfSecondWeek = new Date(currentWeekStart);
+        endOfSecondWeek.setDate(startOfWeek.getDate() + 11);
+        
+        return scheduleDate >= startOfWeek && scheduleDate <= endOfSecondWeek; // Only show scheduled orders in range
+      });
     }
     
     // Apply user permissions first
@@ -545,9 +593,21 @@ const Calendar = () => {
     if (!currentUser) return [];
     let baseFiltered = returns;
     
-    // Special handling for agent 99 - show ALL their returns regardless of schedule connections
+    // Special handling for agent 99 - exclude orphaned returns (they appear in unassigned area)
     if (currentUser.agentnumber === "99") {
-      return returns; // Agent 99 sees all their returns (already filtered by filterReturnsByUser)
+      return returns.filter(returnItem => {
+        if (!returnItem.schedule_id) return false; // These go to unassigned
+        
+        const schedule = distributionSchedules.find(s => s.schedule_id === returnItem.schedule_id);
+        if (!schedule || !schedule.distribution_date) return false; // These go to unassigned
+        
+        const scheduleDate = new Date(schedule.distribution_date);
+        const startOfWeek = new Date(currentWeekStart);
+        const endOfSecondWeek = new Date(currentWeekStart);
+        endOfSecondWeek.setDate(startOfWeek.getDate() + 11);
+        
+        return scheduleDate >= startOfWeek && scheduleDate <= endOfSecondWeek; // Only show scheduled returns in range
+      });
     }
     
     // Apply user permissions first
