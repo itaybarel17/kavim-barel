@@ -1026,8 +1026,16 @@ const Distribution = () => {
   };
 
   // Filter unassigned items (those without schedule_id or with schedule_id pointing to produced schedules)
-  const unassignedOrders = orders.filter(order => !order.schedule_id || !distributionSchedules.some(schedule => schedule.schedule_id === order.schedule_id));
-  const unassignedReturns = returns.filter(returnItem => !returnItem.schedule_id || !distributionSchedules.some(schedule => schedule.schedule_id === returnItem.schedule_id));
+  const baseUnassignedOrders = orders.filter(order => !order.schedule_id || !distributionSchedules.some(schedule => schedule.schedule_id === order.schedule_id));
+  const baseUnassignedReturns = returns.filter(returnItem => !returnItem.schedule_id || !distributionSchedules.some(schedule => schedule.schedule_id === returnItem.schedule_id));
+  
+  // For agent 99, filter to show only their unassigned orders/returns
+  const unassignedOrders = currentUser?.agentnumber === "99" 
+    ? baseUnassignedOrders.filter(order => order.agentnumber === "99")
+    : baseUnassignedOrders;
+  const unassignedReturns = currentUser?.agentnumber === "99"
+    ? baseUnassignedReturns.filter(returnItem => returnItem.agentnumber === "99") 
+    : baseUnassignedReturns;
 
   // Create sorted drop zones (pinned first, then regular order)
   const dropZones = useMemo(() => {
