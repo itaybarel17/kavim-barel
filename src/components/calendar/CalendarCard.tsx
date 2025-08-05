@@ -133,8 +133,8 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
     scheduleOrders = scheduleOrders.filter(order => order.agentnumber === selectedAgent);
     scheduleReturns = scheduleReturns.filter(returnItem => returnItem.agentnumber === selectedAgent);
   } 
-  // Special filtering for Agent 99 - only show his own orders/returns within cards (but not for produced cards)
-  else if (currentUser?.agentnumber === "99" && !isProduced) {
+  // Agent 99 sees only his own orders/returns 
+  else if (currentUser?.agentnumber === "99") {
     scheduleOrders = scheduleOrders.filter(order => order.agentnumber === '99');
     scheduleReturns = scheduleReturns.filter(returnItem => returnItem.agentnumber === '99');
   }
@@ -162,7 +162,7 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   
   const uniqueCustomersList = Array.from(uniqueCustomers);
 
-  // Create a map to track which customers belong to Agent 99
+  // Create a map to track which customers belong to Agent 99 (Candy Plus)
   const agent99Customers = new Set<string>();
   [...scheduleOrders, ...scheduleReturns].forEach(item => {
     if (item.agentnumber === '99') {
