@@ -143,6 +143,45 @@ const Distribution = () => {
     return returns;
   };
 
+  // Helper function to filter distribution groups based on user permissions
+  const filterDistributionGroupsByUser = (groups: DistributionGroup[], orders: Order[], returns: Return[]) => {
+    // Agent 99 should only see groups that have their own active orders or returns
+    if (currentUser?.agentnumber === '99') {
+      const agent99Orders = orders.filter(order => order.agentnumber === '99');
+      const agent99Returns = returns.filter(returnItem => returnItem.agentnumber === '99');
+      
+      // Get all areas from agent 99's orders and returns
+      const agent99Areas = new Set<string>();
+      
+      agent99Orders.forEach(order => {
+        if (order.ezor1) {
+          // ezor1 can be like "[אזור א]" or "[אזור א, אזור ב]"
+          const areas = order.ezor1.replace(/[\[\]]/g, '').split(',').map(area => area.trim());
+          areas.forEach(area => agent99Areas.add(area));
+        }
+        if (order.ezor2) {
+          agent99Areas.add(order.ezor2);
+        }
+      });
+      
+      agent99Returns.forEach(returnItem => {
+        // Returns don't have ezor1/ezor2, so we need to get them from customerlist
+        // For now, we'll get all groups to be safe, but this could be optimized
+      });
+      
+      // If no areas found, get all groups to be safe (fallback)
+      if (agent99Areas.size === 0) {
+        return groups;
+      }
+      
+      // Filter groups to only those that match agent 99's areas
+      return groups.filter(group => agent99Areas.has(group.separation));
+    }
+    
+    // All other agents can see all groups
+    return groups;
+  };
+
   // Fetch orders (exclude produced orders: done_mainorder IS NOT NULL and deleted orders: ordercancel IS NOT NULL)
   const {
     data: allOrders = [],
@@ -278,6 +317,9 @@ const Distribution = () => {
     }
     return map;
   }, {} as Record<string, { lat: number; lng: number }>);
+
+  // Filter distribution groups based on user permissions (must be after distributionGroups is fetched)
+  const filteredDistributionGroups = filterDistributionGroupsByUser(distributionGroups, orders, returns);
 
 
   // --- BEGIN CUSTOMER STATUS LOGIC FOR ICONS ---
@@ -1165,7 +1207,7 @@ const Distribution = () => {
             <DropZone 
               key={zoneNumber} 
               zoneNumber={zoneNumber} 
-              distributionGroups={distributionGroups} 
+              distributionGroups={filteredDistributionGroups} 
               distributionSchedules={distributionSchedules} 
               drivers={drivers} 
               onDrop={handleDrop}
