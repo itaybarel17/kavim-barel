@@ -12,41 +12,14 @@ export const useWaitingCustomers = (currentUserAgent?: string) => {
   return useQuery({
     queryKey: ['waiting-customers', currentUserAgent],
     queryFn: async (): Promise<WaitingCustomersData> => {
-      console.log('Fetching waiting customers data (orders only) for agent:', currentUserAgent);
+      console.log('Fetching waiting customers data (simplified logic) for agent:', currentUserAgent);
       
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayDateString = today.toISOString().split('T')[0];
+      // Get all orders that are waiting - much simpler approach
+      // A customer is "waiting" if they have an order that meets one of these conditions:
+      // 1. schedule_id IS NULL AND done_mainorder IS NULL (unassigned)
+      // 2. schedule_id IS NOT NULL AND done_mainorder IS NULL (assigned but not yet produced)
       
-      // Get all orders that are assigned to schedules and waiting based on the new criteria
-      const { data: assignedOrders, error: assignedError } = await supabase
-        .from('mainorder')
-        .select(`
-          customernumber,
-          agentnumber,
-          done_mainorder,
-          ordercancel,
-          schedule_id,
-          icecream,
-          ordernumber,
-          distribution_schedule!inner(
-            done_schedule,
-            distribution_date
-          )
-        `)
-        .is('ordercancel', null) // ordercancel must be NULL
-        .not('schedule_id', 'is', null) // only orders with schedule_id
-        .is('icecream', null); // only orders where icecream is NULL
-
-      if (assignedError) {
-        console.error('Error fetching assigned orders:', assignedError);
-        throw assignedError;
-      }
-
-      console.log('Assigned orders fetched (before filtering):', assignedOrders?.length || 0);
-
-      // Get all unassigned orders (without schedule_id)
-      const { data: unassignedOrders, error: unassignedError } = await supabase
+      const { data: waitingOrders, error } = await supabase
         .from('mainorder')
         .select(`
           customernumber,
@@ -58,50 +31,19 @@ export const useWaitingCustomers = (currentUserAgent?: string) => {
           ordernumber
         `)
         .is('ordercancel', null) // ordercancel must be NULL
-        .is('done_mainorder', null) // unassigned orders should not be produced
-        .is('schedule_id', null) // only orders without schedule_id
+        .is('done_mainorder', null) // order not yet produced
         .is('icecream', null); // only orders where icecream is NULL
 
-      if (unassignedError) {
-        console.error('Error fetching unassigned orders:', unassignedError);
-        throw unassignedError;
+      if (error) {
+        console.error('Error fetching waiting orders:', error);
+        throw error;
       }
 
-      console.log('Unassigned orders fetched:', unassignedOrders?.length || 0);
+      console.log('All waiting orders fetched:', waitingOrders?.length || 0);
 
-      // Filter assigned orders that are truly waiting based on the criteria
-      const trulyWaitingAssignedOrders = (assignedOrders || []).filter(order => {
-        const schedule = order.distribution_schedule;
-        
-        // Criteria 1: done_mainorder is NULL
-        if (!order.done_mainorder) {
-          return true;
-        }
-        
-        // Criteria 2: done_mainorder has timestamp but done_schedule is null and distribution_date is today or later
-        if (order.done_mainorder && !schedule?.done_schedule && schedule?.distribution_date) {
-          const distributionDate = new Date(schedule.distribution_date);
-          distributionDate.setHours(0, 0, 0, 0);
-          
-          // If distribution date is today or later and not yet distributed, it's still waiting
-          if (distributionDate >= today) {
-            return true;
-          }
-        }
-        
-        return false;
-      });
-
-      console.log('Truly waiting assigned orders:', trulyWaitingAssignedOrders.length);
-
-      // All unassigned orders are considered waiting (they already have done_mainorder = NULL filter)
-      const trulyWaitingUnassignedOrders = unassignedOrders || [];
-
-      console.log('Truly waiting unassigned orders:', trulyWaitingUnassignedOrders.length);
-
-      // Combine both types of waiting orders
-      let allWaitingOrders = [...trulyWaitingAssignedOrders, ...trulyWaitingUnassignedOrders];
-
+      // Filter orders based on current user agent
+      let allWaitingOrders = waitingOrders || [];
+      
       console.log('All waiting orders before agent filter:', allWaitingOrders.length);
 
       // Filter orders based on current user agent
