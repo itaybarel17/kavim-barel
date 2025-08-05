@@ -327,6 +327,29 @@ const Calendar = () => {
     }
   });
 
+  // Fetch Candy Plus customers (agent 99 customers from candycustomerlist)
+  const {
+    data: candyCustomerData = [],
+    isLoading: candyCustomersLoading
+  } = useQuery({
+    queryKey: ['candy-customers'],
+    queryFn: async () => {
+      console.log('Fetching Candy Plus customers...');
+      const {
+        data,
+        error
+      } = await supabase.from('candycustomerlist').select('customernumber').eq('agentnumber', '99');
+      if (error) throw error;
+      console.log('Candy Plus customers fetched:', data);
+      return data as { customernumber: string }[];
+    }
+  });
+
+  // Create a Set of Candy Plus customer numbers for efficient lookup
+  const candyCustomers = useMemo(() => {
+    return new Set(candyCustomerData.map(customer => customer.customernumber));
+  }, [candyCustomerData]);
+
   // AUTHORIZE: Get allowed group ids or schedule ids for this user (except admin "4" sees all)
   // Create map for customer supply lookup
   const customerSupplyMap = customerSupplyData.reduce((map, customer) => {
@@ -764,6 +787,7 @@ const Calendar = () => {
         onAgentChange={setSelectedAgent}
         showOnlyMyActivity={showOnlyMyActivity}
         onShowMyActivityChange={setShowOnlyMyActivity}
+        candyCustomers={candyCustomers}
       />
 
       {/* Calendar Navigation */}
@@ -784,7 +808,7 @@ const Calendar = () => {
       </div>
 
       {/* Calendar Grid */}
-      <CalendarGrid currentWeekStart={currentWeekStart} distributionSchedules={filteredSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={filteredOrders} returns={filteredReturns} onDropToDate={currentUser?.agentnumber === "4" ? handleDropToDate : undefined} currentUser={currentUser} onRefreshData={handleRefreshData} customerReplacementMap={orderOnAnotherCustomerDetails} selectedAgent={selectedAgent} />
+      <CalendarGrid currentWeekStart={currentWeekStart} distributionSchedules={filteredSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={filteredOrders} returns={filteredReturns} onDropToDate={currentUser?.agentnumber === "4" ? handleDropToDate : undefined} currentUser={currentUser} onRefreshData={handleRefreshData} customerReplacementMap={orderOnAnotherCustomerDetails} selectedAgent={selectedAgent} candyCustomers={candyCustomers} />
     </div>
   );
 };

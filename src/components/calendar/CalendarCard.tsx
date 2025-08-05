@@ -14,6 +14,7 @@ import {
   getNewScheduleId,
   isCustomerCompletelyTransferred,
   getReplacementCustomerName,
+  isCandyCustomer,
   type CustomerReplacement
 } from '@/utils/scheduleUtils';
 import type { OrderWithSchedule, ReturnWithSchedule } from '@/utils/scheduleUtils';
@@ -56,6 +57,7 @@ interface CalendarCardProps {
   currentUser?: { agentnumber: string; agentname: string };
   customerReplacementMap?: Map<string, CustomerReplacement>;
   selectedAgent?: string;
+  candyCustomers?: Set<string>;
 }
 
 export const CalendarCard: React.FC<CalendarCardProps> = ({
@@ -75,6 +77,7 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   currentUser,
   customerReplacementMap,
   selectedAgent,
+  candyCustomers = new Set(),
 }) => {
   const replacementMap = customerReplacementMap || new globalThis.Map();
   const navigate = useNavigate();
@@ -159,10 +162,10 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   
   const uniqueCustomersList = Array.from(uniqueCustomers);
 
-  // Create a map to track which customers belong to agent 99 - with customer replacement
+  // Create a map to track which customers belong to Candy Plus using customernumber
   const agent99Customers = new Set<string>();
   [...scheduleOrders, ...scheduleReturns].forEach(item => {
-    if (item.agentnumber === '99') {
+    if (isCandyCustomer(item.customernumber, candyCustomers)) {
       const customerName = getReplacementCustomerName(item, replacementMap);
       agent99Customers.add(customerName);
     }

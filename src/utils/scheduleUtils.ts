@@ -379,4 +379,12 @@ export const getReplacementCustomerDetails = (
   };
 };
 
+/**
+ * Checks if a customer is a Candy Plus customer based on customernumber from candycustomerlist
+ */
+export const isCandyCustomer = (customernumber: string | undefined, candyCustomers: Set<string>): boolean => {
+  if (!customernumber) return false;
+  return candyCustomers.has(customernumber);
+};
+
 export type { OrderWithSchedule, ReturnWithSchedule };
