@@ -422,9 +422,12 @@ const Calendar = () => {
   const allowedGroupIds = useMemo(() => {
     if (!currentUser) return [];
     
+    console.log('🔐 Calculating allowedGroupIds for user:', currentUser.agentnumber, 'selectedAgent:', selectedAgent);
+    
     // Admin (Agent 4) can filter by selected agent
     if (currentUser.agentnumber === "4") {
       if (selectedAgent === '4') {
+        console.log('👑 Admin with "משרד" selected - returning null (all groups)');
         return null; // Show all groups when "משרד" is selected
       }
       // Use selected agent for filtering when admin selects specific agent
@@ -476,11 +479,13 @@ const Calendar = () => {
         return schedule?.groups_id;
       }).filter((groupId): groupId is number => groupId !== undefined);
       
+      console.log('📋 Admin with specific agent selected - returning scheduleGroupIds:', scheduleGroupIds);
       return scheduleGroupIds;
     }
 
     // Special logic for Agent 99 - give full access like admin, but filtered to agent 99
     if (currentUser.agentnumber === "99") {
+      console.log('🍭 Agent 99 - returning null (all groups allowed)');
       return null; // Allow access to all groups/schedules, filtering will be done by agentnumber
     }
 
@@ -507,12 +512,33 @@ const Calendar = () => {
   // Filtered schedules
   const filteredSchedules = useMemo(() => {
     if (!currentUser) return [];
-    // Allow admin and agent 99 to see all schedules
-    if (currentUser.agentnumber === "4" || currentUser.agentnumber === "99") return distributionSchedules;
     
-    if (!allowedGroupIds || allowedGroupIds.length === 0) return [];
+    console.log('📅 Filtering schedules for user:', currentUser.agentnumber);
+    
+    // Allow admin and agent 99 to see all schedules
+    if (currentUser.agentnumber === "4" || currentUser.agentnumber === "99") {
+      console.log('👑/🍭 Admin or Agent 99 - showing all schedules');
+      return distributionSchedules;
+    }
+    
+    if (!allowedGroupIds || allowedGroupIds.length === 0) {
+      console.log('❌ No allowedGroupIds - returning empty array');
+      return [];
+    }
 
-    return distributionSchedules.filter(sch => allowedGroupIds.includes(sch.groups_id));
+    const filtered = distributionSchedules.filter(sch => allowedGroupIds.includes(sch.groups_id));
+    console.log('📊 Filtered schedules count:', filtered.length);
+    
+    // Check if schedule 282 is included
+    const schedule282 = filtered.find(s => s.schedule_id === 282);
+    if (schedule282) {
+      console.log('✅ Schedule 282 found in filtered schedules');
+    } else {
+      console.log('❌ Schedule 282 NOT found in filtered schedules');
+      console.log('🔍 Schedule 282 details:', distributionSchedules.find(s => s.schedule_id === 282));
+    }
+    
+    return filtered;
   }, [distributionSchedules, allowedGroupIds, currentUser]);
 
   // Filtered orders + returns. Show only those whose schedule/group is allowed.
@@ -551,7 +577,27 @@ const Calendar = () => {
     }
     
     // Apply agent filter on top of permissions
-    return filterOrdersByAgent(baseFiltered);
+    const finalFiltered = filterOrdersByAgent(baseFiltered);
+    
+    // Debug order 16507 throughout the filtering process
+    console.log('🔍 DEBUG ORDER 16507 - selectedAgent:', selectedAgent);
+    console.log('🔍 DEBUG ORDER 16507 - currentUser:', currentUser?.agentnumber);
+    
+    const order16507InBase = baseFiltered.find(o => o.ordernumber === 16507);
+    if (order16507InBase) {
+      console.log('🎯 Found order 16507 in baseFiltered:', order16507InBase);
+    } else {
+      console.log('❌ Order 16507 NOT found in baseFiltered');
+    }
+    
+    const order16507InFinal = finalFiltered.find(o => o.ordernumber === 16507);
+    if (order16507InFinal) {
+      console.log('✅ Order 16507 found in finalFiltered:', order16507InFinal);
+    } else {
+      console.log('❌ Order 16507 NOT found in finalFiltered');
+    }
+    
+    return finalFiltered;
   }, [orders, allowedGroupIds, currentUser, distributionSchedules, selectedAgent, filterOrdersByAgent]);
   const filteredReturns = useMemo(() => {
     if (!currentUser) return [];
