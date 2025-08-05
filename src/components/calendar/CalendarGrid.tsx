@@ -44,7 +44,6 @@ interface CalendarGridProps {
   onRefreshData?: () => void;
   customerReplacementMap?: Map<string, any>;
   selectedAgent?: string;
-  candyCustomers?: Set<string>;
 }
 
 // Helper functions for day mapping
@@ -88,7 +87,7 @@ const CalendarDay: React.FC<{
   };
   customerReplacementMap?: Map<string, any>;
   selectedAgent?: string;
-  candyCustomers?: Set<string>;
+  
 }> = ({
   date,
   schedulesForDate,
@@ -101,7 +100,6 @@ const CalendarDay: React.FC<{
   currentUser,
   customerReplacementMap,
   selectedAgent,
-  candyCustomers = new Set()
 }) => {
   // Only admin can drop
   const isAdmin = currentUser?.agentnumber === "4";
@@ -224,7 +222,7 @@ const CalendarDay: React.FC<{
             </Button>}
         </div>
         <div className="space-y-2">
-          {schedulesForDate.map(schedule => <CalendarCard key={schedule.schedule_id} scheduleId={schedule.schedule_id} groupId={schedule.groups_id} distributionGroups={distributionGroups} drivers={drivers} orders={orders} returns={returns} driverId={schedule.driver_id} showAllCustomers={true} isCalendarMode={true} schedule={schedule} currentUser={currentUser} customerReplacementMap={customerReplacementMap} selectedAgent={selectedAgent} candyCustomers={candyCustomers} />)}
+          {schedulesForDate.map(schedule => <CalendarCard key={schedule.schedule_id} scheduleId={schedule.schedule_id} groupId={schedule.groups_id} distributionGroups={distributionGroups} drivers={drivers} orders={orders} returns={returns} driverId={schedule.driver_id} showAllCustomers={true} isCalendarMode={true} schedule={schedule} currentUser={currentUser} customerReplacementMap={customerReplacementMap} selectedAgent={selectedAgent}  />)}
         </div>
       </Card>
     </div>
@@ -242,7 +240,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
   onRefreshData,
   customerReplacementMap,
   selectedAgent,
-  candyCustomers = new Set()
+  
 }) => {
   const [productionDialogOpen, setProductionDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -336,7 +334,6 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
               currentUser={currentUser}
               customerReplacementMap={customerReplacementMap}
               selectedAgent={selectedAgent}
-              candyCustomers={candyCustomers}
             />
           </div>
         ))}
@@ -358,7 +355,6 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
               currentUser={currentUser}
               customerReplacementMap={customerReplacementMap}
               selectedAgent={selectedAgent}
-              candyCustomers={candyCustomers}
             />
           </div>
         ))}

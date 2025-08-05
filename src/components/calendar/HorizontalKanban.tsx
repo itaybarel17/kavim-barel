@@ -54,7 +54,7 @@ interface HorizontalKanbanProps {
   onAgentChange?: (agent: string) => void;
   showOnlyMyActivity?: boolean;
   onShowMyActivityChange?: (checked: boolean) => void;
-  candyCustomers?: Set<string>;
+  
 }
 export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
   distributionSchedules,
@@ -73,7 +73,7 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
   onAgentChange,
   showOnlyMyActivity = false,
   onShowMyActivityChange,
-  candyCustomers = new Set()
+  
 }) => {
   // Filter schedules by agent (admin sees all)
   const isAdmin = currentUser?.agentnumber === "4";
@@ -287,7 +287,7 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
                   dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
                   currentUser={currentUser}
                   customerReplacementMap={customerReplacementMap}
-                  candyCustomers={candyCustomers}
+                  
                 />
               </div>
             ))}
