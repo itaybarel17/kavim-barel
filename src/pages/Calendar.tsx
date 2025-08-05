@@ -511,8 +511,13 @@ const Calendar = () => {
     if (!currentUser) return [];
     let baseFiltered = orders;
     
+    // Special handling for agent 99 - show ALL their orders regardless of schedule connections
+    if (currentUser.agentnumber === "99") {
+      return orders; // Agent 99 sees all their orders (already filtered by filterOrdersByUser)
+    }
+    
     // Apply user permissions first
-    if (currentUser.agentnumber !== "4" && currentUser.agentnumber !== "99") {
+    if (currentUser.agentnumber !== "4") {
       if (!allowedGroupIds || allowedGroupIds.length === 0) return [];
       
       // For regular agents, use the original logic with groups_id
@@ -540,8 +545,13 @@ const Calendar = () => {
     if (!currentUser) return [];
     let baseFiltered = returns;
     
+    // Special handling for agent 99 - show ALL their returns regardless of schedule connections
+    if (currentUser.agentnumber === "99") {
+      return returns; // Agent 99 sees all their returns (already filtered by filterReturnsByUser)
+    }
+    
     // Apply user permissions first
-    if (currentUser.agentnumber !== "4" && currentUser.agentnumber !== "99") {
+    if (currentUser.agentnumber !== "4") {
       if (!allowedGroupIds || allowedGroupIds.length === 0) return [];
       
       // For regular agents, use the original logic with groups_id
