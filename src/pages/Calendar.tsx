@@ -470,47 +470,9 @@ const Calendar = () => {
       return scheduleGroupIds;
     }
 
-    // Special logic for Agent 99 - only see specific schedule_ids that have his orders/returns  
+    // Special logic for Agent 99 - give full access like admin, but filtered to agent 99
     if (currentUser.agentnumber === "99") {
-      const agent99ScheduleIds = new Set<number>();
-      distributionSchedules.forEach(schedule => {
-        const hasAgent99Orders = orders.some(order => {
-          const relevantScheduleIds = [];
-          if (typeof order.schedule_id === 'number') relevantScheduleIds.push(order.schedule_id);
-          if (order.schedule_id_if_changed) {
-            if (typeof order.schedule_id_if_changed === 'number') {
-              relevantScheduleIds.push(order.schedule_id_if_changed);
-            } else if (Array.isArray(order.schedule_id_if_changed)) {
-              order.schedule_id_if_changed.forEach(sid => {
-                if (typeof sid === 'number') relevantScheduleIds.push(sid);
-              });
-            } else if (typeof order.schedule_id_if_changed === 'object' && order.schedule_id_if_changed.schedule_id) {
-              relevantScheduleIds.push(order.schedule_id_if_changed.schedule_id);
-            }
-          }
-          return relevantScheduleIds.includes(schedule.schedule_id) && order.agentnumber === '99';
-        });
-        const hasAgent99Returns = returns.some(returnItem => {
-          const relevantScheduleIds = [];
-          if (typeof returnItem.schedule_id === 'number') relevantScheduleIds.push(returnItem.schedule_id);
-          if (returnItem.schedule_id_if_changed) {
-            if (typeof returnItem.schedule_id_if_changed === 'number') {
-              relevantScheduleIds.push(returnItem.schedule_id_if_changed);
-            } else if (Array.isArray(returnItem.schedule_id_if_changed)) {
-              returnItem.schedule_id_if_changed.forEach(sid => {
-                if (typeof sid === 'number') relevantScheduleIds.push(sid);
-              });
-            } else if (typeof returnItem.schedule_id_if_changed === 'object' && returnItem.schedule_id_if_changed.schedule_id) {
-              relevantScheduleIds.push(returnItem.schedule_id_if_changed.schedule_id);
-            }
-          }
-          return relevantScheduleIds.includes(schedule.schedule_id) && returnItem.agentnumber === '99';
-        });
-        if (hasAgent99Orders || hasAgent99Returns) {
-          agent99ScheduleIds.add(schedule.schedule_id);
-        }
-      });
-      return Array.from(agent99ScheduleIds);
+      return null; // Allow access to all groups/schedules, filtering will be done by agentnumber
     }
 
     // Allow only groups where agent is in distribution_groups.agents (array of agentnumbers in jsonb)
@@ -536,13 +498,11 @@ const Calendar = () => {
   // Filtered schedules
   const filteredSchedules = useMemo(() => {
     if (!currentUser) return [];
-    if (currentUser.agentnumber === "4") return distributionSchedules;
+    // Allow admin and agent 99 to see all schedules
+    if (currentUser.agentnumber === "4" || currentUser.agentnumber === "99") return distributionSchedules;
+    
     if (!allowedGroupIds || allowedGroupIds.length === 0) return [];
 
-    // For Agent 99, allowedGroupIds actually contains schedule_ids
-    if (currentUser.agentnumber === "99") {
-      return distributionSchedules.filter(sch => allowedGroupIds.includes(sch.schedule_id));
-    }
     return distributionSchedules.filter(sch => allowedGroupIds.includes(sch.groups_id));
   }, [distributionSchedules, allowedGroupIds, currentUser]);
 
@@ -552,39 +512,25 @@ const Calendar = () => {
     let baseFiltered = orders;
     
     // Apply user permissions first
-    if (currentUser.agentnumber !== "4") {
+    if (currentUser.agentnumber !== "4" && currentUser.agentnumber !== "99") {
       if (!allowedGroupIds || allowedGroupIds.length === 0) return [];
       
-      // Special filtering for Agent 99 - check schedule_id directly
-      if (currentUser.agentnumber === "99") {
-        baseFiltered = orders.filter(o => {
-          // For Agent 99, check if any of the order's schedule_ids are in allowedGroupIds (which contains schedule_ids for Agent 99)
-          const allScheduleIds = [];
-          if (typeof o.schedule_id === 'number') allScheduleIds.push(o.schedule_id);
-          if (typeof o.schedule_id_if_changed === 'number') allScheduleIds.push(o.schedule_id_if_changed);
-          if (Array.isArray(o.schedule_id_if_changed)) o.schedule_id_if_changed.forEach(sid => {
-            if (typeof sid === 'number') allScheduleIds.push(sid);
-          });
-          return allScheduleIds.some(sid => allowedGroupIds.includes(sid)) && o.agentnumber === '99';
+      // For regular agents, use the original logic with groups_id
+      baseFiltered = orders.filter(o => {
+        // Find to which group this order belongs, via its schedule_id or schedule_id_if_changed
+        const allScheduleIds = [];
+        if (typeof o.schedule_id === 'number') allScheduleIds.push(o.schedule_id);
+        if (typeof o.schedule_id_if_changed === 'number') allScheduleIds.push(o.schedule_id_if_changed);
+        if (Array.isArray(o.schedule_id_if_changed)) o.schedule_id_if_changed.forEach(sid => {
+          if (typeof sid === 'number') allScheduleIds.push(sid);
         });
-      } else {
-        // For other agents, use the original logic with groups_id
-        baseFiltered = orders.filter(o => {
-          // Find to which group this order belongs, via its schedule_id or schedule_id_if_changed
-          const allScheduleIds = [];
-          if (typeof o.schedule_id === 'number') allScheduleIds.push(o.schedule_id);
-          if (typeof o.schedule_id_if_changed === 'number') allScheduleIds.push(o.schedule_id_if_changed);
-          if (Array.isArray(o.schedule_id_if_changed)) o.schedule_id_if_changed.forEach(sid => {
-            if (typeof sid === 'number') allScheduleIds.push(sid);
-          });
-          // For each schedule_id in this order, find its group via distributionSchedules
-          const inAllowed = allScheduleIds.some(sid => {
-            const sch = distributionSchedules.find(s => s.schedule_id === sid);
-            return sch && allowedGroupIds.includes(sch.groups_id);
-          });
-          return inAllowed;
+        // For each schedule_id in this order, find its group via distributionSchedules
+        const inAllowed = allScheduleIds.some(sid => {
+          const sch = distributionSchedules.find(s => s.schedule_id === sid);
+          return sch && allowedGroupIds.includes(sch.groups_id);
         });
-      }
+        return inAllowed;
+      });
     }
     
     // Apply agent filter on top of permissions
@@ -595,39 +541,25 @@ const Calendar = () => {
     let baseFiltered = returns;
     
     // Apply user permissions first
-    if (currentUser.agentnumber !== "4") {
+    if (currentUser.agentnumber !== "4" && currentUser.agentnumber !== "99") {
       if (!allowedGroupIds || allowedGroupIds.length === 0) return [];
       
-      // Special filtering for Agent 99 - check schedule_id directly
-      if (currentUser.agentnumber === "99") {
-        baseFiltered = returns.filter(o => {
-          // For Agent 99, check if any of the return's schedule_ids are in allowedGroupIds (which contains schedule_ids for Agent 99)
-          const allScheduleIds = [];
-          if (typeof o.schedule_id === 'number') allScheduleIds.push(o.schedule_id);
-          if (typeof o.schedule_id_if_changed === 'number') allScheduleIds.push(o.schedule_id_if_changed);
-          if (Array.isArray(o.schedule_id_if_changed)) o.schedule_id_if_changed.forEach(sid => {
-            if (typeof sid === 'number') allScheduleIds.push(sid);
-          });
-          return allScheduleIds.some(sid => allowedGroupIds.includes(sid)) && o.agentnumber === '99';
+      // For regular agents, use the original logic with groups_id
+      baseFiltered = returns.filter(o => {
+        // Find to which group this return belongs, via its schedule_id or schedule_id_if_changed
+        const allScheduleIds = [];
+        if (typeof o.schedule_id === 'number') allScheduleIds.push(o.schedule_id);
+        if (typeof o.schedule_id_if_changed === 'number') allScheduleIds.push(o.schedule_id_if_changed);
+        if (Array.isArray(o.schedule_id_if_changed)) o.schedule_id_if_changed.forEach(sid => {
+          if (typeof sid === 'number') allScheduleIds.push(sid);
         });
-      } else {
-        // For other agents, use the original logic with groups_id
-        baseFiltered = returns.filter(o => {
-          // Find to which group this return belongs, via its schedule_id or schedule_id_if_changed
-          const allScheduleIds = [];
-          if (typeof o.schedule_id === 'number') allScheduleIds.push(o.schedule_id);
-          if (typeof o.schedule_id_if_changed === 'number') allScheduleIds.push(o.schedule_id_if_changed);
-          if (Array.isArray(o.schedule_id_if_changed)) o.schedule_id_if_changed.forEach(sid => {
-            if (typeof sid === 'number') allScheduleIds.push(sid);
-          });
-          // For each schedule_id in this return, find its group via distributionSchedules
-          const inAllowed = allScheduleIds.some(sid => {
-            const sch = distributionSchedules.find(s => s.schedule_id === sid);
-            return sch && allowedGroupIds.includes(sch.groups_id);
-          });
-          return inAllowed;
+        // For each schedule_id in this return, find its group via distributionSchedules
+        const inAllowed = allScheduleIds.some(sid => {
+          const sch = distributionSchedules.find(s => s.schedule_id === sid);
+          return sch && allowedGroupIds.includes(sch.groups_id);
         });
-      }
+        return inAllowed;
+      });
     }
     
     // Apply agent filter on top of permissions
