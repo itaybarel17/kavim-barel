@@ -14,11 +14,12 @@ export const useWaitingCustomers = (currentUserAgent?: string) => {
     queryFn: async (): Promise<WaitingCustomersData> => {
       console.log('Fetching waiting customers data (simplified logic) for agent:', currentUserAgent);
       
-      // Get all orders that are waiting - much simpler approach
+      // Get all orders that are waiting - with candycustomerlist JOIN for accurate Candy+ identification
       // A customer is "waiting" if they have an order that meets one of these conditions:
       // 1. schedule_id IS NULL AND done_mainorder IS NULL (unassigned)
       // 2. schedule_id IS NOT NULL AND done_mainorder IS NULL (assigned but not yet produced)
       
+      // First get all waiting orders with a separate query to candycustomerlist
       const { data: waitingOrders, error } = await supabase
         .from('mainorder')
         .select(`
@@ -39,7 +40,25 @@ export const useWaitingCustomers = (currentUserAgent?: string) => {
         throw error;
       }
 
+      // Get candycustomerlist data for agent mapping
+      const { data: candyCustomers, error: candyError } = await supabase
+        .from('candycustomerlist')
+        .select('customernumber, agentnumber');
+
+      if (candyError) {
+        console.error('Error fetching candy customers:', candyError);
+        // Continue without candy data rather than failing
+      }
+
       console.log('All waiting orders fetched:', waitingOrders?.length || 0);
+
+      // Create a map of candy customers for efficient lookup
+      const candyMap = new Map();
+      if (candyCustomers) {
+        candyCustomers.forEach(candy => {
+          candyMap.set(candy.customernumber, candy.agentnumber);
+        });
+      }
 
       // Filter orders based on current user agent
       let allWaitingOrders = waitingOrders || [];
@@ -49,13 +68,21 @@ export const useWaitingCustomers = (currentUserAgent?: string) => {
       // Filter orders based on current user agent
       if (currentUserAgent && currentUserAgent !== '4') {
         if (currentUserAgent === '99') {
-          // Kandi+ user - show only orders with agent number 99
-          allWaitingOrders = allWaitingOrders.filter(order => order.agentnumber === '99');
-        } else {
-          // Regular agent - show only their orders, excluding Kandi+ (99)
+          // Kandi+ user - show only orders where candycustomerlist.agentnumber is 99
           allWaitingOrders = allWaitingOrders.filter(order => 
-            order.agentnumber === currentUserAgent && order.agentnumber !== '99'
+            candyMap.get(order.customernumber) === '99'
           );
+        } else {
+          // Regular agent - show only their orders, excluding Kandi+ customers
+          allWaitingOrders = allWaitingOrders.filter(order => {
+            // If customer exists in candycustomerlist, use that agent number
+            const candyAgent = candyMap.get(order.customernumber);
+            if (candyAgent) {
+              return candyAgent === currentUserAgent;
+            }
+            // Otherwise fall back to mainorder.agentnumber
+            return order.agentnumber === currentUserAgent && order.agentnumber !== '99';
+          });
         }
       }
       // Agent 4 (admin) sees all orders - no filtering
@@ -73,8 +100,9 @@ export const useWaitingCustomers = (currentUserAgent?: string) => {
       allWaitingOrders.forEach(order => {
         uniqueCustomers.add(order.customernumber);
         
-        // Check if customer is קנדי+ (agent number '99')
-        if (order.agentnumber === '99') {
+        // Check if customer is קנדי+ using candycustomerlist data first, fallback to mainorder
+        const candyAgent = candyMap.get(order.customernumber);
+        if (candyAgent === '99' || (candyAgent === undefined && order.agentnumber === '99')) {
           kandiPlusCustomers.add(order.customernumber);
         }
       });
