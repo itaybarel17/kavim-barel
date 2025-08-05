@@ -143,75 +143,6 @@ const Distribution = () => {
     return returns;
   };
 
-  // Query to get agent 99's customer areas from candycustomerlist
-  const { data: candyCustomerAreas = [] } = useQuery({
-    queryKey: ['candyCustomerAreas', currentUser?.agentnumber],
-    queryFn: async () => {
-      if (currentUser?.agentnumber !== '99') return [];
-      
-      const { data, error } = await supabase
-        .from('candycustomerlist')
-        .select('newarea, city_area, extraarea')
-        .eq('agentnumber', '99');
-      
-      if (error) throw error;
-      
-      // Extract all unique areas
-      const areas = new Set<string>();
-      data.forEach(customer => {
-        const mainArea = customer.newarea || customer.city_area;
-        if (mainArea) areas.add(mainArea);
-        if (customer.extraarea) areas.add(customer.extraarea);
-      });
-      
-      return Array.from(areas);
-    },
-    enabled: currentUser?.agentnumber === '99'
-  });
-
-  // Helper function to filter distribution groups based on user permissions
-  const filterDistributionGroupsByUser = (groups: DistributionGroup[], orders: Order[], returns: Return[]) => {
-    // Agent 99 should only see groups that have their own active orders or returns
-    if (currentUser?.agentnumber === '99') {
-      const agent99Orders = orders.filter(order => order.agentnumber === '99');
-      const agent99Returns = returns.filter(returnItem => returnItem.agentnumber === '99');
-      
-      // Get all areas from agent 99's orders and returns
-      const agent99Areas = new Set<string>();
-      
-      agent99Orders.forEach(order => {
-        if (order.ezor1) {
-          // ezor1 can be like "[אזור א]" or "[אזור א, אזור ב]"
-          const areas = order.ezor1.replace(/[\[\]]/g, '').split(',').map(area => area.trim());
-          areas.forEach(area => agent99Areas.add(area));
-        }
-        if (order.ezor2) {
-          agent99Areas.add(order.ezor2);
-        }
-      });
-      
-      agent99Returns.forEach(returnItem => {
-        // Returns don't have ezor1/ezor2, so we need to get them from candycustomerlist
-        // Add all areas from candycustomerlist for returns
-        candyCustomerAreas.forEach(area => agent99Areas.add(area));
-      });
-      
-      // Also add areas from candycustomerlist to ensure coverage
-      candyCustomerAreas.forEach(area => agent99Areas.add(area));
-      
-      // If no areas found, get all groups to be safe (fallback)
-      if (agent99Areas.size === 0) {
-        return groups;
-      }
-      
-      // Filter groups to only those that match agent 99's areas
-      return groups.filter(group => agent99Areas.has(group.separation));
-    }
-    
-    // All other agents can see all groups
-    return groups;
-  };
-
   // Fetch orders (exclude produced orders: done_mainorder IS NOT NULL and deleted orders: ordercancel IS NOT NULL)
   const {
     data: allOrders = [],
@@ -347,9 +278,6 @@ const Distribution = () => {
     }
     return map;
   }, {} as Record<string, { lat: number; lng: number }>);
-
-  // Filter distribution groups based on user permissions (must be after distributionGroups is fetched)
-  const filteredDistributionGroups = filterDistributionGroupsByUser(distributionGroups, orders, returns);
 
 
   // --- BEGIN CUSTOMER STATUS LOGIC FOR ICONS ---
@@ -1098,16 +1026,8 @@ const Distribution = () => {
   };
 
   // Filter unassigned items (those without schedule_id or with schedule_id pointing to produced schedules)
-  const baseUnassignedOrders = orders.filter(order => !order.schedule_id || !distributionSchedules.some(schedule => schedule.schedule_id === order.schedule_id));
-  const baseUnassignedReturns = returns.filter(returnItem => !returnItem.schedule_id || !distributionSchedules.some(schedule => schedule.schedule_id === returnItem.schedule_id));
-  
-  // For agent 99, filter to show only their unassigned orders/returns
-  const unassignedOrders = currentUser?.agentnumber === "99" 
-    ? baseUnassignedOrders.filter(order => order.agentnumber === "99")
-    : baseUnassignedOrders;
-  const unassignedReturns = currentUser?.agentnumber === "99"
-    ? baseUnassignedReturns.filter(returnItem => returnItem.agentnumber === "99") 
-    : baseUnassignedReturns;
+  const unassignedOrders = orders.filter(order => !order.schedule_id || !distributionSchedules.some(schedule => schedule.schedule_id === order.schedule_id));
+  const unassignedReturns = returns.filter(returnItem => !returnItem.schedule_id || !distributionSchedules.some(schedule => schedule.schedule_id === returnItem.schedule_id));
 
   // Create sorted drop zones (pinned first, then regular order)
   const dropZones = useMemo(() => {
@@ -1237,7 +1157,7 @@ const Distribution = () => {
             <DropZone 
               key={zoneNumber} 
               zoneNumber={zoneNumber} 
-              distributionGroups={filteredDistributionGroups} 
+              distributionGroups={distributionGroups} 
               distributionSchedules={distributionSchedules} 
               drivers={drivers} 
               onDrop={handleDrop}

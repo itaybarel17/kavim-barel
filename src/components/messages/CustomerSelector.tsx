@@ -34,11 +34,8 @@ export function CustomerSelector({ value, onChange, onCustomerChange, userAgentN
     queryFn: async () => {
       if (!searchTerm.trim() || !isSystemCustomer) return [];
       
-      // For agent 99, search in candycustomerlist instead of customerlist
-      const tableName = userAgentNumber === '99' ? 'candycustomerlist' : 'customerlist';
-      
       let query = supabase
-        .from(tableName)
+        .from('customerlist')
         .select('customernumber, customername, city, address, agentnumber')
         .or(`customername.ilike.%${searchTerm}%,customernumber.ilike.%${searchTerm}%`);
       

@@ -193,16 +193,8 @@ export const DropZone: React.FC<DropZoneProps> = ({
   }), [zoneNumber, currentZoneState.scheduleId]);
 
   // Get assigned items for this zone based on schedule_id - ONLY for ACTIVE schedules
-  // For agent 99, also filter to show only their own orders/returns within the selected group
-  const baseAssignedOrders = orders.filter(order => scheduleId && order.schedule_id === scheduleId && distributionSchedules.some(schedule => schedule.schedule_id === scheduleId));
-  const baseAssignedReturns = returns.filter(returnItem => scheduleId && returnItem.schedule_id === scheduleId && distributionSchedules.some(schedule => schedule.schedule_id === scheduleId));
-  
-  const assignedOrders = user?.agentnumber === '99' 
-    ? baseAssignedOrders.filter(order => order.agentnumber === '99')
-    : baseAssignedOrders;
-  const assignedReturns = user?.agentnumber === '99'
-    ? baseAssignedReturns.filter(returnItem => returnItem.agentnumber === '99')
-    : baseAssignedReturns;
+  const assignedOrders = orders.filter(order => scheduleId && order.schedule_id === scheduleId && distributionSchedules.some(schedule => schedule.schedule_id === scheduleId));
+  const assignedReturns = returns.filter(returnItem => scheduleId && returnItem.schedule_id === scheduleId && distributionSchedules.some(schedule => schedule.schedule_id === scheduleId));
 
   // Sort items with siren status at the top
   const sortedOrders = useMemo(() => sortBySirenStatus(assignedOrders), [assignedOrders]);
