@@ -143,6 +143,32 @@ const Distribution = () => {
     return returns;
   };
 
+  // Query to get agent 99's customer areas from candycustomerlist
+  const { data: candyCustomerAreas = [] } = useQuery({
+    queryKey: ['candyCustomerAreas', currentUser?.agentnumber],
+    queryFn: async () => {
+      if (currentUser?.agentnumber !== '99') return [];
+      
+      const { data, error } = await supabase
+        .from('candycustomerlist')
+        .select('newarea, city_area, extraarea')
+        .eq('agentnumber', '99');
+      
+      if (error) throw error;
+      
+      // Extract all unique areas
+      const areas = new Set<string>();
+      data.forEach(customer => {
+        const mainArea = customer.newarea || customer.city_area;
+        if (mainArea) areas.add(mainArea);
+        if (customer.extraarea) areas.add(customer.extraarea);
+      });
+      
+      return Array.from(areas);
+    },
+    enabled: currentUser?.agentnumber === '99'
+  });
+
   // Helper function to filter distribution groups based on user permissions
   const filterDistributionGroupsByUser = (groups: DistributionGroup[], orders: Order[], returns: Return[]) => {
     // Agent 99 should only see groups that have their own active orders or returns
@@ -165,9 +191,13 @@ const Distribution = () => {
       });
       
       agent99Returns.forEach(returnItem => {
-        // Returns don't have ezor1/ezor2, so we need to get them from customerlist
-        // For now, we'll get all groups to be safe, but this could be optimized
+        // Returns don't have ezor1/ezor2, so we need to get them from candycustomerlist
+        // Add all areas from candycustomerlist for returns
+        candyCustomerAreas.forEach(area => agent99Areas.add(area));
       });
+      
+      // Also add areas from candycustomerlist to ensure coverage
+      candyCustomerAreas.forEach(area => agent99Areas.add(area));
       
       // If no areas found, get all groups to be safe (fallback)
       if (agent99Areas.size === 0) {
