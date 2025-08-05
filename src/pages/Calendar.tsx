@@ -102,7 +102,7 @@ const Calendar = () => {
 
   // Helper function to filter orders based on user permissions and show my activity toggle
   const filterOrdersByUser = (orders: Order[]) => {
-    // Agent 99 can only see their own orders
+    // Agent 99 (Candy Plus) can only see their own orders (agentnumber = '99' and icecream = NULL)
     if (currentUser?.agentnumber === '99') {
       return orders.filter(order => order.agentnumber === '99');
     }
@@ -118,7 +118,7 @@ const Calendar = () => {
 
   // Helper function to filter returns based on user permissions and show my activity toggle
   const filterReturnsByUser = (returns: Return[]) => {
-    // Agent 99 can only see their own returns
+    // Agent 99 (Candy Plus) can only see their own returns (agentnumber = '99' and icecream = NULL)
     if (currentUser?.agentnumber === '99') {
       return returns.filter(returnItem => returnItem.agentnumber === '99');
     }
