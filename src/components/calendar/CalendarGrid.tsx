@@ -157,7 +157,7 @@ const CalendarDay: React.FC<{
                 relevantScheduleIds.push(order.schedule_id_if_changed.schedule_id);
               }
             }
-            return relevantScheduleIds.includes(schedule.schedule_id) && order.agentnumber === selectedAgent;
+            return relevantScheduleIds.includes(schedule.schedule_id) && String(order.agentnumber) === String(selectedAgent);
           }) || returns.some(returnItem => {
             const relevantScheduleIds = [];
             if (typeof returnItem.schedule_id === 'number') relevantScheduleIds.push(returnItem.schedule_id);
@@ -172,7 +172,7 @@ const CalendarDay: React.FC<{
                 relevantScheduleIds.push(returnItem.schedule_id_if_changed.schedule_id);
               }
             }
-            return relevantScheduleIds.includes(schedule.schedule_id) && returnItem.agentnumber === selectedAgent;
+            return relevantScheduleIds.includes(schedule.schedule_id) && String(returnItem.agentnumber) === String(selectedAgent);
           });
         });
       }

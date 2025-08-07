@@ -130,13 +130,13 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
 
   // Filter based on selected agent when admin uses agent filter  
   if (currentUser?.agentnumber === "4" && selectedAgent && selectedAgent !== '4') {
-    scheduleOrders = scheduleOrders.filter(order => order.agentnumber === selectedAgent);
-    scheduleReturns = scheduleReturns.filter(returnItem => returnItem.agentnumber === selectedAgent);
+    scheduleOrders = scheduleOrders.filter(order => String(order.agentnumber) === String(selectedAgent));
+    scheduleReturns = scheduleReturns.filter(returnItem => String(returnItem.agentnumber) === String(selectedAgent));
   } 
   // Agent 99 sees only his own orders/returns 
   else if (currentUser?.agentnumber === "99") {
-    scheduleOrders = scheduleOrders.filter(order => order.agentnumber === '99');
-    scheduleReturns = scheduleReturns.filter(returnItem => returnItem.agentnumber === '99');
+    scheduleOrders = scheduleOrders.filter(order => String(order.agentnumber) === '99');
+    scheduleReturns = scheduleReturns.filter(returnItem => String(returnItem.agentnumber) === '99');
   }
 
   // Debug logging for schedule 219 after filtering
@@ -165,7 +165,7 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   // Create a map to track which customers belong to Agent 99 (Candy Plus)
   const agent99Customers = new Set<string>();
   [...scheduleOrders, ...scheduleReturns].forEach(item => {
-    if (item.agentnumber === '99') {
+    if (String(item.agentnumber) === '99') {
       const customerName = getReplacementCustomerName(item, replacementMap);
       agent99Customers.add(customerName);
     }

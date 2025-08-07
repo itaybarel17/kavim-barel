@@ -338,12 +338,12 @@ const Calendar = () => {
   // Agent filtering functions
   const filterOrdersByAgent = (orders: Order[]) => {
     if (selectedAgent === '4') return orders; // "משרד" shows all
-    return orders.filter(order => order.agentnumber === selectedAgent);
+    return orders.filter(order => String(order.agentnumber) === String(selectedAgent));
   };
 
   const filterReturnsByAgent = (returns: Return[]) => {
     if (selectedAgent === '4') return returns; // "משרד" shows all
-    return returns.filter(returnItem => returnItem.agentnumber === selectedAgent);
+    return returns.filter(returnItem => String(returnItem.agentnumber) === String(selectedAgent));
   };
 
   // --- BEGIN CUSTOMER STATUS LOGIC FOR ICONS ---
@@ -401,7 +401,7 @@ const Calendar = () => {
     if (!order.schedule_id) {
       if (currentUser?.agentnumber === "4") {
         // Admin sees all, but filter by selected agent
-        return selectedAgent === '4' || order.agentnumber === selectedAgent;
+        return selectedAgent === '4' || String(order.agentnumber) === String(selectedAgent);
       }
       return order.agentnumber === currentUser?.agentnumber; // Others see only their own
     }
@@ -412,7 +412,7 @@ const Calendar = () => {
     if (!returnItem.schedule_id) {
       if (currentUser?.agentnumber === "4") {
         // Admin sees all, but filter by selected agent
-        return selectedAgent === '4' || returnItem.agentnumber === selectedAgent;
+        return selectedAgent === '4' || String(returnItem.agentnumber) === String(selectedAgent);
       }
       return returnItem.agentnumber === currentUser?.agentnumber; // Others see only their own
     }
@@ -447,7 +447,7 @@ const Calendar = () => {
               relevantScheduleIds.push(order.schedule_id_if_changed.schedule_id);
             }
           }
-          return relevantScheduleIds.includes(schedule.schedule_id) && order.agentnumber === agentForFiltering;
+          return relevantScheduleIds.includes(schedule.schedule_id) && String(order.agentnumber) === String(agentForFiltering);
         });
         const hasAgentReturns = returns.some(returnItem => {
           const relevantScheduleIds = [];
@@ -463,7 +463,7 @@ const Calendar = () => {
               relevantScheduleIds.push(returnItem.schedule_id_if_changed.schedule_id);
             }
           }
-          return relevantScheduleIds.includes(schedule.schedule_id) && returnItem.agentnumber === agentForFiltering;
+          return relevantScheduleIds.includes(schedule.schedule_id) && String(returnItem.agentnumber) === String(agentForFiltering);
         });
         if (hasAgentOrders || hasAgentReturns) {
           agentScheduleIds.add(schedule.schedule_id);

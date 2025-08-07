@@ -100,7 +100,7 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
                 relevantScheduleIds.push(order.schedule_id_if_changed.schedule_id);
               }
             }
-            return relevantScheduleIds.includes(schedule.schedule_id) && order.agentnumber === selectedAgent;
+            return relevantScheduleIds.includes(schedule.schedule_id) && String(order.agentnumber) === String(selectedAgent);
           });
           const hasAgentReturns = returns.some(returnItem => {
             const relevantScheduleIds = [];
@@ -116,7 +116,7 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
                 relevantScheduleIds.push(returnItem.schedule_id_if_changed.schedule_id);
               }
             }
-            return relevantScheduleIds.includes(schedule.schedule_id) && returnItem.agentnumber === selectedAgent;
+            return relevantScheduleIds.includes(schedule.schedule_id) && String(returnItem.agentnumber) === String(selectedAgent);
           });
           if (hasAgentOrders || hasAgentReturns) {
             agentScheduleIds.add(schedule.schedule_id);
@@ -146,7 +146,7 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
               relevantScheduleIds.push(order.schedule_id_if_changed.schedule_id);
             }
           }
-          return relevantScheduleIds.includes(schedule.schedule_id) && order.agentnumber === '99';
+          return relevantScheduleIds.includes(schedule.schedule_id) && String(order.agentnumber) === '99';
         });
         const hasAgent99Returns = returns.some(returnItem => {
           const relevantScheduleIds = [];
@@ -162,7 +162,7 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
               relevantScheduleIds.push(returnItem.schedule_id_if_changed.schedule_id);
             }
           }
-          return relevantScheduleIds.includes(schedule.schedule_id) && returnItem.agentnumber === '99';
+          return relevantScheduleIds.includes(schedule.schedule_id) && String(returnItem.agentnumber) === '99';
         });
         if (hasAgent99Orders || hasAgent99Returns) {
           agent99ScheduleIds.add(schedule.schedule_id);
