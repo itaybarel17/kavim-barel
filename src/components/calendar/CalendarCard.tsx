@@ -105,44 +105,10 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   let scheduleOrders = getOrdersByScheduleId(orders, scheduleId);
   let scheduleReturns = getReturnsByScheduleId(returns, scheduleId);
 
-  // Debug logging for schedule 219
-  if (scheduleId === 219) {
-    console.log(`=== DEBUG SCHEDULE 219 ===`);
-    console.log(`isProduced: ${isProduced}`);
-    console.log(`currentUser: ${currentUser?.agentnumber}`);
-    console.log(`Raw orders count: ${orders.length}`);
-    console.log(`Raw returns count: ${returns.length}`);
-    console.log(`Schedule orders count (before agent filter): ${scheduleOrders.length}`);
-    console.log(`Schedule returns count (before agent filter): ${scheduleReturns.length}`);
-    console.log(`Schedule orders:`, scheduleOrders.map(o => ({ 
-      ordernumber: o.ordernumber, 
-      customername: o.customername, 
-      agentnumber: o.agentnumber,
-      schedule_id: o.schedule_id 
-    })));
-    console.log(`Schedule returns:`, scheduleReturns.map(r => ({ 
-      returnnumber: r.returnnumber, 
-      customername: r.customername, 
-      agentnumber: r.agentnumber,
-      schedule_id: r.schedule_id 
-    })));
-  }
-
-  // Filter based on selected agent when admin uses agent filter  
+  // Simplified filtering: Only filter by selected agent for admin, no other complex logic
   if (currentUser?.agentnumber === "4" && selectedAgent && selectedAgent !== '4') {
-    scheduleOrders = scheduleOrders.filter(order => String(order.agentnumber) === String(selectedAgent));
-    scheduleReturns = scheduleReturns.filter(returnItem => String(returnItem.agentnumber) === String(selectedAgent));
-  } 
-  // Agent 99 sees only his own orders/returns 
-  else if (currentUser?.agentnumber === "99") {
-    scheduleOrders = scheduleOrders.filter(order => String(order.agentnumber) === '99');
-    scheduleReturns = scheduleReturns.filter(returnItem => String(returnItem.agentnumber) === '99');
-  }
-
-  // Debug logging for schedule 219 after filtering
-  if (scheduleId === 219) {
-    console.log(`Schedule orders count (after agent filter): ${scheduleOrders.length}`);
-    console.log(`Schedule returns count (after agent filter): ${scheduleReturns.length}`);
+    scheduleOrders = scheduleOrders.filter(order => order.agentnumber === selectedAgent);
+    scheduleReturns = scheduleReturns.filter(returnItem => returnItem.agentnumber === selectedAgent);
   }
 
   // Calculate unique customers based on filtered data - with customer replacement
@@ -165,7 +131,7 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   // Create a map to track which customers belong to Agent 99 (Candy Plus)
   const agent99Customers = new Set<string>();
   [...scheduleOrders, ...scheduleReturns].forEach(item => {
-    if (String(item.agentnumber) === '99') {
+    if (item.agentnumber === '99') {
       const customerName = getReplacementCustomerName(item, replacementMap);
       agent99Customers.add(customerName);
     }

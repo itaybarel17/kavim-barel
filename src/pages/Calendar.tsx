@@ -338,12 +338,12 @@ const Calendar = () => {
   // Agent filtering functions
   const filterOrdersByAgent = (orders: Order[]) => {
     if (selectedAgent === '4') return orders; // "משרד" shows all
-    return orders.filter(order => String(order.agentnumber) === String(selectedAgent));
+    return orders.filter(order => order.agentnumber === selectedAgent);
   };
 
   const filterReturnsByAgent = (returns: Return[]) => {
     if (selectedAgent === '4') return returns; // "משרד" shows all
-    return returns.filter(returnItem => String(returnItem.agentnumber) === String(selectedAgent));
+    return returns.filter(returnItem => returnItem.agentnumber === selectedAgent);
   };
 
   // --- BEGIN CUSTOMER STATUS LOGIC FOR ICONS ---
@@ -401,7 +401,7 @@ const Calendar = () => {
     if (!order.schedule_id) {
       if (currentUser?.agentnumber === "4") {
         // Admin sees all, but filter by selected agent
-        return selectedAgent === '4' || String(order.agentnumber) === String(selectedAgent);
+        return selectedAgent === '4' || order.agentnumber === selectedAgent;
       }
       return order.agentnumber === currentUser?.agentnumber; // Others see only their own
     }
@@ -412,86 +412,33 @@ const Calendar = () => {
     if (!returnItem.schedule_id) {
       if (currentUser?.agentnumber === "4") {
         // Admin sees all, but filter by selected agent
-        return selectedAgent === '4' || String(returnItem.agentnumber) === String(selectedAgent);
+        return selectedAgent === '4' || returnItem.agentnumber === selectedAgent;
       }
       return returnItem.agentnumber === currentUser?.agentnumber; // Others see only their own
     }
     return false;
   });
 
+  // Simplified: Admin and Agent 99 see all groups, others see their assigned groups
   const allowedGroupIds = useMemo(() => {
     if (!currentUser) return [];
     
-    // Admin (Agent 4) can filter by selected agent
+    // Admin sees all groups
     if (currentUser.agentnumber === "4") {
-      if (selectedAgent === '4') {
-        return null; // Show all groups when "משרד" is selected
-      }
-      // Use selected agent for filtering when admin selects specific agent
-      const agentForFiltering = selectedAgent;
-      
-      // For any selected agent (including 99), filter by actual orders/returns instead of agents column
-      const agentScheduleIds = new Set<number>();
-      distributionSchedules.forEach(schedule => {
-        const hasAgentOrders = orders.some(order => {
-          const relevantScheduleIds = [];
-          if (typeof order.schedule_id === 'number') relevantScheduleIds.push(order.schedule_id);
-          if (order.schedule_id_if_changed) {
-            if (typeof order.schedule_id_if_changed === 'number') {
-              relevantScheduleIds.push(order.schedule_id_if_changed);
-            } else if (Array.isArray(order.schedule_id_if_changed)) {
-              order.schedule_id_if_changed.forEach(sid => {
-                if (typeof sid === 'number') relevantScheduleIds.push(sid);
-              });
-            } else if (typeof order.schedule_id_if_changed === 'object' && order.schedule_id_if_changed.schedule_id) {
-              relevantScheduleIds.push(order.schedule_id_if_changed.schedule_id);
-            }
-          }
-          return relevantScheduleIds.includes(schedule.schedule_id) && String(order.agentnumber) === String(agentForFiltering);
-        });
-        const hasAgentReturns = returns.some(returnItem => {
-          const relevantScheduleIds = [];
-          if (typeof returnItem.schedule_id === 'number') relevantScheduleIds.push(returnItem.schedule_id);
-          if (returnItem.schedule_id_if_changed) {
-            if (typeof returnItem.schedule_id_if_changed === 'number') {
-              relevantScheduleIds.push(returnItem.schedule_id_if_changed);
-            } else if (Array.isArray(returnItem.schedule_id_if_changed)) {
-              returnItem.schedule_id_if_changed.forEach(sid => {
-                if (typeof sid === 'number') relevantScheduleIds.push(sid);
-              });
-            } else if (typeof returnItem.schedule_id_if_changed === 'object' && returnItem.schedule_id_if_changed.schedule_id) {
-              relevantScheduleIds.push(returnItem.schedule_id_if_changed.schedule_id);
-            }
-          }
-          return relevantScheduleIds.includes(schedule.schedule_id) && String(returnItem.agentnumber) === String(agentForFiltering);
-        });
-        if (hasAgentOrders || hasAgentReturns) {
-          agentScheduleIds.add(schedule.schedule_id);
-        }
-      });
-      
-      // Convert schedule_ids to group_ids
-      const scheduleGroupIds = Array.from(agentScheduleIds).map(scheduleId => {
-        const schedule = distributionSchedules.find(s => s.schedule_id === scheduleId);
-        return schedule?.groups_id;
-      }).filter((groupId): groupId is number => groupId !== undefined);
-      
-      return scheduleGroupIds;
+      return null; // Show all groups
     }
-
-    // Special logic for Agent 99 - give full access like admin, but filtered to agent 99
-    if (currentUser.agentnumber === "99") {
-      return null; // Allow access to all groups/schedules, filtering will be done by agentnumber
+    
+    // Agent 99 sees all groups (Candy Plus orders should appear everywhere they're scheduled)
+    if (currentUser.agentnumber === '99') {
+      return null; // Show all groups
     }
-
-    // Allow only groups where agent is in distribution_groups.agents (array of agentnumbers in jsonb)
-    return distributionGroups.filter(group => {
+    
+    // Other agents see groups where they're explicitly assigned
+    const agentAllowedGroups = distributionGroups.filter(group => {
       if (!group.agents) return false;
       if (Array.isArray(group.agents)) {
-        // Convert currentUser.agentnumber to integer for comparison
         return group.agents.includes(parseInt(currentUser.agentnumber));
       }
-      // fallback in case agents is not an array (shouldn't happen)
       if (typeof group.agents === "string") {
         try {
           const arr = JSON.parse(group.agents);
@@ -502,99 +449,23 @@ const Calendar = () => {
       }
       return false;
     }).map(group => group.groups_id);
-  }, [currentUser, selectedAgent, distributionGroups, distributionSchedules, orders, returns]);
+    
+    return agentAllowedGroups;
+  }, [currentUser, distributionGroups]);
 
-  // Filtered schedules
-  const filteredSchedules = useMemo(() => {
-    if (!currentUser) return [];
-    
-    // Allow admin and agent 99 to see all schedules
-    if (currentUser.agentnumber === "4" || currentUser.agentnumber === "99") {
-      return distributionSchedules;
+  // Apply group filtering to schedules
+  const filteredSchedules = distributionSchedules.filter(schedule => {
+    // Group authorization filtering - if allowedGroupIds is null, show all groups
+    if (allowedGroupIds !== null && !allowedGroupIds.includes(schedule.groups_id)) {
+      return false;
     }
-    
-    if (!allowedGroupIds || allowedGroupIds.length === 0) {
-      return [];
-    }
+    return true;
+  });
 
-    return distributionSchedules.filter(sch => allowedGroupIds.includes(sch.groups_id));
-  }, [distributionSchedules, allowedGroupIds, currentUser]);
-
-  // Filtered orders + returns. Show only those whose schedule/group is allowed.
-  const filteredOrders = useMemo(() => {
-    if (!currentUser) return [];
-    let baseFiltered = orders;
-    
-    // For agent 99, show all their orders that have a schedule_id
-    if (currentUser.agentnumber === "99") {
-      return orders.filter(order => {
-        // Show all orders with schedule_id, regardless of distribution_date
-        return order.schedule_id !== null && order.schedule_id !== undefined;
-      });
-    }
-    
-    // Apply user permissions first
-    if (currentUser.agentnumber !== "4") {
-      if (!allowedGroupIds || allowedGroupIds.length === 0) return [];
-      
-      // For regular agents, use the original logic with groups_id
-      baseFiltered = orders.filter(o => {
-        // Find to which group this order belongs, via its schedule_id or schedule_id_if_changed
-        const allScheduleIds = [];
-        if (typeof o.schedule_id === 'number') allScheduleIds.push(o.schedule_id);
-        if (typeof o.schedule_id_if_changed === 'number') allScheduleIds.push(o.schedule_id_if_changed);
-        if (Array.isArray(o.schedule_id_if_changed)) o.schedule_id_if_changed.forEach(sid => {
-          if (typeof sid === 'number') allScheduleIds.push(sid);
-        });
-        // For each schedule_id in this order, find its group via distributionSchedules
-        const inAllowed = allScheduleIds.some(sid => {
-          const sch = distributionSchedules.find(s => s.schedule_id === sid);
-          return sch && allowedGroupIds.includes(sch.groups_id);
-        });
-        return inAllowed;
-      });
-    }
-    
-    // Apply agent filter on top of permissions
-    return filterOrdersByAgent(baseFiltered);
-  }, [orders, allowedGroupIds, currentUser, distributionSchedules, selectedAgent, filterOrdersByAgent]);
-  const filteredReturns = useMemo(() => {
-    if (!currentUser) return [];
-    let baseFiltered = returns;
-    
-    // For agent 99, show all their returns that have a schedule_id
-    if (currentUser.agentnumber === "99") {
-      return returns.filter(returnItem => {
-        // Show all returns with schedule_id, regardless of distribution_date
-        return returnItem.schedule_id !== null && returnItem.schedule_id !== undefined;
-      });
-    }
-    
-    // Apply user permissions first
-    if (currentUser.agentnumber !== "4") {
-      if (!allowedGroupIds || allowedGroupIds.length === 0) return [];
-      
-      // For regular agents, use the original logic with groups_id
-      baseFiltered = returns.filter(o => {
-        // Find to which group this return belongs, via its schedule_id or schedule_id_if_changed
-        const allScheduleIds = [];
-        if (typeof o.schedule_id === 'number') allScheduleIds.push(o.schedule_id);
-        if (typeof o.schedule_id_if_changed === 'number') allScheduleIds.push(o.schedule_id_if_changed);
-        if (Array.isArray(o.schedule_id_if_changed)) o.schedule_id_if_changed.forEach(sid => {
-          if (typeof sid === 'number') allScheduleIds.push(sid);
-        });
-        // For each schedule_id in this return, find its group via distributionSchedules
-        const inAllowed = allScheduleIds.some(sid => {
-          const sch = distributionSchedules.find(s => s.schedule_id === sid);
-          return sch && allowedGroupIds.includes(sch.groups_id);
-        });
-        return inAllowed;
-      });
-    }
-    
-    // Apply agent filter on top of permissions
-    return filterReturnsByAgent(baseFiltered);
-  }, [returns, allowedGroupIds, currentUser, distributionSchedules, selectedAgent, filterReturnsByAgent]);
+  // Simplified filtering: Use all orders for scheduled items
+  const filteredOrdersForSchedules = orders;
+  // Simplified filtering: Use all returns for scheduled items
+  const filteredReturnsForSchedules = returns;
 
   // Update destinations count immediately when orders/returns change
   useEffect(() => {
@@ -757,8 +628,8 @@ const Calendar = () => {
         distributionSchedules={filteredSchedules} 
         distributionGroups={distributionGroups} 
         drivers={drivers} 
-        orders={filteredOrders} 
-        returns={filteredReturns} 
+        orders={filteredOrdersForSchedules} 
+        returns={filteredReturnsForSchedules} 
         onUpdateDestinations={updateDestinationsCount} 
         onDropToKanban={currentUser?.agentnumber === "4" ? handleDropToKanban : undefined} 
         currentUser={currentUser} 
@@ -790,7 +661,7 @@ const Calendar = () => {
       </div>
 
       {/* Calendar Grid */}
-      <CalendarGrid currentWeekStart={currentWeekStart} distributionSchedules={filteredSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={filteredOrders} returns={filteredReturns} onDropToDate={currentUser?.agentnumber === "4" ? handleDropToDate : undefined} currentUser={currentUser} onRefreshData={handleRefreshData} customerReplacementMap={orderOnAnotherCustomerDetails} selectedAgent={selectedAgent}  />
+      <CalendarGrid currentWeekStart={currentWeekStart} distributionSchedules={filteredSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={filteredOrdersForSchedules} returns={filteredReturnsForSchedules} onDropToDate={currentUser?.agentnumber === "4" ? handleDropToDate : undefined} currentUser={currentUser} onRefreshData={handleRefreshData} customerReplacementMap={orderOnAnotherCustomerDetails} selectedAgent={selectedAgent}  />
     </div>
   );
 };
