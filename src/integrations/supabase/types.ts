@@ -595,6 +595,7 @@ export type Database = {
           alert_status: boolean | null
           american_pallet: number | null
           city: string | null
+          copied_to_hashavshevet: boolean | null
           create_at_order: string | null
           customergroup: string | null
           customername: string | null
@@ -603,6 +604,7 @@ export type Database = {
           day2: string | null
           Delete_extra: string | null
           done_mainorder: string | null
+          end_picking_boolean: boolean | null
           end_picking_time: string | null
           euro_pallet: number | null
           ezor1: string | null
@@ -641,6 +643,7 @@ export type Database = {
           alert_status?: boolean | null
           american_pallet?: number | null
           city?: string | null
+          copied_to_hashavshevet?: boolean | null
           create_at_order?: string | null
           customergroup?: string | null
           customername?: string | null
@@ -649,6 +652,7 @@ export type Database = {
           day2?: string | null
           Delete_extra?: string | null
           done_mainorder?: string | null
+          end_picking_boolean?: boolean | null
           end_picking_time?: string | null
           euro_pallet?: number | null
           ezor1?: string | null
@@ -687,6 +691,7 @@ export type Database = {
           alert_status?: boolean | null
           american_pallet?: number | null
           city?: string | null
+          copied_to_hashavshevet?: boolean | null
           create_at_order?: string | null
           customergroup?: string | null
           customername?: string | null
@@ -695,6 +700,7 @@ export type Database = {
           day2?: string | null
           Delete_extra?: string | null
           done_mainorder?: string | null
+          end_picking_boolean?: boolean | null
           end_picking_time?: string | null
           euro_pallet?: number | null
           ezor1?: string | null
