@@ -100,6 +100,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           agentname: agent.agentname 
         };
         
+        // Update last sign-in time in agents table
+        await supabase
+          .from('agents')
+          .update({ lastsignin: new Date().toISOString() })
+          .eq('agentnumber', agentnumber);
+        
         setUser(currentUser);
         localStorage.setItem('authUser', JSON.stringify(currentUser));
         localStorage.setItem('lastLoginTime', new Date().toISOString());
