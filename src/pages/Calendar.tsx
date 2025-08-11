@@ -153,13 +153,14 @@ const Calendar = () => {
       fortyFiveDaysAgo.setDate(fortyFiveDaysAgo.getDate() - 45);
       const dateFilter = fortyFiveDaysAgo.toISOString().split('T')[0];
       
-      // Complex filtering: (ordercancel IS NULL) OR (schedule_id IS NULL AND done_mainorder IS NULL)
+      // Use same filtering as Distribution.tsx
       let query = supabase
         .from('mainorder')
         .select('ordernumber, customername, address, city, totalorder, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, orderdate, invoicenumber, hour, remark, alert_status, ezor1, ezor2, day1, day2, done_mainorder')
         .or('icecream.is.null,icecream.eq.')
         .gte('orderdate', dateFilter)
-        .or('ordercancel.is.null,and(schedule_id.is.null,done_mainorder.is.null)')
+        .is('done_mainorder', null)
+        .is('ordercancel', null)
         .order('ordernumber', { ascending: true })
         .limit(5000);
       
@@ -188,13 +189,14 @@ const Calendar = () => {
       fortyFiveDaysAgo.setDate(fortyFiveDaysAgo.getDate() - 45);
       const dateFilter = fortyFiveDaysAgo.toISOString().split('T')[0];
       
-      // Complex filtering: (returncancel IS NULL) OR (schedule_id IS NULL AND done_return IS NULL)
+      // Use same filtering as Distribution.tsx
       let query = supabase
         .from('mainreturns')
         .select('returnnumber, customername, address, city, totalreturn, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, returndate, hour, remark, alert_status, done_return')
         .or('icecream.is.null,icecream.eq.')
         .gte('returndate', dateFilter)
-        .or('returncancel.is.null,and(schedule_id.is.null,done_return.is.null)')
+        .is('done_return', null)
+        .is('returncancel', null)
         .order('returnnumber', { ascending: true })
         .limit(5000);
       
