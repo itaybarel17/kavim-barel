@@ -128,14 +128,6 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   
   const uniqueCustomersList = Array.from(uniqueCustomers);
 
-  // Create a map to track which customers belong to Agent 99 (Candy Plus)
-  const agent99Customers = new Set<string>();
-  [...scheduleOrders, ...scheduleReturns].forEach(item => {
-    if (item.agentnumber === '99') {
-      const customerName = getReplacementCustomerName(item, replacementMap);
-      agent99Customers.add(customerName);
-    }
-  });
 
   // Calculate totals in money
   const totalOrdersAmount = scheduleOrders.reduce((sum, order) => sum + (order.totalorder || 0), 0);
@@ -230,12 +222,8 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
                 returns, 
                 scheduleId
               );
-              const isAgent99Customer = agent99Customers.has(customer);
-              
               return (
-                <div key={index} className={`break-words font-bold ${isCompletelyTransferred ? 'line-through' : ''} ${
-                  isAgent99Customer ? 'text-pink-600' : 'text-gray-600'
-                }`}>
+                <div key={index} className={`break-words font-bold ${isCompletelyTransferred ? 'line-through' : ''} text-gray-600`}>
                   • {customer}
                 </div>
               );

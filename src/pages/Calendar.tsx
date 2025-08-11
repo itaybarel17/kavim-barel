@@ -108,11 +108,6 @@ const Calendar = () => {
 
   // Helper function to filter orders based on user permissions and show my activity toggle
   const filterOrdersByUser = (orders: Order[]) => {
-    // Agent 99 can only see their own orders
-    if (currentUser?.agentnumber === '99') {
-      return orders.filter(order => order.agentnumber === '99');
-    }
-    
     // For non-admin agents with "show only my activity" enabled
     if (currentUser?.agentnumber !== '4' && showOnlyMyActivity) {
       return orders.filter(order => order.agentnumber === currentUser?.agentnumber);
@@ -124,11 +119,6 @@ const Calendar = () => {
 
   // Helper function to filter returns based on user permissions and show my activity toggle
   const filterReturnsByUser = (returns: Return[]) => {
-    // Agent 99 can only see their own returns
-    if (currentUser?.agentnumber === '99') {
-      return returns.filter(returnItem => returnItem.agentnumber === '99');
-    }
-    
     // For non-admin agents with "show only my activity" enabled
     if (currentUser?.agentnumber !== '4' && showOnlyMyActivity) {
       return returns.filter(returnItem => returnItem.agentnumber === currentUser?.agentnumber);
@@ -419,17 +409,12 @@ const Calendar = () => {
     return false;
   });
 
-  // Simplified: Admin and Agent 99 see all groups, others see their assigned groups
+  // Admin sees all groups, others see their assigned groups
   const allowedGroupIds = useMemo(() => {
     if (!currentUser) return [];
     
     // Admin sees all groups
     if (currentUser.agentnumber === "4") {
-      return null; // Show all groups
-    }
-    
-    // Agent 99 sees all groups (Candy Plus orders should appear everywhere they're scheduled)
-    if (currentUser.agentnumber === '99') {
       return null; // Show all groups
     }
     
