@@ -148,7 +148,7 @@ const Calendar = () => {
     queryFn: async () => {
       console.log('Fetching orders for calendar...');
       // All agents now see both produced and unproduced orders
-      let query = supabase.from('mainorder').select('ordernumber, customername, address, city, totalorder, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, orderdate, invoicenumber, hour, remark, alert_status, ezor1, ezor2, day1, day2, done_mainorder').or('icecream.is.null,icecream.eq.').is('ordercancel', null).order('ordernumber', { ascending: false });
+      let query = supabase.from('mainorder').select('ordernumber, customername, address, city, totalorder, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, orderdate, invoicenumber, hour, remark, alert_status, ezor1, ezor2, day1, day2, done_mainorder').or('icecream.is.null,icecream.eq.').is('ordercancel', null).order('ordernumber', { ascending: true });
       
       const { data, error } = await query;
       if (error) throw error;
@@ -170,7 +170,7 @@ const Calendar = () => {
     queryFn: async () => {
       console.log('Fetching returns for calendar...');
       // All agents now see both produced and unproduced returns
-      let query = supabase.from('mainreturns').select('returnnumber, customername, address, city, totalreturn, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, returndate, hour, remark, alert_status, done_return').or('icecream.is.null,icecream.eq.').is('returncancel', null).order('returnnumber', { ascending: false });
+      let query = supabase.from('mainreturns').select('returnnumber, customername, address, city, totalreturn, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, returndate, hour, remark, alert_status, done_return').or('icecream.is.null,icecream.eq.').is('returncancel', null).order('returnnumber', { ascending: true });
       
       const { data, error } = await query;
       if (error) throw error;
