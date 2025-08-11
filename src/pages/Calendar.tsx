@@ -462,10 +462,23 @@ const Calendar = () => {
     return true;
   });
 
-  // Simplified filtering: Use all orders for scheduled items
+  // For Horizontal Kanban alignment with Distribution: active schedules only (not produced)
+  const activeSchedulesForKanban = filteredSchedules.filter(s => !s.done_schedule);
+
+  // Simplified filtering: Use all orders/returns for scheduled items in the grid
   const filteredOrdersForSchedules = orders;
-  // Simplified filtering: Use all returns for scheduled items
   const filteredReturnsForSchedules = returns;
+
+  // Prepare Kanban datasets to mirror Distribution (only active, ignore "show only my activity")
+  const activeOrdersForKanban = (currentUser?.agentnumber === '99'
+    ? allOrders.filter(o => o.agentnumber === '99')
+    : allOrders
+  ).filter(isOrderActive);
+
+  const activeReturnsForKanban = (currentUser?.agentnumber === '99'
+    ? allReturns.filter(r => r.agentnumber === '99')
+    : allReturns
+  ).filter(isReturnActive);
 
   // Update destinations count immediately when orders/returns change
   useEffect(() => {
@@ -625,22 +638,17 @@ const Calendar = () => {
 
       {/* Horizontal Kanban */}
       <HorizontalKanban 
-        distributionSchedules={filteredSchedules} 
+        distributionSchedules={activeSchedulesForKanban} 
         distributionGroups={distributionGroups} 
         drivers={drivers} 
-        orders={filteredOrdersForSchedules} 
-        returns={filteredReturnsForSchedules} 
+        orders={activeOrdersForKanban} 
+        returns={activeReturnsForKanban} 
         onUpdateDestinations={updateDestinationsCount} 
         onDropToKanban={currentUser?.agentnumber === "4" ? handleDropToKanban : undefined} 
         currentUser={currentUser} 
         customerReplacementMap={orderOnAnotherCustomerDetails}
         multiOrderActiveCustomerList={multiOrderActiveCustomerList}
         dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
-        agents={agents}
-        selectedAgent={selectedAgent}
-        onAgentChange={setSelectedAgent}
-        showOnlyMyActivity={showOnlyMyActivity}
-        onShowMyActivityChange={setShowOnlyMyActivity}
       />
 
       {/* Calendar Navigation */}
