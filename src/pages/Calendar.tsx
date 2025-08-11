@@ -9,7 +9,6 @@ import { CalendarCard } from '@/components/calendar/CalendarCard';
 import { CalendarGrid } from '@/components/calendar/CalendarGrid';
 import { HorizontalKanban } from '@/components/calendar/HorizontalKanban';
 import { ViewOnlyUnassignedArea } from '@/components/calendar/ViewOnlyUnassignedArea';
-import { DistributionMirrorKanban } from '@/components/calendar/DistributionMirrorKanban';
 import { useAuth } from '@/context/AuthContext';
 import { getCustomerReplacementMap } from '@/utils/scheduleUtils';
 interface Order {
@@ -77,13 +76,6 @@ interface Driver {
 interface CustomerSupply {
   customernumber: string;
   supplydetails?: string;
-  customername?: string;
-  address?: string;
-  city?: string;
-  mobile?: string;
-  phone?: string;
-  lat?: number;
-  lng?: number;
 }
 const Calendar = () => {
   const navigate = useNavigate();
@@ -254,7 +246,7 @@ const Calendar = () => {
       const {
         data,
         error
-      } = await supabase.from('customerlist').select('customernumber, supplydetails, customername, address, city, mobile, phone, lat, lng');
+      } = await supabase.from('customerlist').select('customernumber, supplydetails');
       if (error) throw error;
       console.log('Customer supply data fetched:', data);
       return data as CustomerSupply[];
@@ -342,14 +334,6 @@ const Calendar = () => {
     map[customer.customernumber] = customer.supplydetails || '';
     return map;
   }, {} as Record<string, string>);
-
-  // Create map for customer coordinates lookup
-  const customerCoordinatesMap = customerSupplyData.reduce((map, customer) => {
-    if (customer.lat && customer.lng) {
-      map[customer.customernumber] = { lat: customer.lat, lng: customer.lng };
-    }
-    return map;
-  }, {} as Record<string, { lat: number; lng: number }>);
 
   // Agent filtering functions
   const filterOrdersByAgent = (orders: Order[]) => {
@@ -657,20 +641,6 @@ const Calendar = () => {
         onAgentChange={setSelectedAgent}
         showOnlyMyActivity={showOnlyMyActivity}
         onShowMyActivityChange={setShowOnlyMyActivity}
-      />
-
-      {/* Distribution Mirror Kanban */}
-      <DistributionMirrorKanban
-        orders={filteredOrdersForSchedules}
-        returns={filteredReturnsForSchedules}
-        distributionGroups={distributionGroups}
-        distributionSchedules={filteredSchedules}
-        drivers={drivers}
-        multiOrderActiveCustomerList={multiOrderActiveCustomerList}
-        dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
-        customerSupplyMap={customerSupplyMap}
-        customerCoordinatesMap={customerCoordinatesMap}
-        customerReplacementMap={orderOnAnotherCustomerDetails}
       />
 
       {/* Calendar Navigation */}

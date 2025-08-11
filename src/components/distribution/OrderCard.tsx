@@ -288,36 +288,10 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         {/* שורה ראשונה: מספר הזמנה/החזרה + תאריך + שעה + כפתור ארגז קרטון */}
         <div className="flex justify-between items-start mb-2">
           <span className={`text-sm font-semibold flex items-center gap-2 ${isOrder ? 'text-blue-600' : 'text-red-600'}`}>
-            {isOrder ? <>
-              <span 
-                style={{
-                  fontVariantNumeric: 'tabular-nums',
-                  textRendering: 'optimizeLegibility',
-                  fontFeatureSettings: '"kern" 1',
-                  fontWeight: '600',
-                  zIndex: 10,
-                  position: 'relative',
-                  color: '#1d4ed8'
-                }}
-              >
-                #{number}
-              </span>
+            {isOrder ? <>#{number}
                 {date && <span className="ml-1">{new Date(date).toLocaleDateString('he-IL')}</span>}
                 {hour && <span className="ml-1">{formatHour(hour)}</span>}
-                </> : <>
-              החזרה <span 
-                style={{
-                  fontVariantNumeric: 'tabular-nums',
-                  textRendering: 'optimizeLegibility',
-                  fontFeatureSettings: '"kern" 1',
-                  fontWeight: '600',
-                  zIndex: 10,
-                  position: 'relative',
-                  color: '#dc2626'
-                }}
-              >
-                #{number}
-              </span>
+                </> : <>החזרה #{number}
                 {date && <span className="ml-1">{new Date(date).toLocaleDateString('he-IL')}</span>}
                 {hour && <span className="ml-1">{formatHour(hour)}</span>}
                 </>}
