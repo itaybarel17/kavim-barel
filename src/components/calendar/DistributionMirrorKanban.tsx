@@ -138,10 +138,29 @@ export const DistributionMirrorKanban: React.FC<DistributionMirrorKanbanProps> =
   const dummyScheduleDeleted = () => {};
   const dummyScheduleCreated = () => {};
   const dummyRemoveFromZone = () => {};
+
+  // Event handlers to prevent interactions while allowing scroll
+  const preventInteraction = (e: React.MouseEvent | React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const preventDragStart = (e: React.DragEvent) => {
+    e.preventDefault();
+    return false;
+  };
   
   return (
-    <div className="space-y-6 pointer-events-none select-none" style={{ cursor: 'default' }}>
-      <div className="bg-muted/30 p-4 rounded-lg border border-border/50">
+    <div 
+      className="space-y-6 select-none" 
+      style={{ cursor: 'default' }}
+      onClick={preventInteraction}
+      onMouseDown={preventInteraction}
+      onDragStart={preventDragStart}
+      onDrop={preventInteraction}
+      onDragOver={preventInteraction}
+    >
+      <div className="bg-muted/30 p-4 rounded-lg border border-border/50" style={{ pointerEvents: 'auto' }}>
         <h2 className="text-xl font-semibold mb-4 text-muted-foreground">
           מראה של עמוד ההפצה (קריאה בלבד)
         </h2>
