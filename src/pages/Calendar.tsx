@@ -161,7 +161,7 @@ const Calendar = () => {
         .gte('orderdate', dateFilter)
         .is('done_mainorder', null)
         .is('ordercancel', null)
-        .order('ordernumber', { ascending: false })
+        .order('ordernumber', { ascending: true })
         .limit(5000);
       
       const { data, error } = await query;
@@ -197,7 +197,7 @@ const Calendar = () => {
         .gte('returndate', dateFilter)
         .is('done_return', null)
         .is('returncancel', null)
-        .order('returnnumber', { ascending: false })
+        .order('returnnumber', { ascending: true })
         .limit(5000);
       
       const { data, error } = await query;
