@@ -14,6 +14,7 @@ import {
   getNewScheduleId,
   isCustomerCompletelyTransferred,
   getReplacementCustomerName,
+  getAllRelevantScheduleIds,
   
   type CustomerReplacement
 } from '@/utils/scheduleUtils';
@@ -101,9 +102,34 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
   const group = distributionGroups.find(g => g.groups_id === groupId);
   const driver = drivers.find(d => d.id === driverId);
 
-  // Get orders and returns for this schedule using the new logic
-  let scheduleOrders = getOrdersByScheduleId(orders, scheduleId);
-  let scheduleReturns = getReturnsByScheduleId(returns, scheduleId);
+  // Helper functions to get all orders/returns (including completed ones)
+  const getAllOrdersByScheduleId = (orders: OrderWithSchedule[], targetScheduleId: number): OrderWithSchedule[] => {
+    return orders.filter(order => {
+      const relevantScheduleIds = getAllRelevantScheduleIds(order);
+      return relevantScheduleIds.includes(targetScheduleId);
+    });
+  };
+
+  const getAllReturnsByScheduleId = (returns: ReturnWithSchedule[], targetScheduleId: number): ReturnWithSchedule[] => {
+    return returns.filter(returnItem => {
+      const relevantScheduleIds = getAllRelevantScheduleIds(returnItem);
+      return relevantScheduleIds.includes(targetScheduleId);
+    });
+  };
+
+  // Get orders and returns for this schedule - use different logic for produced cards in weekly calendar
+  let scheduleOrders: OrderWithSchedule[];
+  let scheduleReturns: ReturnWithSchedule[];
+  
+  if (isProduced && isCalendarMode) {
+    // For produced cards in weekly calendar - show ALL orders/returns (including completed)
+    scheduleOrders = getAllOrdersByScheduleId(orders, scheduleId);
+    scheduleReturns = getAllReturnsByScheduleId(returns, scheduleId);
+  } else {
+    // For all other cases - show only active orders/returns (existing logic)
+    scheduleOrders = getOrdersByScheduleId(orders, scheduleId);
+    scheduleReturns = getReturnsByScheduleId(returns, scheduleId);
+  }
 
   // Simplified filtering: Only filter by selected agent for admin, no other complex logic
   if (currentUser?.agentnumber === "4" && selectedAgent && selectedAgent !== '4') {
