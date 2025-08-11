@@ -77,10 +77,14 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
 }) => {
   // Filter schedules by agent (admin sees all)
   const isAdmin = currentUser?.agentnumber === "4";
+  const isAgent99 = currentUser?.agentnumber === "99";
 
-  // Admin sees all schedules, others see their assigned groups
+  // Simplified: Admin and Agent 99 see all schedules, others see their assigned groups
   const allowedGroupIds = React.useMemo(() => {
     if (isAdmin) {
+      return null; // Show all schedules
+    }
+    if (isAgent99) {
       return null; // Show all schedules
     }
     if (!currentUser) return [];
@@ -102,10 +106,10 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
       return false;
     }).map(group => group.groups_id);
     return agentAllowedGroups;
-  }, [currentUser, isAdmin, distributionGroups]);
+  }, [currentUser, isAdmin, isAgent99, distributionGroups]);
   const filteredSchedulesWithItems = distributionSchedules.filter(schedule => {
-    // Group filtering (only for non-admin)
-    if (!isAdmin && allowedGroupIds && !allowedGroupIds.includes(schedule.groups_id)) {
+    // Group filtering (only for non-admin/non-agent99)
+    if (!isAdmin && !isAgent99 && allowedGroupIds && !allowedGroupIds.includes(schedule.groups_id)) {
       return false;
     }
     

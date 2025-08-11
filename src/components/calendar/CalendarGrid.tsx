@@ -129,8 +129,8 @@ const CalendarDay: React.FC<{
   const day = date.getDate().toString().padStart(2, '0');
   const dateForComparison = `${year}-${month}-${day}`;
 
-  // Show production button when there are schedules
-  const shouldShowProductionButton = schedulesForDate.length > 0;
+  // Hide production button for Agent 99
+  const shouldShowProductionButton = schedulesForDate.length > 0 && currentUser?.agentnumber !== "99";
   
   // Get areas for this specific day
   const allAreasForDay = getAreasForDay(distributionGroups, date.getDay());
@@ -215,7 +215,7 @@ const CalendarDay: React.FC<{
             <div className="font-medium text-sm">{dayNames[date.getDay()]}</div>
             <div className="text-xs text-gray-500">{dateStr}</div>
           </div>
-          {/* Show production button when there are schedules */}
+          {/* Show production button to all users except Agent 99 when there are schedules */}
           {shouldShowProductionButton && <Button size="sm" variant="outline" onClick={() => onProductionDialogOpen(date)} className="flex items-center gap-1 text-xs px-2 py-1 h-6">
               <Play className="h-3 w-3" />
               הפקה
