@@ -110,6 +110,114 @@ export type Database = {
         }
         Relationships: []
       }
+      allitems: {
+        Row: {
+          barcode: string | null
+          barelitem: string | null
+          cartonbarcode: string | null
+          cartstock: number | null
+          displaypermaster: number | null
+          expirydate: string | null
+          expirydate2: string | null
+          height: number | null
+          icecream: string | null
+          itemgroup: string | null
+          itemgroupname: string | null
+          itemid: string
+          itemname: string | null
+          itemopendate: string | null
+          its_expired: string | null
+          kosher: string | null
+          lastbuydate: string | null
+          length: number | null
+          location_id: string | null
+          location_order: string | null
+          masterbarcode: string | null
+          maxdiscount: string | null
+          maximumorder: string | null
+          minimumorder: string | null
+          open_to_sell_in_units: number | null
+          pikadon: string | null
+          price: number | null
+          stock_done: string | null
+          subcategory: string | null
+          supplier: string | null
+          unitpercart: number | null
+          weight: number | null
+          width: number | null
+        }
+        Insert: {
+          barcode?: string | null
+          barelitem?: string | null
+          cartonbarcode?: string | null
+          cartstock?: number | null
+          displaypermaster?: number | null
+          expirydate?: string | null
+          expirydate2?: string | null
+          height?: number | null
+          icecream?: string | null
+          itemgroup?: string | null
+          itemgroupname?: string | null
+          itemid: string
+          itemname?: string | null
+          itemopendate?: string | null
+          its_expired?: string | null
+          kosher?: string | null
+          lastbuydate?: string | null
+          length?: number | null
+          location_id?: string | null
+          location_order?: string | null
+          masterbarcode?: string | null
+          maxdiscount?: string | null
+          maximumorder?: string | null
+          minimumorder?: string | null
+          open_to_sell_in_units?: number | null
+          pikadon?: string | null
+          price?: number | null
+          stock_done?: string | null
+          subcategory?: string | null
+          supplier?: string | null
+          unitpercart?: number | null
+          weight?: number | null
+          width?: number | null
+        }
+        Update: {
+          barcode?: string | null
+          barelitem?: string | null
+          cartonbarcode?: string | null
+          cartstock?: number | null
+          displaypermaster?: number | null
+          expirydate?: string | null
+          expirydate2?: string | null
+          height?: number | null
+          icecream?: string | null
+          itemgroup?: string | null
+          itemgroupname?: string | null
+          itemid?: string
+          itemname?: string | null
+          itemopendate?: string | null
+          its_expired?: string | null
+          kosher?: string | null
+          lastbuydate?: string | null
+          length?: number | null
+          location_id?: string | null
+          location_order?: string | null
+          masterbarcode?: string | null
+          maxdiscount?: string | null
+          maximumorder?: string | null
+          minimumorder?: string | null
+          open_to_sell_in_units?: number | null
+          pikadon?: string | null
+          price?: number | null
+          stock_done?: string | null
+          subcategory?: string | null
+          supplier?: string | null
+          unitpercart?: number | null
+          weight?: number | null
+          width?: number | null
+        }
+        Relationships: []
+      }
       candycustomerlist: {
         Row: {
           address: string | null
@@ -389,6 +497,7 @@ export type Database = {
           fuelcost: number | null
           groups_id: number | null
           isPinned: boolean | null
+          live_app_melaket: boolean | null
           message_alert: boolean | null
           nahag_name: string | null
           note: string | null
@@ -406,6 +515,7 @@ export type Database = {
           fuelcost?: number | null
           groups_id?: number | null
           isPinned?: boolean | null
+          live_app_melaket?: boolean | null
           message_alert?: boolean | null
           nahag_name?: string | null
           note?: string | null
@@ -423,6 +533,7 @@ export type Database = {
           fuelcost?: number | null
           groups_id?: number | null
           isPinned?: boolean | null
+          live_app_melaket?: boolean | null
           message_alert?: boolean | null
           nahag_name?: string | null
           note?: string | null
@@ -971,165 +1082,72 @@ export type Database = {
           },
         ]
       }
-      ordersITEMS: {
+      orders: {
         Row: {
-          "1=גלידה": string | null
-          KEYITEMS: number
-          ordere: string | null
-          soldout: number | null
-          איתור: string | null
-          אריזות_יציאה: number | null
-          אריזות_כניסה: number | null
-          בר_קוד: string | null
-          יחידות_במלאי: number | null
-          יחידות_יציאה: number | null
-          יחידות_כניסה: number | null
-          כמות_באריזה: number | null
-          מספר_סוג_מסמך: string | null
-          מפתח_חשבון: string | null
-          מפתח_פריט: string | null
-          מקומי_יבוא: string | null
-          סוג_מסמך: string | null
-          סוכן_במסמך: string | null
-          פיקדון: string | null
-          קוד_מיון_בפריט: string | null
-          קוד_מיון_חשבון: string | null
-          קרטונים_במלאי: number | null
-          שם: string | null
-          שם_פריט: string | null
-          שם_קוד_מיון_פריט: string | null
-          תאריך_אסמכתא: string | null
-          תאריך_קניה_אחרון: string | null
-          תוקף: string | null
-          תוקף2: string | null
-          תת_קטגוריה: string | null
+          agent: string | null
+          barcode: string | null
+          cart: number | null
+          cartonbarcode: string | null
+          customername: string | null
+          customernumber: string | null
+          discountrow: number | null
+          done: boolean | null
+          finalcarton: number | null
+          finalunit: number | null
+          grosslineprice: number | null
+          icecream: string | null
+          itemid: string | null
+          itemname: string | null
+          movement_id: number
+          orderdate: string | null
+          ordernumber: number | null
+          serialnumber: number | null
+          unit: number | null
+          unitpercart: number | null
         }
         Insert: {
-          "1=גלידה"?: string | null
-          KEYITEMS?: number
-          ordere?: string | null
-          soldout?: number | null
-          איתור?: string | null
-          אריזות_יציאה?: number | null
-          אריזות_כניסה?: number | null
-          בר_קוד?: string | null
-          יחידות_במלאי?: number | null
-          יחידות_יציאה?: number | null
-          יחידות_כניסה?: number | null
-          כמות_באריזה?: number | null
-          מספר_סוג_מסמך?: string | null
-          מפתח_חשבון?: string | null
-          מפתח_פריט?: string | null
-          מקומי_יבוא?: string | null
-          סוג_מסמך?: string | null
-          סוכן_במסמך?: string | null
-          פיקדון?: string | null
-          קוד_מיון_בפריט?: string | null
-          קוד_מיון_חשבון?: string | null
-          קרטונים_במלאי?: number | null
-          שם?: string | null
-          שם_פריט?: string | null
-          שם_קוד_מיון_פריט?: string | null
-          תאריך_אסמכתא?: string | null
-          תאריך_קניה_אחרון?: string | null
-          תוקף?: string | null
-          תוקף2?: string | null
-          תת_קטגוריה?: string | null
+          agent?: string | null
+          barcode?: string | null
+          cart?: number | null
+          cartonbarcode?: string | null
+          customername?: string | null
+          customernumber?: string | null
+          discountrow?: number | null
+          done?: boolean | null
+          finalcarton?: number | null
+          finalunit?: number | null
+          grosslineprice?: number | null
+          icecream?: string | null
+          itemid?: string | null
+          itemname?: string | null
+          movement_id: number
+          orderdate?: string | null
+          ordernumber?: number | null
+          serialnumber?: number | null
+          unit?: number | null
+          unitpercart?: number | null
         }
         Update: {
-          "1=גלידה"?: string | null
-          KEYITEMS?: number
-          ordere?: string | null
-          soldout?: number | null
-          איתור?: string | null
-          אריזות_יציאה?: number | null
-          אריזות_כניסה?: number | null
-          בר_קוד?: string | null
-          יחידות_במלאי?: number | null
-          יחידות_יציאה?: number | null
-          יחידות_כניסה?: number | null
-          כמות_באריזה?: number | null
-          מספר_סוג_מסמך?: string | null
-          מפתח_חשבון?: string | null
-          מפתח_פריט?: string | null
-          מקומי_יבוא?: string | null
-          סוג_מסמך?: string | null
-          סוכן_במסמך?: string | null
-          פיקדון?: string | null
-          קוד_מיון_בפריט?: string | null
-          קוד_מיון_חשבון?: string | null
-          קרטונים_במלאי?: number | null
-          שם?: string | null
-          שם_פריט?: string | null
-          שם_קוד_מיון_פריט?: string | null
-          תאריך_אסמכתא?: string | null
-          תאריך_קניה_אחרון?: string | null
-          תוקף?: string | null
-          תוקף2?: string | null
-          תת_קטגוריה?: string | null
-        }
-        Relationships: []
-      }
-      ordersPROFIT: {
-        Row: {
-          KEYPROFIT: number
-          ordere: string | null
-          הערות: string | null
-          זמן_אספקה: string | null
-          טלפון: string | null
-          טלפון_נייד: string | null
-          כתובת: string | null
-          מפתח_חשבון: string | null
-          'סה"כ_אחרי_הנחה': number | null
-          'סה"כ_לפני_הנחה': number | null
-          'סה"כ_עלות': number | null
-          סוכן: string | null
-          עיר: string | null
-          פקס: string | null
-          קוד_פיצול_תשלומים: string | null
-          רווח_לעסקה: number | null
-          שם: string | null
-          תאריך_אסמכתא: string | null
-        }
-        Insert: {
-          KEYPROFIT?: number
-          ordere?: string | null
-          הערות?: string | null
-          זמן_אספקה?: string | null
-          טלפון?: string | null
-          טלפון_נייד?: string | null
-          כתובת?: string | null
-          מפתח_חשבון?: string | null
-          'סה"כ_אחרי_הנחה'?: number | null
-          'סה"כ_לפני_הנחה'?: number | null
-          'סה"כ_עלות'?: number | null
-          סוכן?: string | null
-          עיר?: string | null
-          פקס?: string | null
-          קוד_פיצול_תשלומים?: string | null
-          רווח_לעסקה?: number | null
-          שם?: string | null
-          תאריך_אסמכתא?: string | null
-        }
-        Update: {
-          KEYPROFIT?: number
-          ordere?: string | null
-          הערות?: string | null
-          זמן_אספקה?: string | null
-          טלפון?: string | null
-          טלפון_נייד?: string | null
-          כתובת?: string | null
-          מפתח_חשבון?: string | null
-          'סה"כ_אחרי_הנחה'?: number | null
-          'סה"כ_לפני_הנחה'?: number | null
-          'סה"כ_עלות'?: number | null
-          סוכן?: string | null
-          עיר?: string | null
-          פקס?: string | null
-          קוד_פיצול_תשלומים?: string | null
-          רווח_לעסקה?: number | null
-          שם?: string | null
-          תאריך_אסמכתא?: string | null
+          agent?: string | null
+          barcode?: string | null
+          cart?: number | null
+          cartonbarcode?: string | null
+          customername?: string | null
+          customernumber?: string | null
+          discountrow?: number | null
+          done?: boolean | null
+          finalcarton?: number | null
+          finalunit?: number | null
+          grosslineprice?: number | null
+          icecream?: string | null
+          itemid?: string | null
+          itemname?: string | null
+          movement_id?: number
+          orderdate?: string | null
+          ordernumber?: number | null
+          serialnumber?: number | null
+          unit?: number | null
+          unitpercart?: number | null
         }
         Relationships: []
       }
@@ -1201,167 +1219,37 @@ export type Database = {
           },
         ]
       }
-      po: {
+      profiles: {
         Row: {
-          ברקוד: string | null
-          כמות_באריזה: number | null
-          כמות_יחידות: number | null
-          מחיר_קניה: number | null
-          מספר_מסמך: string | null
-          מספר_תנועה: string
-          מפתח_חשבון: string | null
-          מפתח_פריט: string | null
-          מקור_מוצר: string | null
-          מקור_מסמך: string | null
-          'סה"כ_תנועה יציאה': number | null
-          'סה"כ_תנועה כניסה': number | null
-          סוג_מסמך: string | null
-          קרטונים: number | null
-          שם_חשבון: string | null
-          שם_פריט: string | null
-          תאריך_אסמכתא: string | null
+          created_at: string
+          id: string
+          melaket_id: number
+          role: string
+          updated_at: string
         }
         Insert: {
-          ברקוד?: string | null
-          כמות_באריזה?: number | null
-          כמות_יחידות?: number | null
-          מחיר_קניה?: number | null
-          מספר_מסמך?: string | null
-          מספר_תנועה: string
-          מפתח_חשבון?: string | null
-          מפתח_פריט?: string | null
-          מקור_מוצר?: string | null
-          מקור_מסמך?: string | null
-          'סה"כ_תנועה יציאה'?: number | null
-          'סה"כ_תנועה כניסה'?: number | null
-          סוג_מסמך?: string | null
-          קרטונים?: number | null
-          שם_חשבון?: string | null
-          שם_פריט?: string | null
-          תאריך_אסמכתא?: string | null
+          created_at?: string
+          id: string
+          melaket_id: number
+          role?: string
+          updated_at?: string
         }
         Update: {
-          ברקוד?: string | null
-          כמות_באריזה?: number | null
-          כמות_יחידות?: number | null
-          מחיר_קניה?: number | null
-          מספר_מסמך?: string | null
-          מספר_תנועה?: string
-          מפתח_חשבון?: string | null
-          מפתח_פריט?: string | null
-          מקור_מוצר?: string | null
-          מקור_מסמך?: string | null
-          'סה"כ_תנועה יציאה'?: number | null
-          'סה"כ_תנועה כניסה'?: number | null
-          סוג_מסמך?: string | null
-          קרטונים?: number | null
-          שם_חשבון?: string | null
-          שם_פריט?: string | null
-          תאריך_אסמכתא?: string | null
+          created_at?: string
+          id?: string
+          melaket_id?: number
+          role?: string
+          updated_at?: string
         }
-        Relationships: []
-      }
-      pritim: {
-        Row: {
-          "1=גלידה": string | null
-          איתור: string | null
-          "בר קוד": string | null
-          "יתרה כמתית קרט": number | null
-          "כמות באריזה": number | null
-          "מחיר מכירה": number | null
-          "מחיר קניה": number | null
-          "מפתח פריט": string
-          "מתי נגמר": string | null
-          ספק: string | null
-          "פג תוקף": string | null
-          פיקדון: string | null
-          "קוד מיון": string | null
-          "שם פריט": string | null
-          "תאריך פתיחת פריט": string | null
-          "תאריך קניה אחרון": string | null
-          "תת קטגוריה": string | null
-        }
-        Insert: {
-          "1=גלידה"?: string | null
-          איתור?: string | null
-          "בר קוד"?: string | null
-          "יתרה כמתית קרט"?: number | null
-          "כמות באריזה"?: number | null
-          "מחיר מכירה"?: number | null
-          "מחיר קניה"?: number | null
-          "מפתח פריט": string
-          "מתי נגמר"?: string | null
-          ספק?: string | null
-          "פג תוקף"?: string | null
-          פיקדון?: string | null
-          "קוד מיון"?: string | null
-          "שם פריט"?: string | null
-          "תאריך פתיחת פריט"?: string | null
-          "תאריך קניה אחרון"?: string | null
-          "תת קטגוריה"?: string | null
-        }
-        Update: {
-          "1=גלידה"?: string | null
-          איתור?: string | null
-          "בר קוד"?: string | null
-          "יתרה כמתית קרט"?: number | null
-          "כמות באריזה"?: number | null
-          "מחיר מכירה"?: number | null
-          "מחיר קניה"?: number | null
-          "מפתח פריט"?: string
-          "מתי נגמר"?: string | null
-          ספק?: string | null
-          "פג תוקף"?: string | null
-          פיקדון?: string | null
-          "קוד מיון"?: string | null
-          "שם פריט"?: string | null
-          "תאריך פתיחת פריט"?: string | null
-          "תאריך קניה אחרון"?: string | null
-          "תת קטגוריה"?: string | null
-        }
-        Relationships: []
-      }
-      returnsLOSS: {
-        Row: {
-          KEYR: number
-          הפסד_לעסקה: number | null
-          כתובת: string | null
-          מספר_מסמך: string | null
-          מפתח_חשבון: string | null
-          'סה"כ_אחרי_הנחה': number | null
-          'סה"כ_עלות': number | null
-          סוכן: string | null
-          עיר: string | null
-          שם: string | null
-          תאריך_אסמכתא: string | null
-        }
-        Insert: {
-          KEYR?: number
-          הפסד_לעסקה?: number | null
-          כתובת?: string | null
-          מספר_מסמך?: string | null
-          מפתח_חשבון?: string | null
-          'סה"כ_אחרי_הנחה'?: number | null
-          'סה"כ_עלות'?: number | null
-          סוכן?: string | null
-          עיר?: string | null
-          שם?: string | null
-          תאריך_אסמכתא?: string | null
-        }
-        Update: {
-          KEYR?: number
-          הפסד_לעסקה?: number | null
-          כתובת?: string | null
-          מספר_מסמך?: string | null
-          מפתח_חשבון?: string | null
-          'סה"כ_אחרי_הנחה'?: number | null
-          'סה"כ_עלות'?: number | null
-          סוכן?: string | null
-          עיר?: string | null
-          שם?: string | null
-          תאריך_אסמכתא?: string | null
-        }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_melaket_id_fkey"
+            columns: ["melaket_id"]
+            isOneToOne: true
+            referencedRelation: "meltaktim"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       trucks: {
         Row: {
@@ -1410,6 +1298,14 @@ export type Database = {
       get_region_from_group: {
         Args: { group_id: string }
         Returns: string
+      }
+      get_user_melaket: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          melaket_id: number
+          melaket_name: string
+          user_role: string
+        }[]
       }
       produce_schedule: {
         Args: { schedule_id_param: number }

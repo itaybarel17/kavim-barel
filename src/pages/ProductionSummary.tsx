@@ -102,35 +102,47 @@ const ProductionSummary = () => {
     enabled: !!schedule?.driver_id
   });
 
-  // Fetch ALL orders from the database with all required fields
+  // Fetch ONLY orders relevant to this specific schedule
   const {
     data: allOrders = [],
     isLoading: ordersLoading
   } = useQuery({
-    queryKey: ['all-orders'],
+    queryKey: ['schedule-orders', scheduleId],
     queryFn: async () => {
+      if (!scheduleId) return [];
       const {
         data,
         error
-      } = await supabase.from('mainorder').select('ordernumber, customername, address, city, totalorder, icecream, customernumber, agentnumber, schedule_id, schedule_id_if_changed');
+      } = await supabase
+        .from('mainorder')
+        .select('ordernumber, customername, address, city, totalorder, icecream, customernumber, agentnumber, schedule_id, schedule_id_if_changed')
+        .or(`schedule_id.eq.${scheduleId},schedule_id_if_changed.cs.["${scheduleId}"]`)
+        .limit(1000);
       if (error) throw error;
+      console.log(`Loaded ${data?.length || 0} orders for schedule ${scheduleId}`);
       return data as OrderWithSchedule[];
     },
     enabled: !!scheduleId
   });
 
-  // Fetch ALL returns from the database with all required fields
+  // Fetch ONLY returns relevant to this specific schedule
   const {
     data: allReturns = [],
     isLoading: returnsLoading
   } = useQuery({
-    queryKey: ['all-returns'],
+    queryKey: ['schedule-returns', scheduleId],
     queryFn: async () => {
+      if (!scheduleId) return [];
       const {
         data,
         error
-      } = await supabase.from('mainreturns').select('returnnumber, customername, address, city, totalreturn, icecream, customernumber, agentnumber, schedule_id, schedule_id_if_changed');
+      } = await supabase
+        .from('mainreturns')
+        .select('returnnumber, customername, address, city, totalreturn, icecream, customernumber, agentnumber, schedule_id, schedule_id_if_changed')
+        .or(`schedule_id.eq.${scheduleId},schedule_id_if_changed.cs.["${scheduleId}"]`)
+        .limit(1000);
       if (error) throw error;
+      console.log(`Loaded ${data?.length || 0} returns for schedule ${scheduleId}`);
       return data as ReturnWithSchedule[];
     },
     enabled: !!scheduleId

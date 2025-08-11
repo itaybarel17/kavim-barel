@@ -148,11 +148,24 @@ const Calendar = () => {
     queryFn: async () => {
       console.log('Fetching orders for calendar...');
       // All agents now see both produced and unproduced orders
-      let query = supabase.from('mainorder').select('ordernumber, customername, address, city, totalorder, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, orderdate, invoicenumber, hour, remark, alert_status, ezor1, ezor2, day1, day2, done_mainorder').or('icecream.is.null,icecream.eq.').is('ordercancel', null).order('ordernumber', { ascending: true });
+      // Calculate 45 days ago
+      const fortyFiveDaysAgo = new Date();
+      fortyFiveDaysAgo.setDate(fortyFiveDaysAgo.getDate() - 45);
+      const dateFilter = fortyFiveDaysAgo.toISOString().split('T')[0];
+      
+      // Complex filtering: (ordercancel IS NULL) OR (schedule_id IS NULL AND done_mainorder IS NULL)
+      let query = supabase
+        .from('mainorder')
+        .select('ordernumber, customername, address, city, totalorder, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, orderdate, invoicenumber, hour, remark, alert_status, ezor1, ezor2, day1, day2, done_mainorder')
+        .or('icecream.is.null,icecream.eq.')
+        .gte('orderdate', dateFilter)
+        .or('ordercancel.is.null,and(schedule_id.is.null,done_mainorder.is.null)')
+        .order('ordernumber', { ascending: true })
+        .limit(5000);
       
       const { data, error } = await query;
       if (error) throw error;
-      console.log('Calendar orders fetched:', data);
+      console.log(`Loaded ${data?.length || 0} orders for calendar (filtered from last 45 days)`);
       return data as Order[];
     }
   });
@@ -170,11 +183,24 @@ const Calendar = () => {
     queryFn: async () => {
       console.log('Fetching returns for calendar...');
       // All agents now see both produced and unproduced returns
-      let query = supabase.from('mainreturns').select('returnnumber, customername, address, city, totalreturn, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, returndate, hour, remark, alert_status, done_return').or('icecream.is.null,icecream.eq.').is('returncancel', null).order('returnnumber', { ascending: true });
+      // Calculate 45 days ago
+      const fortyFiveDaysAgo = new Date();
+      fortyFiveDaysAgo.setDate(fortyFiveDaysAgo.getDate() - 45);
+      const dateFilter = fortyFiveDaysAgo.toISOString().split('T')[0];
+      
+      // Complex filtering: (returncancel IS NULL) OR (schedule_id IS NULL AND done_return IS NULL)
+      let query = supabase
+        .from('mainreturns')
+        .select('returnnumber, customername, address, city, totalreturn, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, returndate, hour, remark, alert_status, done_return')
+        .or('icecream.is.null,icecream.eq.')
+        .gte('returndate', dateFilter)
+        .or('returncancel.is.null,and(schedule_id.is.null,done_return.is.null)')
+        .order('returnnumber', { ascending: true })
+        .limit(5000);
       
       const { data, error } = await query;
       if (error) throw error;
-      console.log('Calendar returns fetched:', data);
+      console.log(`Loaded ${data?.length || 0} returns for calendar (filtered from last 45 days)`);
       return data as Return[];
     }
   });
