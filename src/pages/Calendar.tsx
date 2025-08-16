@@ -138,22 +138,19 @@ const Calendar = () => {
     return returns;
   };
 
-  // Fetch all orders (including unassigned ones for the unassigned area)
+  // Fetch active orders (for general calendar use)
   const {
-    data: allOrders = [],
+    data: activeOrders = [],
     refetch: refetchOrders,
     isLoading: ordersLoading
   } = useQuery({
-    queryKey: ['calendar-orders'],
+    queryKey: ['calendar-active-orders'],
     queryFn: async () => {
-      console.log('Fetching orders for calendar...');
-      // All agents now see both produced and unproduced orders
-      // Calculate 45 days ago
+      console.log('Fetching active orders for calendar...');
       const fortyFiveDaysAgo = new Date();
       fortyFiveDaysAgo.setDate(fortyFiveDaysAgo.getDate() - 45);
       const dateFilter = fortyFiveDaysAgo.toISOString().split('T')[0];
       
-      // Use same filtering as Distribution.tsx
       let query = supabase
         .from('mainorder')
         .select('ordernumber, customername, address, city, totalorder, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, orderdate, invoicenumber, hour, remark, alert_status, ezor1, ezor2, day1, day2, done_mainorder')
@@ -166,30 +163,53 @@ const Calendar = () => {
       
       const { data, error } = await query;
       if (error) throw error;
-      console.log(`Loaded ${data?.length || 0} orders for calendar (filtered from last 45 days)`);
+      console.log(`Loaded ${data?.length || 0} active orders for calendar`);
       return data as Order[];
     }
   });
 
-  // Apply user permissions and toggle filtering
-  const orders = filterOrdersByUser(allOrders);
-
-  // Fetch all returns (including unassigned ones for the unassigned area)
+  // Fetch completed orders (for produced cards)
   const {
-    data: allReturns = [],
-    refetch: refetchReturns,
-    isLoading: returnsLoading
+    data: completedOrders = [],
+    isLoading: completedOrdersLoading
   } = useQuery({
-    queryKey: ['calendar-returns'],
+    queryKey: ['calendar-completed-orders'],
     queryFn: async () => {
-      console.log('Fetching returns for calendar...');
-      // All agents now see both produced and unproduced returns
-      // Calculate 45 days ago
+      console.log('Fetching completed orders for calendar...');
       const fortyFiveDaysAgo = new Date();
       fortyFiveDaysAgo.setDate(fortyFiveDaysAgo.getDate() - 45);
       const dateFilter = fortyFiveDaysAgo.toISOString().split('T')[0];
       
-      // Use same filtering as Distribution.tsx
+      let query = supabase
+        .from('mainorder')
+        .select('ordernumber, customername, address, city, totalorder, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, orderdate, invoicenumber, hour, remark, alert_status, ezor1, ezor2, day1, day2, done_mainorder')
+        .or('icecream.is.null,icecream.eq.')
+        .gte('orderdate', dateFilter)
+        .not('done_mainorder', 'is', null)
+        .is('ordercancel', null)
+        .order('ordernumber', { ascending: true })
+        .limit(5000);
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      console.log(`Loaded ${data?.length || 0} completed orders for calendar`);
+      return data as Order[];
+    }
+  });
+
+  // Fetch active returns (for general calendar use)
+  const {
+    data: activeReturns = [],
+    refetch: refetchReturns,
+    isLoading: returnsLoading
+  } = useQuery({
+    queryKey: ['calendar-active-returns'],
+    queryFn: async () => {
+      console.log('Fetching active returns for calendar...');
+      const fortyFiveDaysAgo = new Date();
+      fortyFiveDaysAgo.setDate(fortyFiveDaysAgo.getDate() - 45);
+      const dateFilter = fortyFiveDaysAgo.toISOString().split('T')[0];
+      
       let query = supabase
         .from('mainreturns')
         .select('returnnumber, customername, address, city, totalreturn, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, returndate, hour, remark, alert_status, done_return')
@@ -202,12 +222,46 @@ const Calendar = () => {
       
       const { data, error } = await query;
       if (error) throw error;
-      console.log(`Loaded ${data?.length || 0} returns for calendar (filtered from last 45 days)`);
+      console.log(`Loaded ${data?.length || 0} active returns for calendar`);
       return data as Return[];
     }
   });
 
+  // Fetch completed returns (for produced cards)
+  const {
+    data: completedReturns = [],
+    isLoading: completedReturnsLoading
+  } = useQuery({
+    queryKey: ['calendar-completed-returns'],
+    queryFn: async () => {
+      console.log('Fetching completed returns for calendar...');
+      const fortyFiveDaysAgo = new Date();
+      fortyFiveDaysAgo.setDate(fortyFiveDaysAgo.getDate() - 45);
+      const dateFilter = fortyFiveDaysAgo.toISOString().split('T')[0];
+      
+      let query = supabase
+        .from('mainreturns')
+        .select('returnnumber, customername, address, city, totalreturn, schedule_id, schedule_id_if_changed, icecream, customernumber, agentnumber, returndate, hour, remark, alert_status, done_return')
+        .or('icecream.is.null,icecream.eq.')
+        .gte('returndate', dateFilter)
+        .not('done_return', 'is', null)
+        .is('returncancel', null)
+        .order('returnnumber', { ascending: true })
+        .limit(5000);
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      console.log(`Loaded ${data?.length || 0} completed returns for calendar`);
+      return data as Return[];
+    }
+  });
+
+  // Combine active and completed data intelligently
+  const allOrders = [...activeOrders, ...completedOrders];
+  const allReturns = [...activeReturns, ...completedReturns];
+
   // Apply user permissions and toggle filtering
+  const orders = filterOrdersByUser(allOrders);
   const returns = filterReturnsByUser(allReturns);
 
   // Fetch order replacement details for "הזמנה על לקוח אחר" messages
@@ -389,9 +443,9 @@ const Calendar = () => {
   const filteredReturnsForIcons = filterReturnsByAgent(returns);
 
   // 1. multi-active-order customers (blue icon)
-  const activeOrders = filteredOrdersForIcons.filter(isOrderActive);
+  const activeOrdersForIcons = filteredOrdersForIcons.filter(isOrderActive);
   const customerMap: Record<string, Order[]> = {};
-  activeOrders.forEach(order => {
+  activeOrdersForIcons.forEach(order => {
     const key = `${order.customername}^^${order.city}`;
     if (!customerMap[key]) customerMap[key] = [];
     customerMap[key].push(order);
@@ -405,9 +459,9 @@ const Calendar = () => {
   });
 
   // 2. customers with BOTH active order and active return (red icon)
-  const activeReturns = filteredReturnsForIcons.filter(isReturnActive);
-  const orderKeys = new Set(activeOrders.map(o => `${o.customername}^^${o.city}`));
-  const returnKeys = new Set(activeReturns.map(r => `${r.customername}^^${r.city}`));
+  const activeReturnsForIcons = filteredReturnsForIcons.filter(isReturnActive);
+  const orderKeys = new Set(activeOrdersForIcons.map(o => `${o.customername}^^${o.city}`));
+  const returnKeys = new Set(activeReturnsForIcons.map(r => `${r.customername}^^${r.city}`));
   const dualActiveOrderReturnCustomers: {
     name: string;
     city: string;
@@ -623,7 +677,7 @@ const Calendar = () => {
     newDate.setDate(newDate.getDate() + (direction === 'next' ? 14 : -14));
     setCurrentWeekStart(newDate);
   };
-  const isLoading = ordersLoading || returnsLoading || groupsLoading || schedulesLoading || driversLoading || customerSupplyLoading;
+  const isLoading = ordersLoading || completedOrdersLoading || returnsLoading || completedReturnsLoading || groupsLoading || schedulesLoading || driversLoading || customerSupplyLoading;
   if (isLoading) {
     return <div className="min-h-screen p-6 bg-background flex items-center justify-center">
         <div className="flex items-center gap-2">
