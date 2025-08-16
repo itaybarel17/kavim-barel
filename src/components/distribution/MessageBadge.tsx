@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
-import { Info, X } from 'lucide-react';
+import { MessageCircle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MessageBadgeProps {
@@ -67,8 +67,8 @@ export const MessageBadge: React.FC<MessageBadgeProps> = ({
         >
           {subject}
         </Badge>
-        <Info 
-          className={cn("h-3 w-3 cursor-pointer transition-colors", iconColorClasses)}
+        <MessageCircle 
+          className={cn("h-4 w-4 cursor-pointer transition-all duration-200 hover:scale-110", iconColorClasses)}
           onClick={handleInfoClick}
         />
       </div>
