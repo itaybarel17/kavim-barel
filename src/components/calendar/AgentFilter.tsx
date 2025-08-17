@@ -20,7 +20,9 @@ export const AgentFilter: React.FC<AgentFilterProps> = ({
   // Add "משרד" option at the beginning
   const agentOptions = [
     { agentnumber: '4', agentname: 'משרד' },
-    ...agents.filter(agent => agent.agentnumber !== '4').sort((a, b) => a.agentname.localeCompare(b.agentname, 'he'))
+    ...agents
+      .filter(agent => agent.agentnumber !== '4' && agent.agentname)
+      .sort((a, b) => (a.agentname || '').localeCompare(b.agentname || '', 'he'))
   ];
 
   return (
