@@ -42,17 +42,17 @@ export interface CombinedItem {
 
 export const sortOrdersByLocationAndCustomer = (orders: Order[]): Order[] => {
   return [...orders].sort((a, b) => {
-    const cityComparison = a.city.localeCompare(b.city, 'he');
+    const cityComparison = (a.city || '').localeCompare(b.city || '', 'he');
     if (cityComparison !== 0) return cityComparison;
-    return a.customername.localeCompare(b.customername, 'he');
+    return (a.customername || '').localeCompare(b.customername || '', 'he');
   });
 };
 
 export const sortReturnsByLocationAndCustomer = (returns: Return[]): Return[] => {
   return [...returns].sort((a, b) => {
-    const cityComparison = a.city.localeCompare(b.city, 'he');
+    const cityComparison = (a.city || '').localeCompare(b.city || '', 'he');
     if (cityComparison !== 0) return cityComparison;
-    return a.customername.localeCompare(b.customername, 'he');
+    return (a.customername || '').localeCompare(b.customername || '', 'he');
   });
 };
 
@@ -61,7 +61,7 @@ export const createNumberedOrdersList = (sortedOrders: Order[]) => {
   let numberedCount = 0;
   
   return sortedOrders.map((order) => {
-    const customerKey = `${order.customername}-${order.city}`;
+    const customerKey = `${order.customername || ''}-${order.city || ''}`;
     customerOrderCount[customerKey] = (customerOrderCount[customerKey] || 0) + 1;
     
     const shouldNumber = customerOrderCount[customerKey] === 1;
