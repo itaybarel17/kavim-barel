@@ -68,6 +68,7 @@ interface DistributionSchedule {
   driver_id?: number;
   distribution_date?: string;
   message_alert?: boolean;
+  live_app_melaket?: boolean;
 }
 interface Driver {
   id: number;
@@ -120,6 +121,9 @@ interface DropZoneProps {
   // schedule message props
   scheduleMessageMap?: Record<string, { subject: string; content?: string; tagAgent?: string; agentName?: string }>;
   onScheduleImportantMessageClick?: (scheduleId: number) => void;
+  
+  // live app melaket toggle
+  onLiveAppMelaketToggle?: (scheduleId: number) => void;
 }
 
 /**
@@ -156,7 +160,8 @@ export const DropZone: React.FC<DropZoneProps> = ({
   cancellationMap,
   customerReplacementMap,
   scheduleMessageMap = {},
-  onScheduleImportantMessageClick
+  onScheduleImportantMessageClick,
+  onLiveAppMelaketToggle
 }) => {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [scheduleId, setScheduleId] = useState<number | null>(null);
@@ -573,7 +578,17 @@ export const DropZone: React.FC<DropZoneProps> = ({
 
           {scheduleId ? (
             <div className="text-sm text-muted-foreground">
-              מזהה לוח זמנים: {scheduleId}
+              מזהה לוח זמנים: {" "}
+              <button 
+                onClick={() => onLiveAppMelaketToggle?.(scheduleId)}
+                className={`hover:underline transition-colors cursor-pointer font-medium ${
+                  distributionSchedules.find(s => s.schedule_id === scheduleId)?.live_app_melaket 
+                    ? 'text-green-600 hover:text-green-700' 
+                    : 'text-foreground hover:text-primary'
+                }`}
+              >
+                {scheduleId}
+              </button>
                {selectedGroup && (
                  <div className="font-medium text-primary" dir="rtl">
                    ימי הפצה: {formatDistributionDays(selectedGroup.days)}

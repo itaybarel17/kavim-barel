@@ -73,6 +73,7 @@ interface DistributionSchedule {
   distribution_date?: string;
   isPinned?: boolean;
   message_alert?: boolean;
+  live_app_melaket?: boolean;
 }
 interface Driver {
   id: number;
@@ -239,7 +240,7 @@ const Distribution = () => {
       const {
         data,
         error
-      } = await supabase.from('distribution_schedule').select('schedule_id, groups_id, create_at_schedule, driver_id, distribution_date, isPinned, message_alert').is('done_schedule', null); // Only get active schedules, not produced ones
+      } = await supabase.from('distribution_schedule').select('schedule_id, groups_id, create_at_schedule, driver_id, distribution_date, isPinned, message_alert, live_app_melaket').is('done_schedule', null); // Only get active schedules, not produced ones
 
       if (error) throw error;
       console.log('Active distribution schedules fetched:', data);
@@ -1025,6 +1026,32 @@ const Distribution = () => {
     }
   };
 
+  // Handle live app melaket toggle
+  const handleLiveAppMelaketToggle = async (scheduleId: number) => {
+    try {
+      console.log('Live app melaket toggle clicked for schedule:', scheduleId);
+      
+      // Toggle live_app_melaket in distribution_schedule
+      const currentSchedule = distributionSchedules.find(s => s.schedule_id === scheduleId);
+      const currentStatus = currentSchedule?.live_app_melaket;
+      
+      const { error } = await supabase
+        .from('distribution_schedule')
+        .update({ live_app_melaket: !currentStatus })
+        .eq('schedule_id', scheduleId);
+      
+      if (error) {
+        console.error('Error updating schedule live_app_melaket:', error);
+        return;
+      }
+      
+      refetchSchedules();
+      console.log('Schedule live app melaket status updated successfully');
+    } catch (error) {
+      console.error('Error updating schedule live app melaket:', error);
+    }
+  };
+
   // Filter unassigned items (those without schedule_id or with schedule_id pointing to produced schedules)
   const unassignedOrders = orders.filter(order => !order.schedule_id || !distributionSchedules.some(schedule => schedule.schedule_id === order.schedule_id));
   const unassignedReturns = returns.filter(returnItem => !returnItem.schedule_id || !distributionSchedules.some(schedule => schedule.schedule_id === returnItem.schedule_id));
@@ -1179,6 +1206,7 @@ const Distribution = () => {
               customerReplacementMap={customerReplacementMap}
               scheduleMessageMap={scheduleMessageMap}
               onScheduleImportantMessageClick={handleScheduleImportantMessageClick}
+              onLiveAppMelaketToggle={handleLiveAppMelaketToggle}
             />
           )}
         </div>
