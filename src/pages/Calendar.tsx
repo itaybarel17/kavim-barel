@@ -544,10 +544,10 @@ const Calendar = () => {
     return true;
   });
 
-  // Simplified filtering: Use all orders for scheduled items
-  const filteredOrdersForSchedules = orders;
-  // Simplified filtering: Use all returns for scheduled items
-  const filteredReturnsForSchedules = returns;
+  // Use only active orders for scheduled items (matching Distribution page behavior)
+  const filteredOrdersForSchedules = activeOrders;
+  // Use only active returns for scheduled items (matching Distribution page behavior)
+  const filteredReturnsForSchedules = activeReturns;
 
   // Update destinations count immediately when orders/returns change
   useEffect(() => {
