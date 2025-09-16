@@ -39,6 +39,7 @@ interface Order {
   day1?: string;
   day2?: string;
   message_alert?: boolean | null;
+  copied_to_hashavshevet?: boolean | null;
 }
 interface Return {
   returnnumber: number;
@@ -275,7 +276,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     fetchManualCustomerArea();
   }, [hasOrderOnAnotherCustomer, orderOnAnotherCustomerDetails]);
 
-  return <Card ref={drag} className={`min-w-[250px] cursor-move relative ${isDragging ? 'opacity-50' : ''} ${isOrder ? 'border-blue-200 bg-blue-50' : 'border-red-200 bg-red-50'} ${hasInvoiceNumber ? 'ring-2 ring-green-300' : ''} ${isCandyPlus ? 'ring-2 ring-pink-300 border-pink-200' : ''} ${data.alert_status ? 'ring-2 ring-red-500 shadow-lg shadow-red-200' : ''}`}>
+  return <Card ref={drag} className={`min-w-[250px] cursor-move relative ${isDragging ? 'opacity-50' : ''} ${isOrder ? 'border-blue-200 bg-blue-50' : 'border-red-200 bg-red-50'} ${(hasInvoiceNumber || (data as Order).copied_to_hashavshevet) ? 'ring-2 ring-green-300' : ''} ${isCandyPlus ? 'ring-2 ring-pink-300 border-pink-200' : ''} ${data.alert_status ? 'ring-2 ring-red-500 shadow-lg shadow-red-200' : ''}`}>
       {/* Red X overlay for cancellation */}
       {hasCancellationMessage && (
         <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">

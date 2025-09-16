@@ -41,6 +41,7 @@ interface Order {
   end_picking_time?: string | null;
   hashavshevet?: string | null;
   message_alert?: boolean | null;
+  copied_to_hashavshevet?: boolean | null;
 }
 interface Return {
   returnnumber: number;
@@ -156,7 +157,7 @@ const Distribution = () => {
       const {
         data,
         error
-      } = await supabase.from('mainorder').select('ordernumber, customername, address, city, totalorder, schedule_id, icecream, customernumber, agentnumber, orderdate, invoicenumber, totalinvoice, hour, remark, alert_status, ezor1, ezor2, day1, day2, end_picking_time, hashavshevet, message_alert').or('icecream.is.null,icecream.eq.').is('done_mainorder', null).is('ordercancel', null) // Exclude deleted orders
+      } = await supabase.from('mainorder').select('ordernumber, customername, address, city, totalorder, schedule_id, icecream, customernumber, agentnumber, orderdate, invoicenumber, totalinvoice, hour, remark, alert_status, ezor1, ezor2, day1, day2, end_picking_time, hashavshevet, message_alert, copied_to_hashavshevet').or('icecream.is.null,icecream.eq.').is('done_mainorder', null).is('ordercancel', null) // Exclude deleted orders
       .order('ordernumber', {
         ascending: false
       });
