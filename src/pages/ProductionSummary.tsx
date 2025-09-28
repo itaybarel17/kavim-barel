@@ -379,13 +379,10 @@ const ProductionSummary = () => {
         {/* Header - hidden on print */}
         <div className="flex items-center justify-between mb-4 print:hidden">
           <div className="flex items-center gap-2">
-            <Button onClick={handlePrint} variant="outline" className="flex items-center gap-2" disabled={!isScheduleProduced}>
+            <Button onClick={handlePrint} variant="outline" className="flex items-center gap-2">
               <Printer className="h-4 w-4" />
               הדפס
             </Button>
-            {!isScheduleProduced && <span className="text-sm text-red-600 font-medium">
-                יש להפיק לפני הדפסה
-              </span>}
           </div>
           <Button onClick={() => navigate('/calendar')} className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105">
             <ArrowRight className="h-4 w-4" />
