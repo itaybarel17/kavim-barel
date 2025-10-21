@@ -710,8 +710,8 @@ const Calendar = () => {
         distributionSchedules={filteredSchedules} 
         distributionGroups={distributionGroups} 
         drivers={drivers} 
-        orders={filteredOrdersForSchedules} 
-        returns={filteredReturnsForSchedules} 
+        orders={allOrders} 
+        returns={allReturns}
         onUpdateDestinations={updateDestinationsCount} 
         onDropToKanban={currentUser?.agentnumber === "4" ? handleDropToKanban : undefined} 
         currentUser={currentUser} 
@@ -743,7 +743,7 @@ const Calendar = () => {
       </div>
 
       {/* Calendar Grid */}
-      <CalendarGrid currentWeekStart={currentWeekStart} distributionSchedules={filteredSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={filteredOrdersForSchedules} returns={filteredReturnsForSchedules} onDropToDate={currentUser?.agentnumber === "4" ? handleDropToDate : undefined} currentUser={currentUser} onRefreshData={handleRefreshData} customerReplacementMap={orderOnAnotherCustomerDetails} selectedAgent={selectedAgent}  />
+      <CalendarGrid currentWeekStart={currentWeekStart} distributionSchedules={filteredSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={allOrders} returns={allReturns} onDropToDate={currentUser?.agentnumber === "4" ? handleDropToDate : undefined} currentUser={currentUser} onRefreshData={handleRefreshData} customerReplacementMap={orderOnAnotherCustomerDetails} selectedAgent={selectedAgent}  />
     </div>
   );
 };
