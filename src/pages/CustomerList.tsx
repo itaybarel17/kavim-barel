@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Loader2, ArrowRight } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { formatDistributionDays } from '@/utils/dateUtils';
+import { formatDistributionDays, formatDistributionDaysShort } from '@/utils/dateUtils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -50,13 +50,15 @@ const CustomerList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedAgent, setSelectedAgent] = useState<string>('');
   const [selectedCity, setSelectedCity] = useState<string>('');
+  const [selectedArea, setSelectedArea] = useState<string>('');
   const [agentSelectOpen, setAgentSelectOpen] = useState(false);
   const [citySelectOpen, setCitySelectOpen] = useState(false);
+  const [areaSelectOpen, setAreaSelectOpen] = useState(false);
   const [openAreaSelect, setOpenAreaSelect] = useState<string | null>(null);
   const ITEMS_PER_PAGE = Math.ceil(1000 / 3); // ~333 items per page
 
   const { data: customers = [], isLoading } = useQuery({
-    queryKey: ['customers', currentUser?.agentnumber, selectedAgent, selectedCity],
+    queryKey: ['customers', currentUser?.agentnumber, selectedAgent, selectedCity, selectedArea],
     queryFn: async () => {
       let query = supabase
         .from('customerlist')
@@ -75,6 +77,9 @@ const CustomerList = () => {
         if (selectedCity) {
           query = query.eq('city', selectedCity);
         }
+        if (selectedArea) {
+          query = query.or(`city_area.eq.${selectedArea},newarea.eq.${selectedArea}`);
+        }
       }
       
       const { data, error } = await query;
@@ -83,7 +88,7 @@ const CustomerList = () => {
     },
     enabled: !!currentUser && (
       currentUser.agentnumber !== "4" || 
-      (currentUser.agentnumber === "4" && (!!selectedAgent || !!selectedCity))
+      (currentUser.agentnumber === "4" && (!!selectedAgent || !!selectedCity || !!selectedArea))
     )
   });
 
@@ -127,35 +132,20 @@ const CustomerList = () => {
   });
 
   const { data: cities = [] } = useQuery({
-    queryKey: ['cities-list', selectedAgent],
+    queryKey: ['cities-list'],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from('customerlist')
-        .select('city, agentnumber')
+        .select('city')
+        .not('city', 'is', null)
         .not('averagesupply', 'is', null);
       
-      // If agent is selected, filter cities by that agent
-      if (selectedAgent) {
-        query = query.eq('agentnumber', selectedAgent);
-      }
-      
-      const { data, error } = await query;
       if (error) throw error;
       
-      // Count customers per city and filter cities with more than 1 customer
-      const cityCounts = (data || []).reduce((acc, item) => {
-        if (item.city) {
-          acc[item.city] = (acc[item.city] || 0) + 1;
-        }
-        return acc;
-      }, {} as Record<string, number>);
+      // Get unique list of cities, sorted
+      const uniqueCities = [...new Set((data || []).map(item => item.city))].sort();
       
-      const filteredCities = Object.entries(cityCounts)
-        .filter(([_, count]) => count > 1)
-        .map(([city]) => city)
-        .sort();
-      
-      return filteredCities;
+      return uniqueCities;
     },
     enabled: currentUser?.agentnumber === "4"
   });
@@ -304,13 +294,36 @@ const CustomerList = () => {
             </SelectContent>
           </Select>
 
-          {(selectedAgent || selectedCity) && (
+          <Select 
+            value={selectedArea || undefined} 
+            onValueChange={(value) => {
+              setSelectedArea(value);
+              setCurrentPage(1);
+              setAreaSelectOpen(false);
+            }}
+            open={areaSelectOpen}
+            onOpenChange={setAreaSelectOpen}
+          >
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="בחר אזור..." />
+            </SelectTrigger>
+            <SelectContent className="z-50 bg-popover">
+              {areas.map((area) => (
+                <SelectItem key={area} value={area}>
+                  {area}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {(selectedAgent || selectedCity || selectedArea) && (
             <Button
               variant="outline"
               size="sm"
               onClick={() => {
                 setSelectedAgent('');
                 setSelectedCity('');
+                setSelectedArea('');
                 setCurrentPage(1);
               }}
             >
@@ -335,7 +348,7 @@ const CustomerList = () => {
         </div>
       </div>
 
-      {(selectedAgent || selectedCity || currentUser?.agentnumber !== "4") && filteredCustomers.length > 0 && (
+      {(selectedAgent || selectedCity || selectedArea || currentUser?.agentnumber !== "4") && filteredCustomers.length > 0 && (
         <>
           <div className="border rounded-lg bg-card">
         <ScrollArea className="h-[calc(100vh-250px)]">
@@ -421,7 +434,7 @@ const CustomerList = () => {
                       
                       if (availableDays.length === 0) return '-';
                       if (availableDays.length === 1) {
-                        return <div>{formatDistributionDays([availableDays[0]])}</div>;
+                        return <div>{formatDistributionDaysShort([availableDays[0]])}</div>;
                       }
                       
                       if (currentUser?.agentnumber === "4") {
@@ -439,28 +452,59 @@ const CustomerList = () => {
                           >
                             <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent">
                               <SelectValue>
-                                {formatDistributionDays(customer.selected_day || days)}
+                                {formatDistributionDaysShort(customer.selected_day || days)}
                               </SelectValue>
                             </SelectTrigger>
                             <SelectContent className="z-50 bg-popover">
                               {availableDays.map(day => (
                                 <SelectItem key={day} value={JSON.stringify([day])} className="text-xs">
-                                  {formatDistributionDays([day])}
+                                  {formatDistributionDaysShort([day])}
                                 </SelectItem>
                               ))}
                               <SelectItem value={JSON.stringify(availableDays)} className="text-xs font-semibold">
-                                כל הימים ({formatDistributionDays(availableDays)})
+                                כל הימים ({formatDistributionDaysShort(availableDays)})
                               </SelectItem>
                             </SelectContent>
                           </Select>
                         );
                       }
                       
-                      return <div>{formatDistributionDays(customer.selected_day || days)}</div>;
+                      return <div>{formatDistributionDaysShort(customer.selected_day || days)}</div>;
                     })()}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
-                    {customer.extraarea || '-'}
+                    {currentUser?.agentnumber === "4" ? (
+                      <Select
+                        value={customer.extraarea || ''}
+                        onValueChange={(value) => {
+                          supabase
+                            .from('customerlist')
+                            .update({ extraarea: value || null })
+                            .eq('customernumber', customer.customernumber)
+                            .then(() => {
+                              queryClient.invalidateQueries({ queryKey: ['customers'] });
+                              toast({
+                                title: "עודכן בהצלחה",
+                                description: "האזור הנוסף עודכן",
+                              });
+                            });
+                        }}
+                      >
+                        <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent">
+                          <SelectValue placeholder="-" />
+                        </SelectTrigger>
+                        <SelectContent className="z-50 bg-popover">
+                          <SelectItem value="" className="text-xs">ללא</SelectItem>
+                          {areas.map((area) => (
+                            <SelectItem key={area} value={area} className="text-xs">
+                              {area}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <span>{customer.extraarea || '-'}</span>
+                    )}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
                     {(() => {
@@ -482,7 +526,7 @@ const CustomerList = () => {
                       
                       if (availableDays.length === 0) return '-';
                       if (availableDays.length === 1) {
-                        return <div>{formatDistributionDays([availableDays[0]])}</div>;
+                        return <div>{formatDistributionDaysShort([availableDays[0]])}</div>;
                       }
                       
                       if (currentUser?.agentnumber === "4") {
@@ -500,28 +544,62 @@ const CustomerList = () => {
                           >
                             <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent">
                               <SelectValue>
-                                {formatDistributionDays(customer.selected_day_extra || days)}
+                                {formatDistributionDaysShort(customer.selected_day_extra || days)}
                               </SelectValue>
                             </SelectTrigger>
                             <SelectContent className="z-50 bg-popover">
                               {availableDays.map(day => (
                                 <SelectItem key={day} value={JSON.stringify([day])} className="text-xs">
-                                  {formatDistributionDays([day])}
+                                  {formatDistributionDaysShort([day])}
                                 </SelectItem>
                               ))}
                               <SelectItem value={JSON.stringify(availableDays)} className="text-xs font-semibold">
-                                כל הימים ({formatDistributionDays(availableDays)})
+                                כל הימים ({formatDistributionDaysShort(availableDays)})
                               </SelectItem>
                             </SelectContent>
                           </Select>
                         );
                       }
                       
-                      return <div>{formatDistributionDays(customer.selected_day_extra || days)}</div>;
+                      return <div>{formatDistributionDaysShort(customer.selected_day_extra || days)}</div>;
                     })()}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
-                    {formatDistributionDays(customer.nodeliverday)}
+                    {currentUser?.agentnumber === "4" ? (
+                      <Select
+                        value={customer.nodeliverday ? JSON.stringify(customer.nodeliverday) : '[]'}
+                        onValueChange={(value) => {
+                          const selectedDays = JSON.parse(value);
+                          supabase
+                            .from('customerlist')
+                            .update({ nodeliverday: selectedDays.length > 0 ? selectedDays : null })
+                            .eq('customernumber', customer.customernumber)
+                            .then(() => {
+                              queryClient.invalidateQueries({ queryKey: ['customers'] });
+                              toast({
+                                title: "עודכן בהצלחה",
+                                description: "ימים ללא חלוקה עודכנו",
+                              });
+                            });
+                        }}
+                      >
+                        <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent">
+                          <SelectValue>
+                            {formatDistributionDaysShort(customer.nodeliverday) || '-'}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="z-50 bg-popover">
+                          <SelectItem value="[]" className="text-xs">ללא</SelectItem>
+                          {['א', 'ב', 'ג', 'ד', 'ה', 'ו'].map(day => (
+                            <SelectItem key={day} value={JSON.stringify([day])} className="text-xs">
+                              {day}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <span>{formatDistributionDaysShort(customer.nodeliverday) || '-'}</span>
+                    )}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
                     {formatJsonbField(customer.deliverhour)}
@@ -580,14 +658,14 @@ const CustomerList = () => {
         </>
       )}
 
-      {currentUser?.agentnumber === "4" && !selectedAgent && !selectedCity && (
+      {currentUser?.agentnumber === "4" && !selectedAgent && !selectedCity && !selectedArea && (
         <div className="text-center py-12 text-muted-foreground">
-          <p className="text-lg font-medium mb-2">בחר סוכן או עיר כדי להציג לקוחות</p>
+          <p className="text-lg font-medium mb-2">בחר סוכן, עיר או אזור כדי להציג לקוחות</p>
           <p className="text-sm">יש יותר מ-2000 לקוחות במערכת, נא לבחור פילטר</p>
         </div>
       )}
 
-      {filteredCustomers.length === 0 && (selectedAgent || selectedCity || currentUser?.agentnumber !== "4") && !isLoading && (
+      {filteredCustomers.length === 0 && (selectedAgent || selectedCity || selectedArea || currentUser?.agentnumber !== "4") && !isLoading && (
         <div className="text-center py-12 text-muted-foreground">
           {searchTerm ? 'לא נמצאו לקוחות התואמים את החיפוש' : 'אין לקוחות להצגה'}
         </div>
