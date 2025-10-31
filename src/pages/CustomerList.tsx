@@ -24,7 +24,9 @@ interface Customer {
   deliverhour: any;
   averagesupply: number;
   customergroup?: string;
-  day?: any;
+  selected_day?: any;
+  selected_day_extra?: any;
+  extraarea?: string | null;
   agentnumber: string;
 }
 
@@ -98,6 +100,19 @@ const CustomerList = () => {
     }
   });
 
+  const { data: areasWithDays = [] } = useQuery({
+    queryKey: ['distribution-areas-with-days'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('distribution_groups')
+        .select('separation, days')
+        .order('separation');
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
   const { data: agents = [] } = useQuery({
     queryKey: ['agents-list'],
     queryFn: async () => {
@@ -165,6 +180,31 @@ const CustomerList = () => {
       toast({
         title: "שגיאה",
         description: "אירעה שגיאה בעדכון האזור",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const updateSelectedDaysMutation = useMutation({
+    mutationFn: async ({ customernumber, selectedDay, isExtra }: { customernumber: string; selectedDay: any; isExtra: boolean }) => {
+      const { error } = await supabase
+        .from('customerlist')
+        .update({ [isExtra ? 'selected_day_extra' : 'selected_day']: selectedDay })
+        .eq('customernumber', customernumber);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      toast({
+        title: "עודכן בהצלחה",
+        description: "ימי החלוקה עודכנו בהצלחה",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "שגיאה",
+        description: "אירעה שגיאה בעדכון ימי החלוקה",
         variant: "destructive",
       });
     }
@@ -308,6 +348,8 @@ const CustomerList = () => {
                 <TableHead className="h-8 px-2 text-xs font-semibold">עיר</TableHead>
                 <TableHead className="h-8 px-2 text-xs font-semibold">אזור</TableHead>
                 <TableHead className="h-8 px-2 text-xs font-semibold">ימי חלוקה</TableHead>
+                <TableHead className="h-8 px-2 text-xs font-semibold">אזור נוסף</TableHead>
+                <TableHead className="h-8 px-2 text-xs font-semibold">ימי אזור נוסף</TableHead>
                 <TableHead className="h-8 px-2 text-xs font-semibold">ימים ללא חלוקה</TableHead>
                 <TableHead className="h-8 px-2 text-xs font-semibold">שעות חלוקה</TableHead>
                 <TableHead className="h-8 px-2 text-xs font-semibold text-center">ממוצע</TableHead>
@@ -362,7 +404,121 @@ const CustomerList = () => {
                     )}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
-                    {formatDistributionDays(customer.day)}
+                    {(() => {
+                      const areaData = areasWithDays.find(a => a.separation === (customer.newarea || customer.city_area));
+                      const days = areaData?.days || [];
+                      
+                      let availableDays: string[] = [];
+                      if (Array.isArray(days)) {
+                        days.forEach(dayEntry => {
+                          if (typeof dayEntry === 'string' && dayEntry.includes(',')) {
+                            availableDays.push(...dayEntry.split(',').map(d => d.trim()));
+                          } else if (typeof dayEntry === 'string') {
+                            availableDays.push(dayEntry);
+                          }
+                        });
+                      }
+                      
+                      if (availableDays.length === 0) return '-';
+                      if (availableDays.length === 1) {
+                        return <div>{formatDistributionDays([availableDays[0]])}</div>;
+                      }
+                      
+                      if (currentUser?.agentnumber === "4") {
+                        return (
+                          <Select
+                            value={customer.selected_day ? JSON.stringify(customer.selected_day) : JSON.stringify(days)}
+                            onValueChange={(value) => {
+                              const selectedDays = JSON.parse(value);
+                              updateSelectedDaysMutation.mutate({
+                                customernumber: customer.customernumber,
+                                selectedDay: selectedDays,
+                                isExtra: false
+                              });
+                            }}
+                          >
+                            <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent">
+                              <SelectValue>
+                                {formatDistributionDays(customer.selected_day || days)}
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent className="z-50 bg-popover">
+                              {availableDays.map(day => (
+                                <SelectItem key={day} value={JSON.stringify([day])} className="text-xs">
+                                  {formatDistributionDays([day])}
+                                </SelectItem>
+                              ))}
+                              <SelectItem value={JSON.stringify(availableDays)} className="text-xs font-semibold">
+                                כל הימים ({formatDistributionDays(availableDays)})
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        );
+                      }
+                      
+                      return <div>{formatDistributionDays(customer.selected_day || days)}</div>;
+                    })()}
+                  </TableCell>
+                  <TableCell className="px-2 py-1 text-xs">
+                    {customer.extraarea || '-'}
+                  </TableCell>
+                  <TableCell className="px-2 py-1 text-xs">
+                    {(() => {
+                      if (!customer.extraarea) return '-';
+                      
+                      const areaData = areasWithDays.find(a => a.separation === customer.extraarea);
+                      const days = areaData?.days || [];
+                      
+                      let availableDays: string[] = [];
+                      if (Array.isArray(days)) {
+                        days.forEach(dayEntry => {
+                          if (typeof dayEntry === 'string' && dayEntry.includes(',')) {
+                            availableDays.push(...dayEntry.split(',').map(d => d.trim()));
+                          } else if (typeof dayEntry === 'string') {
+                            availableDays.push(dayEntry);
+                          }
+                        });
+                      }
+                      
+                      if (availableDays.length === 0) return '-';
+                      if (availableDays.length === 1) {
+                        return <div>{formatDistributionDays([availableDays[0]])}</div>;
+                      }
+                      
+                      if (currentUser?.agentnumber === "4") {
+                        return (
+                          <Select
+                            value={customer.selected_day_extra ? JSON.stringify(customer.selected_day_extra) : JSON.stringify(days)}
+                            onValueChange={(value) => {
+                              const selectedDays = JSON.parse(value);
+                              updateSelectedDaysMutation.mutate({
+                                customernumber: customer.customernumber,
+                                selectedDay: selectedDays,
+                                isExtra: true
+                              });
+                            }}
+                          >
+                            <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent">
+                              <SelectValue>
+                                {formatDistributionDays(customer.selected_day_extra || days)}
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent className="z-50 bg-popover">
+                              {availableDays.map(day => (
+                                <SelectItem key={day} value={JSON.stringify([day])} className="text-xs">
+                                  {formatDistributionDays([day])}
+                                </SelectItem>
+                              ))}
+                              <SelectItem value={JSON.stringify(availableDays)} className="text-xs font-semibold">
+                                כל הימים ({formatDistributionDays(availableDays)})
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        );
+                      }
+                      
+                      return <div>{formatDistributionDays(customer.selected_day_extra || days)}</div>;
+                    })()}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
                     {formatDistributionDays(customer.nodeliverday)}
