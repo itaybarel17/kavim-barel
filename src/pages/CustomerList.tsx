@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useMemo, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { Loader2, ArrowRight } from 'lucide-react';
@@ -9,6 +9,9 @@ import { formatDistributionDays } from '@/utils/dateUtils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import { useToast } from '@/hooks/use-toast';
 
 interface Customer {
   customernumber: string;
@@ -16,11 +19,13 @@ interface Customer {
   address: string;
   city: string;
   city_area: string;
+  newarea: string | null;
   nodeliverday: any;
   deliverhour: any;
   averagesupply: number;
   customergroup?: string;
   day?: any;
+  agentnumber: string;
 }
 
 const formatJsonbField = (value: any): string => {
@@ -37,7 +42,11 @@ const formatJsonbField = (value: any): string => {
 const CustomerList = () => {
   const { user: currentUser } = useAuth();
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = React.useState('');
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = Math.ceil(1000 / 3); // ~333 items per page
 
   const { data: customers = [], isLoading } = useQuery({
     queryKey: ['customers', currentUser?.agentnumber],
@@ -58,6 +67,44 @@ const CustomerList = () => {
     enabled: !!currentUser
   });
 
+  const { data: areas = [] } = useQuery({
+    queryKey: ['distribution-areas'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('distribution_groups')
+        .select('separation')
+        .order('separation');
+      
+      if (error) throw error;
+      return (data || []).map(d => d.separation).filter(Boolean);
+    }
+  });
+
+  const updateAreaMutation = useMutation({
+    mutationFn: async ({ customernumber, newarea }: { customernumber: string; newarea: string | null }) => {
+      const { error } = await supabase
+        .from('customerlist')
+        .update({ newarea })
+        .eq('customernumber', customernumber);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      toast({
+        title: "עודכן בהצלחה",
+        description: "האזור עודכן בהצלחה",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "שגיאה",
+        description: "אירעה שגיאה בעדכון האזור",
+        variant: "destructive",
+      });
+    }
+  });
+
   const filteredCustomers = useMemo(() => {
     if (!searchTerm) return customers;
     
@@ -68,6 +115,13 @@ const CustomerList = () => {
       customer.city?.toLowerCase().includes(term)
     );
   }, [customers, searchTerm]);
+
+  const totalPages = Math.ceil(filteredCustomers.length / ITEMS_PER_PAGE);
+  const paginatedCustomers = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return filteredCustomers.slice(startIndex, endIndex);
+  }, [filteredCustomers, currentPage, ITEMS_PER_PAGE]);
 
   if (isLoading) {
     return (
@@ -99,13 +153,19 @@ const CustomerList = () => {
         </Button>
       </div>
 
-      <div className="mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <Input
           placeholder="חיפוש לפי מספר לקוח, שם או עיר..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setCurrentPage(1);
+          }}
           className="max-w-md"
         />
+        <div className="text-sm text-muted-foreground">
+          עמוד {currentPage} מתוך {totalPages} | סה"כ {filteredCustomers.length} לקוחות
+        </div>
       </div>
 
       <div className="border rounded-lg bg-card">
@@ -123,10 +183,11 @@ const CustomerList = () => {
                 <TableHead className="h-8 px-2 text-xs font-semibold">שעות חלוקה</TableHead>
                 <TableHead className="h-8 px-2 text-xs font-semibold text-center">ממוצע</TableHead>
                 <TableHead className="h-8 px-2 text-xs font-semibold">קבוצה</TableHead>
+                <TableHead className="h-8 px-2 text-xs font-semibold">סוכן</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredCustomers.map((customer) => (
+              {paginatedCustomers.map((customer) => (
                 <TableRow key={customer.customernumber} className="h-8 hover:bg-muted/50">
                   <TableCell className="px-2 py-1 text-xs font-medium">
                     {customer.customernumber}
@@ -141,7 +202,30 @@ const CustomerList = () => {
                     {customer.city || '-'}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
-                    {customer.city_area || '-'}
+                    {currentUser?.agentnumber === "4" ? (
+                      <Select
+                        value={customer.newarea || customer.city_area || ''}
+                        onValueChange={(value) => {
+                          updateAreaMutation.mutate({
+                            customernumber: customer.customernumber,
+                            newarea: value === customer.city_area ? null : value
+                          });
+                        }}
+                      >
+                        <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {areas.map((area) => (
+                            <SelectItem key={area} value={area} className="text-xs">
+                              {area}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <span>{customer.newarea || customer.city_area || '-'}</span>
+                    )}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
                     {formatDistributionDays(customer.day)}
@@ -158,6 +242,9 @@ const CustomerList = () => {
                   <TableCell className="px-2 py-1 text-xs">
                     {customer.customergroup || '-'}
                   </TableCell>
+                  <TableCell className="px-2 py-1 text-xs">
+                    {customer.agentnumber || '-'}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -168,6 +255,42 @@ const CustomerList = () => {
       {filteredCustomers.length === 0 && (
         <div className="text-center py-12 text-muted-foreground">
           {searchTerm ? 'לא נמצאו לקוחות התואמים את החיפוש' : 'אין לקוחות להצגה'}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="mt-4 flex justify-center">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+              
+              {[1, 2, 3].map((page) => (
+                page <= totalPages && (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      onClick={() => setCurrentPage(page)}
+                      isActive={currentPage === page}
+                      className="cursor-pointer"
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                )
+              ))}
+              
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
       )}
     </div>
