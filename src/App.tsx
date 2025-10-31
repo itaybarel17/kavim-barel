@@ -18,6 +18,7 @@ import ProductionSummary from "./pages/ProductionSummary";
 import ScheduleMap from "./pages/ScheduleMap";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import CustomerList from "./pages/CustomerList";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { NavBar } from "@/components/layout/NavBar";
 
@@ -88,6 +89,9 @@ function App() {
                       </ProtectedRoute>} />
                     <Route path="/lines" element={<ProtectedRoute adminOnly>
                         <Lines />
+                      </ProtectedRoute>} />
+                    <Route path="/customer-list" element={<ProtectedRoute>
+                        <CustomerList />
                       </ProtectedRoute>} />
                     <Route path="/archive" element={<ProtectedRoute adminOnly>
                         <Archive />

@@ -2,7 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getAreaColor, getMainAreaFromSeparation } from '@/utils/areaColors';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import { TruckGrid } from '@/components/lines/TruckGrid';
 import { CityPool } from '@/components/lines/CityPool';
 import { AreaSchedule } from '@/components/lines/AreaSchedule';
@@ -39,6 +41,7 @@ const Lines = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
 
   // Fetch distribution groups
   const { data: distributionGroups = [], isLoading: groupsLoading } = useQuery({
@@ -623,7 +626,21 @@ const Lines = () => {
   return (
       <div className={`container mx-auto ${isMobile ? 'p-3' : 'p-6'} space-y-4`}>
         <div className="text-center">
-          <h1 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold mb-2`}>ניהול קווי הפצה</h1>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex-1" />
+            <h1 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold flex-1 text-center`}>ניהול קווי הפצה</h1>
+            <div className="flex-1 flex justify-end">
+              <Button 
+                onClick={() => navigate('/customer-list')}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <Users className="h-4 w-4" />
+                {!isMobile && 'רשימת לקוחות'}
+              </Button>
+            </div>
+          </div>
           {!isMobile && <p className="text-muted-foreground">גרור עירים לימים המתאימים על פי לוח החודש</p>}
           {isMobile && <p className="text-sm text-muted-foreground">שיוך ערים לימי הפצה</p>}
         </div>
