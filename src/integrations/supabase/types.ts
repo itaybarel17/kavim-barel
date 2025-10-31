@@ -236,6 +236,8 @@ export type Database = {
           phone: string | null
           selected_day: string | null
           selected_day_extra: string | null
+          selected_day_extra_temp: Json | null
+          selected_day_temp: Json | null
           supplydetails: string | null
         }
         Insert: {
@@ -255,6 +257,8 @@ export type Database = {
           phone?: string | null
           selected_day?: string | null
           selected_day_extra?: string | null
+          selected_day_extra_temp?: Json | null
+          selected_day_temp?: Json | null
           supplydetails?: string | null
         }
         Update: {
@@ -274,6 +278,8 @@ export type Database = {
           phone?: string | null
           selected_day?: string | null
           selected_day_extra?: string | null
+          selected_day_extra_temp?: Json | null
+          selected_day_temp?: Json | null
           supplydetails?: string | null
         }
         Relationships: [
@@ -450,8 +456,10 @@ export type Database = {
           parallel_discount: number | null
           phone: string | null
           recency: number | null
-          selected_day: Json | null
-          selected_day_extra: Json | null
+          selected_day: string | null
+          selected_day_extra: string | null
+          selected_day_extra_temp: Json | null
+          selected_day_temp: Json | null
           shotefname: string | null
           shotefnumber: number | null
           spread: number | null
@@ -499,8 +507,10 @@ export type Database = {
           parallel_discount?: number | null
           phone?: string | null
           recency?: number | null
-          selected_day?: Json | null
-          selected_day_extra?: Json | null
+          selected_day?: string | null
+          selected_day_extra?: string | null
+          selected_day_extra_temp?: Json | null
+          selected_day_temp?: Json | null
           shotefname?: string | null
           shotefnumber?: number | null
           spread?: number | null
@@ -548,8 +558,10 @@ export type Database = {
           parallel_discount?: number | null
           phone?: string | null
           recency?: number | null
-          selected_day?: Json | null
-          selected_day_extra?: Json | null
+          selected_day?: string | null
+          selected_day_extra?: string | null
+          selected_day_extra_temp?: Json | null
+          selected_day_temp?: Json | null
           shotefname?: string | null
           shotefnumber?: number | null
           spread?: number | null
