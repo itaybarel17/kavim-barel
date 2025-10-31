@@ -459,7 +459,7 @@ const CustomerList = () => {
                               });
                             }}
                           >
-                            <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent">
+                            <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent [&>svg]:hidden">
                               <SelectValue>
                                 {formatDistributionDaysShort(customer.selected_day || days)}
                               </SelectValue>
