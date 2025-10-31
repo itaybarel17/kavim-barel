@@ -44,11 +44,22 @@ export const formatDistributionDays = (daysInput: any): string => {
 export const formatDistributionDaysShort = (daysInput: any): string => {
   if (!daysInput) return '';
   
+  // Handle string JSON format - parse it first
+  let parsedInput = daysInput;
+  if (typeof daysInput === 'string') {
+    try {
+      parsedInput = JSON.parse(daysInput);
+    } catch {
+      // If parsing fails, return the original string
+      return daysInput;
+    }
+  }
+  
   // Handle JSONB array format like ["ד"] or ["ד","ה"] or ["ד,ה"]
-  if (Array.isArray(daysInput)) {
+  if (Array.isArray(parsedInput)) {
     const daysArray: string[] = [];
     
-    daysInput.forEach(dayEntry => {
+    parsedInput.forEach(dayEntry => {
       if (typeof dayEntry === 'string') {
         if (dayEntry.includes(',')) {
           // Handle comma-separated like "ד,ה"
