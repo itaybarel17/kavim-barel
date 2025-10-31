@@ -402,7 +402,11 @@ const CustomerList = () => {
     mutationFn: async ({ customernumber, newarea }: { customernumber: string; newarea: string | null }) => {
       const { error } = await supabase
         .from('customerlist')
-        .update({ newarea })
+        .update({ 
+          newarea,
+          selected_day: null,
+          selected_day_extra: null
+        })
         .eq('customernumber', customernumber);
       
       if (error) throw error;
@@ -419,7 +423,7 @@ const CustomerList = () => {
       queryClient.setQueryData(['customers', currentUser?.agentnumber, selectedAgent, selectedCity, selectedArea], (old: Customer[] = []) => {
         return old.map(customer => 
           customer.customernumber === customernumber 
-            ? { ...customer, newarea }
+            ? { ...customer, newarea, selected_day: null, selected_day_extra: null }
             : customer
         );
       });
