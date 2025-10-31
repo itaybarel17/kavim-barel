@@ -410,7 +410,7 @@ const CustomerList = () => {
                           setOpenAreaSelect(isOpen ? customer.customernumber : null);
                         }}
                       >
-                        <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent">
+                        <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent [&>svg]:hidden">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="z-50 bg-popover">
@@ -499,9 +499,9 @@ const CustomerList = () => {
                             });
                         }}
                       >
-                        <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent">
-                          <SelectValue placeholder="-" />
-                        </SelectTrigger>
+                            <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent [&>svg]:hidden">
+                              <SelectValue placeholder="-" />
+                            </SelectTrigger>
           <SelectContent className="z-50 bg-popover">
             <SelectItem value="none" className="text-xs">ללא</SelectItem>
             {distributionAreas.map((area) => (
@@ -551,7 +551,7 @@ const CustomerList = () => {
                               });
                             }}
                           >
-                            <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent">
+                            <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent [&>svg]:hidden">
                               <SelectValue>
                                 {formatDistributionDaysShort(customer.selected_day_extra || days)}
                               </SelectValue>
