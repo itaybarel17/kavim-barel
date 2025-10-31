@@ -50,32 +50,20 @@ export const formatDistributionDaysShort = (daysInput: any): string => {
     try {
       parsedInput = JSON.parse(daysInput);
     } catch {
-      // If parsing fails, return the original string
       return daysInput;
     }
   }
   
-  // Handle JSONB array format like ["ד"] or ["ד","ה"] or ["ד,ה"]
+  // Handle JSONB array format - flatten all values and split by commas
   if (Array.isArray(parsedInput)) {
-    const daysArray: string[] = [];
+    const allDays = parsedInput
+      .filter(entry => entry && typeof entry === 'string')
+      .join(',')
+      .split(',')
+      .map(day => day.trim())
+      .filter(day => day.length > 0);
     
-    parsedInput.forEach(dayEntry => {
-      if (typeof dayEntry === 'string') {
-        if (dayEntry.includes(',')) {
-          // Handle comma-separated like "ד,ה"
-          dayEntry.split(',').forEach(day => {
-            const trimmedDay = day.trim();
-            if (trimmedDay) daysArray.push(trimmedDay);
-          });
-        } else {
-          // Handle single letter like "ד"
-          const trimmedDay = dayEntry.trim();
-          if (trimmedDay) daysArray.push(trimmedDay);
-        }
-      }
-    });
-    
-    return daysArray.filter(d => d).join(', ');
+    return allDays.join(', ');
   }
   
   return '';
