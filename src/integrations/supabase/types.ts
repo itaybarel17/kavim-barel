@@ -234,8 +234,8 @@ export type Database = {
           newarea: string | null
           nodeliverday: Json | null
           phone: string | null
-          selected_day: Json | null
-          selected_day_extra: Json | null
+          selected_day: string | null
+          selected_day_extra: string | null
           supplydetails: string | null
         }
         Insert: {
@@ -253,8 +253,8 @@ export type Database = {
           newarea?: string | null
           nodeliverday?: Json | null
           phone?: string | null
-          selected_day?: Json | null
-          selected_day_extra?: Json | null
+          selected_day?: string | null
+          selected_day_extra?: string | null
           supplydetails?: string | null
         }
         Update: {
@@ -272,8 +272,8 @@ export type Database = {
           newarea?: string | null
           nodeliverday?: Json | null
           phone?: string | null
-          selected_day?: Json | null
-          selected_day_extra?: Json | null
+          selected_day?: string | null
+          selected_day_extra?: string | null
           supplydetails?: string | null
         }
         Relationships: [
