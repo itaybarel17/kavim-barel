@@ -56,6 +56,7 @@ const CustomerList = () => {
       let query = supabase
         .from('customerlist')
         .select('*')
+        .not('averagesupply', 'is', null)
         .order('customernumber');
       
       // If not agent 4, filter by their agent number
@@ -108,17 +109,37 @@ const CustomerList = () => {
   });
 
   const { data: cities = [] } = useQuery({
-    queryKey: ['cities-list'],
+    queryKey: ['cities-list', selectedAgent],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('customerlist')
-        .select('city')
-        .order('city');
+        .select('city, agentnumber')
+        .not('averagesupply', 'is', null);
       
+      // If agent is selected, filter cities by that agent
+      if (selectedAgent) {
+        query = query.eq('agentnumber', selectedAgent);
+      }
+      
+      const { data, error } = await query;
       if (error) throw error;
-      const uniqueCities = [...new Set(data?.map(d => d.city).filter(Boolean))];
-      return uniqueCities;
-    }
+      
+      // Count customers per city and filter cities with more than 1 customer
+      const cityCounts = (data || []).reduce((acc, item) => {
+        if (item.city) {
+          acc[item.city] = (acc[item.city] || 0) + 1;
+        }
+        return acc;
+      }, {} as Record<string, number>);
+      
+      const filteredCities = Object.entries(cityCounts)
+        .filter(([_, count]) => count > 1)
+        .map(([city]) => city)
+        .sort();
+      
+      return filteredCities;
+    },
+    enabled: currentUser?.agentnumber === "4"
   });
 
   const updateAreaMutation = useMutation({
