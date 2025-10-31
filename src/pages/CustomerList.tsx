@@ -48,6 +48,9 @@ const CustomerList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedAgent, setSelectedAgent] = useState<string>('');
   const [selectedCity, setSelectedCity] = useState<string>('');
+  const [agentSelectOpen, setAgentSelectOpen] = useState(false);
+  const [citySelectOpen, setCitySelectOpen] = useState(false);
+  const [openAreaSelect, setOpenAreaSelect] = useState<string | null>(null);
   const ITEMS_PER_PAGE = Math.ceil(1000 / 3); // ~333 items per page
 
   const { data: customers = [], isLoading } = useQuery({
@@ -217,10 +220,16 @@ const CustomerList = () => {
 
       {currentUser?.agentnumber === "4" && (
         <div className="mb-4 flex gap-4 items-center">
-          <Select value={selectedAgent || undefined} onValueChange={(value) => {
-            setSelectedAgent(value);
-            setCurrentPage(1);
-          }}>
+          <Select 
+            value={selectedAgent || undefined} 
+            onValueChange={(value) => {
+              setSelectedAgent(value);
+              setCurrentPage(1);
+              setAgentSelectOpen(false);
+            }}
+            open={agentSelectOpen}
+            onOpenChange={setAgentSelectOpen}
+          >
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="בחר סוכן..." />
             </SelectTrigger>
@@ -233,10 +242,16 @@ const CustomerList = () => {
             </SelectContent>
           </Select>
 
-          <Select value={selectedCity || undefined} onValueChange={(value) => {
-            setSelectedCity(value);
-            setCurrentPage(1);
-          }}>
+          <Select 
+            value={selectedCity || undefined} 
+            onValueChange={(value) => {
+              setSelectedCity(value);
+              setCurrentPage(1);
+              setCitySelectOpen(false);
+            }}
+            open={citySelectOpen}
+            onOpenChange={setCitySelectOpen}
+          >
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="בחר עיר..." />
             </SelectTrigger>
@@ -324,6 +339,11 @@ const CustomerList = () => {
                             customernumber: customer.customernumber,
                             newarea: value === customer.city_area ? null : value
                           });
+                          setOpenAreaSelect(null);
+                        }}
+                        open={openAreaSelect === customer.customernumber}
+                        onOpenChange={(isOpen) => {
+                          setOpenAreaSelect(isOpen ? customer.customernumber : null);
                         }}
                       >
                         <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent">
