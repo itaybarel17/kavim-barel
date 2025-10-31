@@ -46,25 +46,39 @@ const CustomerList = () => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedAgent, setSelectedAgent] = useState<string>('');
+  const [selectedCity, setSelectedCity] = useState<string>('');
   const ITEMS_PER_PAGE = Math.ceil(1000 / 3); // ~333 items per page
 
   const { data: customers = [], isLoading } = useQuery({
-    queryKey: ['customers', currentUser?.agentnumber],
+    queryKey: ['customers', currentUser?.agentnumber, selectedAgent, selectedCity],
     queryFn: async () => {
       let query = supabase
         .from('customerlist')
         .select('*')
         .order('customernumber');
       
+      // If not agent 4, filter by their agent number
       if (currentUser?.agentnumber !== "4") {
         query = query.eq('agentnumber', currentUser?.agentnumber);
+      } else {
+        // For agent 4, apply selected filters
+        if (selectedAgent) {
+          query = query.eq('agentnumber', selectedAgent);
+        }
+        if (selectedCity) {
+          query = query.eq('city', selectedCity);
+        }
       }
       
       const { data, error } = await query;
       if (error) throw error;
       return (data || []) as Customer[];
     },
-    enabled: !!currentUser
+    enabled: !!currentUser && (
+      currentUser.agentnumber !== "4" || 
+      (currentUser.agentnumber === "4" && (!!selectedAgent || !!selectedCity))
+    )
   });
 
   const { data: areas = [] } = useQuery({
@@ -77,6 +91,33 @@ const CustomerList = () => {
       
       if (error) throw error;
       return (data || []).map(d => d.separation).filter(Boolean);
+    }
+  });
+
+  const { data: agents = [] } = useQuery({
+    queryKey: ['agents-list'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('agents')
+        .select('agentnumber, agentname')
+        .order('agentnumber');
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  const { data: cities = [] } = useQuery({
+    queryKey: ['cities-list'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('customerlist')
+        .select('city')
+        .order('city');
+      
+      if (error) throw error;
+      const uniqueCities = [...new Set(data?.map(d => d.city).filter(Boolean))];
+      return uniqueCities;
     }
   });
 
@@ -153,6 +194,58 @@ const CustomerList = () => {
         </Button>
       </div>
 
+      {currentUser?.agentnumber === "4" && (
+        <div className="mb-4 flex gap-4 items-center">
+          <Select value={selectedAgent} onValueChange={(value) => {
+            setSelectedAgent(value);
+            setCurrentPage(1);
+          }}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="בחר סוכן..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">כל הסוכנים</SelectItem>
+              {agents.map((agent) => (
+                <SelectItem key={agent.agentnumber} value={agent.agentnumber}>
+                  {agent.agentnumber} - {agent.agentname}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedCity} onValueChange={(value) => {
+            setSelectedCity(value);
+            setCurrentPage(1);
+          }}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="בחר עיר..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">כל הערים</SelectItem>
+              {cities.map((city) => (
+                <SelectItem key={city} value={city}>
+                  {city}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {(selectedAgent || selectedCity) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSelectedAgent('');
+                setSelectedCity('');
+                setCurrentPage(1);
+              }}
+            >
+              נקה פילטרים
+            </Button>
+          )}
+        </div>
+      )}
+
       <div className="mb-4 flex items-center justify-between">
         <Input
           placeholder="חיפוש לפי מספר לקוח, שם או עיר..."
@@ -168,7 +261,9 @@ const CustomerList = () => {
         </div>
       </div>
 
-      <div className="border rounded-lg bg-card">
+      {(selectedAgent || selectedCity || currentUser?.agentnumber !== "4") && filteredCustomers.length > 0 && (
+        <>
+          <div className="border rounded-lg bg-card">
         <ScrollArea className="h-[calc(100vh-250px)]">
           <Table>
             <TableHeader className="sticky top-0 bg-card z-10">
@@ -250,47 +345,56 @@ const CustomerList = () => {
             </TableBody>
           </Table>
         </ScrollArea>
-      </div>
+          </div>
 
-      {filteredCustomers.length === 0 && (
+          {totalPages > 1 && (
+            <div className="mt-4 flex justify-center">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                  
+                  {[1, 2, 3].map((page) => (
+                    page <= totalPages && (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          onClick={() => setCurrentPage(page)}
+                          isActive={currentPage === page}
+                          className="cursor-pointer"
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    )
+                  ))}
+                  
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
+        </>
+      )}
+
+      {currentUser?.agentnumber === "4" && !selectedAgent && !selectedCity && (
         <div className="text-center py-12 text-muted-foreground">
-          {searchTerm ? 'לא נמצאו לקוחות התואמים את החיפוש' : 'אין לקוחות להצגה'}
+          <p className="text-lg font-medium mb-2">בחר סוכן או עיר כדי להציג לקוחות</p>
+          <p className="text-sm">יש יותר מ-2000 לקוחות במערכת, נא לבחור פילטר</p>
         </div>
       )}
 
-      {totalPages > 1 && (
-        <div className="mt-4 flex justify-center">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                />
-              </PaginationItem>
-              
-              {[1, 2, 3].map((page) => (
-                page <= totalPages && (
-                  <PaginationItem key={page}>
-                    <PaginationLink
-                      onClick={() => setCurrentPage(page)}
-                      isActive={currentPage === page}
-                      className="cursor-pointer"
-                    >
-                      {page}
-                    </PaginationLink>
-                  </PaginationItem>
-                )
-              ))}
-              
-              <PaginationItem>
-                <PaginationNext
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
+      {filteredCustomers.length === 0 && (selectedAgent || selectedCity || currentUser?.agentnumber !== "4") && !isLoading && (
+        <div className="text-center py-12 text-muted-foreground">
+          {searchTerm ? 'לא נמצאו לקוחות התואמים את החיפוש' : 'אין לקוחות להצגה'}
         </div>
       )}
     </div>
