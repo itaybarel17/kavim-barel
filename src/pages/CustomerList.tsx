@@ -377,7 +377,6 @@ const CustomerList = () => {
                 <TableHead className="h-8 px-2 text-xs font-semibold">שעות חלוקה</TableHead>
                 <TableHead className="h-8 px-2 text-xs font-semibold text-center">ממוצע</TableHead>
                 <TableHead className="h-8 px-2 text-xs font-semibold">קבוצה</TableHead>
-                <TableHead className="h-8 px-2 text-xs font-semibold">סוכן</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -389,7 +388,7 @@ const CustomerList = () => {
                   <TableCell className="px-2 py-1 text-xs max-w-[150px] truncate" title={customer.customername}>
                     {customer.customername}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs max-w-[180px] truncate" title={customer.address}>
+                  <TableCell className="px-2 py-1 text-xs max-w-[120px] truncate" title={customer.address}>
                     {customer.address || '-'}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
@@ -585,9 +584,6 @@ const CustomerList = () => {
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
                     {customer.customergroup || '-'}
-                  </TableCell>
-                  <TableCell className="px-2 py-1 text-xs">
-                    {customer.agentnumber || '-'}
                   </TableCell>
                 </TableRow>
               ))}
