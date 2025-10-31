@@ -472,7 +472,7 @@ const CustomerList = () => {
                                 </SelectItem>
                               ))}
                               <SelectItem value={JSON.stringify(availableDays)} className="text-xs font-semibold">
-                                כל הימים ({formatDistributionDaysShort(availableDays)})
+                                {formatDistributionDaysShort(availableDays)}
                               </SelectItem>
                             </SelectContent>
                           </Select>
@@ -564,7 +564,7 @@ const CustomerList = () => {
                                 </SelectItem>
                               ))}
                               <SelectItem value={JSON.stringify(availableDays)} className="text-xs font-semibold">
-                                כל הימים ({formatDistributionDaysShort(availableDays)})
+                                {formatDistributionDaysShort(availableDays)}
                               </SelectItem>
                             </SelectContent>
                           </Select>
