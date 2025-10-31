@@ -92,7 +92,17 @@ const CustomerList = () => {
     )
   });
 
-  const { data: areas = [] } = useQuery({
+  // Get unique areas from customers for filter
+  const areas = React.useMemo(() => {
+    const areaSet = new Set<string>();
+    customers?.forEach(customer => {
+      if (customer.city_area && customer.city_area.trim()) areaSet.add(customer.city_area);
+      if (customer.newarea && customer.newarea.trim()) areaSet.add(customer.newarea);
+    });
+    return Array.from(areaSet).filter(area => area && area.trim()).sort();
+  }, [customers]);
+
+  const { data: distributionAreas = [] } = useQuery({
     queryKey: ['distribution-areas'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -405,7 +415,7 @@ const CustomerList = () => {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="z-50 bg-popover">
-                          {areas.map((area) => (
+                          {distributionAreas.map((area) => (
                             <SelectItem key={area} value={area} className="text-xs">
                               {area}
                             </SelectItem>
@@ -495,7 +505,7 @@ const CustomerList = () => {
                         </SelectTrigger>
           <SelectContent className="z-50 bg-popover">
             <SelectItem value="none" className="text-xs">ללא</SelectItem>
-            {areas.map((area) => (
+            {distributionAreas.map((area) => (
               <SelectItem key={area} value={area} className="text-xs">
                 {area}
               </SelectItem>
@@ -565,41 +575,7 @@ const CustomerList = () => {
                     })()}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
-                    {currentUser?.agentnumber === "4" ? (
-                      <Select
-                        value={customer.nodeliverday ? JSON.stringify(customer.nodeliverday) : '[]'}
-                        onValueChange={(value) => {
-                          const selectedDays = JSON.parse(value);
-                          supabase
-                            .from('customerlist')
-                            .update({ nodeliverday: selectedDays.length > 0 ? selectedDays : null })
-                            .eq('customernumber', customer.customernumber)
-                            .then(() => {
-                              queryClient.invalidateQueries({ queryKey: ['customers'] });
-                              toast({
-                                title: "עודכן בהצלחה",
-                                description: "ימים ללא חלוקה עודכנו",
-                              });
-                            });
-                        }}
-                      >
-                        <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent">
-                          <SelectValue>
-                            {formatDistributionDaysShort(customer.nodeliverday) || '-'}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="z-50 bg-popover">
-                          <SelectItem value="[]" className="text-xs">ללא</SelectItem>
-                          {['א', 'ב', 'ג', 'ד', 'ה', 'ו'].map(day => (
-                            <SelectItem key={day} value={JSON.stringify([day])} className="text-xs">
-                              {day}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <span>{formatDistributionDaysShort(customer.nodeliverday) || '-'}</span>
-                    )}
+                    {formatDistributionDaysShort(customer.nodeliverday) || '-'}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
                     {formatJsonbField(customer.deliverhour)}
