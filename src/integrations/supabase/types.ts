@@ -577,6 +577,7 @@ export type Database = {
       }
       distribution_groups: {
         Row: {
+          "1": number | null
           agents: Json | null
           agentsworkarea: Json | null
           days: Json | null
@@ -585,9 +586,11 @@ export type Database = {
           groups_id: number
           orderlabelinkavim: number | null
           separation: string | null
+          total_spots: Json | null
           totalsupplyspots: number | null
         }
         Insert: {
+          "1"?: number | null
           agents?: Json | null
           agentsworkarea?: Json | null
           days?: Json | null
@@ -596,9 +599,11 @@ export type Database = {
           groups_id?: number
           orderlabelinkavim?: number | null
           separation?: string | null
+          total_spots?: Json | null
           totalsupplyspots?: number | null
         }
         Update: {
+          "1"?: number | null
           agents?: Json | null
           agentsworkarea?: Json | null
           days?: Json | null
@@ -607,6 +612,7 @@ export type Database = {
           groups_id?: number
           orderlabelinkavim?: number | null
           separation?: string | null
+          total_spots?: Json | null
           totalsupplyspots?: number | null
         }
         Relationships: []
@@ -1617,6 +1623,10 @@ export type Database = {
     }
     Functions: {
       calculate_docdate: { Args: { input_date: string }; Returns: string }
+      calculate_total_spots_for_area: {
+        Args: { area_separation: string }
+        Returns: Json
+      }
       calculate_valuedate:
         | {
             Args: { customer_num: string; end_check_time: string }
