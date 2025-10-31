@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback, memo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
@@ -40,6 +40,232 @@ const formatJsonbField = (value: any): string => {
   }
   return String(value).replace(/[\[\]"]/g, '');
 };
+
+// Memoized row component to prevent unnecessary re-renders
+const CustomerTableRow = memo(({ 
+  customer, 
+  currentUser, 
+  distributionAreas, 
+  areasWithDays,
+  openAreaSelect,
+  setOpenAreaSelect,
+  updateAreaMutation,
+  updateSelectedDaysMutation,
+  updateExtraAreaMutation
+}: {
+  customer: Customer;
+  currentUser: any;
+  distributionAreas: string[];
+  areasWithDays: any[];
+  openAreaSelect: string | null;
+  setOpenAreaSelect: (val: string | null) => void;
+  updateAreaMutation: any;
+  updateSelectedDaysMutation: any;
+  updateExtraAreaMutation: any;
+}) => {
+  return (
+    <TableRow className="h-8 hover:bg-muted/50">
+      <TableCell className="px-2 py-1 text-xs font-medium">
+        {customer.customernumber}
+      </TableCell>
+      <TableCell className="px-2 py-1 text-xs max-w-[150px] truncate" title={customer.customername}>
+        {customer.customername}
+      </TableCell>
+      <TableCell className="px-2 py-1 text-xs max-w-[120px] truncate" title={customer.address}>
+        {customer.address || '-'}
+      </TableCell>
+      <TableCell className="px-2 py-1 text-xs">
+        {customer.city || '-'}
+      </TableCell>
+      <TableCell className="px-2 py-1 text-xs">
+        {currentUser?.agentnumber === "4" ? (
+          <Select
+            value={customer.newarea || customer.city_area || ''}
+            onValueChange={(value) => {
+              updateAreaMutation.mutate({
+                customernumber: customer.customernumber,
+                newarea: value === customer.city_area ? null : value
+              });
+              setOpenAreaSelect(null);
+            }}
+            open={openAreaSelect === customer.customernumber}
+            onOpenChange={(isOpen) => {
+              setOpenAreaSelect(isOpen ? customer.customernumber : null);
+            }}
+          >
+            <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent [&>svg]:hidden">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="z-50 bg-popover">
+              {distributionAreas.map((area) => (
+                <SelectItem key={area} value={area} className="text-xs">
+                  {area}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <span>{customer.newarea || customer.city_area || '-'}</span>
+        )}
+      </TableCell>
+      <TableCell className="px-2 py-1 text-xs">
+        {(() => {
+          const areaData = areasWithDays.find(a => a.separation === (customer.newarea || customer.city_area));
+          const days = areaData?.days || [];
+          
+          let availableDays: string[] = [];
+          if (Array.isArray(days)) {
+            days.forEach(dayEntry => {
+              if (typeof dayEntry === 'string' && dayEntry.includes(',')) {
+                availableDays.push(...dayEntry.split(',').map(d => d.trim()));
+              } else if (typeof dayEntry === 'string') {
+                availableDays.push(dayEntry);
+              }
+            });
+          }
+          
+          if (availableDays.length === 0) return '-';
+          if (availableDays.length === 1) {
+            return <div>{formatDistributionDaysShort([availableDays[0]])}</div>;
+          }
+          
+          if (currentUser?.agentnumber === "4") {
+            return (
+              <Select
+                value={customer.selected_day ? JSON.stringify(customer.selected_day) : JSON.stringify(days)}
+                onValueChange={(value) => {
+                  const selectedDays = JSON.parse(value);
+                  updateSelectedDaysMutation.mutate({
+                    customernumber: customer.customernumber,
+                    selectedDay: selectedDays,
+                    isExtra: false
+                  });
+                }}
+              >
+                <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent [&>svg]:hidden">
+                  <SelectValue>
+                    {formatDistributionDaysShort(customer.selected_day || days)}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="z-50 bg-popover">
+                  {availableDays.map(day => (
+                    <SelectItem key={day} value={JSON.stringify([day])} className="text-xs">
+                      {formatDistributionDaysShort([day])}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value={JSON.stringify(availableDays)} className="text-xs font-semibold">
+                    {formatDistributionDaysShort(availableDays)}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            );
+          }
+          
+          return <div>{formatDistributionDaysShort(customer.selected_day || days)}</div>;
+        })()}
+      </TableCell>
+      <TableCell className="px-2 py-1 text-xs">
+        {currentUser?.agentnumber === "4" ? (
+          <Select
+            value={customer.extraarea || 'none'}
+            onValueChange={(value) => {
+              updateExtraAreaMutation.mutate({
+                customernumber: customer.customernumber,
+                extraarea: value === 'none' ? null : value
+              });
+            }}
+          >
+            <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent [&>svg]:hidden">
+              <SelectValue placeholder="-" />
+            </SelectTrigger>
+            <SelectContent className="z-50 bg-popover">
+              <SelectItem value="none" className="text-xs">ללא</SelectItem>
+              {distributionAreas.map((area) => (
+                <SelectItem key={area} value={area} className="text-xs">
+                  {area}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <span>{customer.extraarea || '-'}</span>
+        )}
+      </TableCell>
+      <TableCell className="px-2 py-1 text-xs">
+        {(() => {
+          if (!customer.extraarea) return '-';
+          
+          const areaData = areasWithDays.find(a => a.separation === customer.extraarea);
+          const days = areaData?.days || [];
+          
+          let availableDays: string[] = [];
+          if (Array.isArray(days)) {
+            days.forEach(dayEntry => {
+              if (typeof dayEntry === 'string' && dayEntry.includes(',')) {
+                availableDays.push(...dayEntry.split(',').map(d => d.trim()));
+              } else if (typeof dayEntry === 'string') {
+                availableDays.push(dayEntry);
+              }
+            });
+          }
+          
+          if (availableDays.length === 0) return '-';
+          if (availableDays.length === 1) {
+            return <div>{formatDistributionDaysShort([availableDays[0]])}</div>;
+          }
+          
+          if (currentUser?.agentnumber === "4") {
+            return (
+              <Select
+                value={customer.selected_day_extra ? JSON.stringify(customer.selected_day_extra) : JSON.stringify(days)}
+                onValueChange={(value) => {
+                  const selectedDays = JSON.parse(value);
+                  updateSelectedDaysMutation.mutate({
+                    customernumber: customer.customernumber,
+                    selectedDay: selectedDays,
+                    isExtra: true
+                  });
+                }}
+              >
+                <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent [&>svg]:hidden">
+                  <SelectValue>
+                    {formatDistributionDaysShort(customer.selected_day_extra || days)}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="z-50 bg-popover">
+                  {availableDays.map(day => (
+                    <SelectItem key={day} value={JSON.stringify([day])} className="text-xs">
+                      {formatDistributionDaysShort([day])}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value={JSON.stringify(availableDays)} className="text-xs font-semibold">
+                    {formatDistributionDaysShort(availableDays)}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            );
+          }
+          
+          return <div>{formatDistributionDaysShort(customer.selected_day_extra || days)}</div>;
+        })()}
+      </TableCell>
+      <TableCell className="px-2 py-1 text-xs">
+        {formatDistributionDaysShort(customer.nodeliverday) || '-'}
+      </TableCell>
+      <TableCell className="px-2 py-1 text-xs">
+        {formatJsonbField(customer.deliverhour)}
+      </TableCell>
+      <TableCell className="px-2 py-1 text-xs text-center">
+        {customer.averagesupply ? customer.averagesupply.toFixed(2) : '-'}
+      </TableCell>
+      <TableCell className="px-2 py-1 text-xs">
+        {customer.customergroup || '-'}
+      </TableCell>
+    </TableRow>
+  );
+});
+
+CustomerTableRow.displayName = 'CustomerTableRow';
 
 const CustomerList = () => {
   const { user: currentUser } = useAuth();
@@ -89,7 +315,9 @@ const CustomerList = () => {
     enabled: !!currentUser && (
       currentUser.agentnumber !== "4" || 
       (currentUser.agentnumber === "4" && (!!selectedAgent || !!selectedCity || !!selectedArea))
-    )
+    ),
+    staleTime: 30000, // Data stays fresh for 30 seconds
+    gcTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
   });
 
   // Get unique areas from customers for filter
@@ -112,7 +340,9 @@ const CustomerList = () => {
       
       if (error) throw error;
       return (data || []).map(d => d.separation).filter(Boolean);
-    }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   const { data: areasWithDays = [] } = useQuery({
@@ -125,7 +355,9 @@ const CustomerList = () => {
       
       if (error) throw error;
       return data || [];
-    }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   const { data: agents = [] } = useQuery({
@@ -138,7 +370,9 @@ const CustomerList = () => {
       
       if (error) throw error;
       return data || [];
-    }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   const { data: cities = [] } = useQuery({
@@ -157,7 +391,9 @@ const CustomerList = () => {
       
       return uniqueCities;
     },
-    enabled: currentUser?.agentnumber === "4"
+    enabled: currentUser?.agentnumber === "4",
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   const updateAreaMutation = useMutation({
@@ -168,19 +404,41 @@ const CustomerList = () => {
         .eq('customernumber', customernumber);
       
       if (error) throw error;
+      return { customernumber, newarea };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
-      toast({
-        title: "עודכן בהצלחה",
-        description: "האזור עודכן בהצלחה",
+    onMutate: async ({ customernumber, newarea }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['customers'] });
+      
+      // Snapshot the previous value
+      const previousCustomers = queryClient.getQueryData(['customers', currentUser?.agentnumber, selectedAgent, selectedCity, selectedArea]);
+      
+      // Optimistically update
+      queryClient.setQueryData(['customers', currentUser?.agentnumber, selectedAgent, selectedCity, selectedArea], (old: Customer[] = []) => {
+        return old.map(customer => 
+          customer.customernumber === customernumber 
+            ? { ...customer, newarea }
+            : customer
+        );
       });
+      
+      return { previousCustomers };
     },
-    onError: () => {
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousCustomers) {
+        queryClient.setQueryData(['customers', currentUser?.agentnumber, selectedAgent, selectedCity, selectedArea], context.previousCustomers);
+      }
       toast({
         title: "שגיאה",
         description: "אירעה שגיאה בעדכון האזור",
         variant: "destructive",
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "עודכן בהצלחה",
+        description: "האזור עודכן בהצלחה",
       });
     }
   });
@@ -193,19 +451,84 @@ const CustomerList = () => {
         .eq('customernumber', customernumber);
       
       if (error) throw error;
+      return { customernumber, selectedDay, isExtra };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
-      toast({
-        title: "עודכן בהצלחה",
-        description: "ימי החלוקה עודכנו בהצלחה",
+    onMutate: async ({ customernumber, selectedDay, isExtra }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['customers'] });
+      
+      // Snapshot the previous value
+      const previousCustomers = queryClient.getQueryData(['customers', currentUser?.agentnumber, selectedAgent, selectedCity, selectedArea]);
+      
+      // Optimistically update
+      queryClient.setQueryData(['customers', currentUser?.agentnumber, selectedAgent, selectedCity, selectedArea], (old: Customer[] = []) => {
+        return old.map(customer => 
+          customer.customernumber === customernumber 
+            ? { ...customer, [isExtra ? 'selected_day_extra' : 'selected_day']: selectedDay }
+            : customer
+        );
       });
+      
+      return { previousCustomers };
     },
-    onError: () => {
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousCustomers) {
+        queryClient.setQueryData(['customers', currentUser?.agentnumber, selectedAgent, selectedCity, selectedArea], context.previousCustomers);
+      }
       toast({
         title: "שגיאה",
         description: "אירעה שגיאה בעדכון ימי החלוקה",
         variant: "destructive",
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "עודכן בהצלחה",
+        description: "ימי החלוקה עודכנו בהצלחה",
+      });
+    }
+  });
+
+  const updateExtraAreaMutation = useMutation({
+    mutationFn: async ({ customernumber, extraarea }: { customernumber: string; extraarea: string | null }) => {
+      const { error } = await supabase
+        .from('customerlist')
+        .update({ extraarea })
+        .eq('customernumber', customernumber);
+      
+      if (error) throw error;
+      return { customernumber, extraarea };
+    },
+    onMutate: async ({ customernumber, extraarea }) => {
+      await queryClient.cancelQueries({ queryKey: ['customers'] });
+      
+      const previousCustomers = queryClient.getQueryData(['customers', currentUser?.agentnumber, selectedAgent, selectedCity, selectedArea]);
+      
+      queryClient.setQueryData(['customers', currentUser?.agentnumber, selectedAgent, selectedCity, selectedArea], (old: Customer[] = []) => {
+        return old.map(customer => 
+          customer.customernumber === customernumber 
+            ? { ...customer, extraarea }
+            : customer
+        );
+      });
+      
+      return { previousCustomers };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousCustomers) {
+        queryClient.setQueryData(['customers', currentUser?.agentnumber, selectedAgent, selectedCity, selectedArea], context.previousCustomers);
+      }
+      toast({
+        title: "שגיאה",
+        description: "אירעה שגיאה בעדכון האזור הנוסף",
+        variant: "destructive",
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "עודכן בהצלחה",
+        description: "האזור הנוסף עודכן",
       });
     }
   });
@@ -381,211 +704,18 @@ const CustomerList = () => {
             </TableHeader>
             <TableBody>
               {paginatedCustomers.map((customer) => (
-                <TableRow key={customer.customernumber} className="h-8 hover:bg-muted/50">
-                  <TableCell className="px-2 py-1 text-xs font-medium">
-                    {customer.customernumber}
-                  </TableCell>
-                  <TableCell className="px-2 py-1 text-xs max-w-[150px] truncate" title={customer.customername}>
-                    {customer.customername}
-                  </TableCell>
-                  <TableCell className="px-2 py-1 text-xs max-w-[120px] truncate" title={customer.address}>
-                    {customer.address || '-'}
-                  </TableCell>
-                  <TableCell className="px-2 py-1 text-xs">
-                    {customer.city || '-'}
-                  </TableCell>
-                  <TableCell className="px-2 py-1 text-xs">
-                    {currentUser?.agentnumber === "4" ? (
-                      <Select
-                        value={customer.newarea || customer.city_area || ''}
-                        onValueChange={(value) => {
-                          updateAreaMutation.mutate({
-                            customernumber: customer.customernumber,
-                            newarea: value === customer.city_area ? null : value
-                          });
-                          setOpenAreaSelect(null);
-                        }}
-                        open={openAreaSelect === customer.customernumber}
-                        onOpenChange={(isOpen) => {
-                          setOpenAreaSelect(isOpen ? customer.customernumber : null);
-                        }}
-                      >
-                        <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent [&>svg]:hidden">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="z-50 bg-popover">
-                          {distributionAreas.map((area) => (
-                            <SelectItem key={area} value={area} className="text-xs">
-                              {area}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <span>{customer.newarea || customer.city_area || '-'}</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="px-2 py-1 text-xs">
-                    {(() => {
-                      const areaData = areasWithDays.find(a => a.separation === (customer.newarea || customer.city_area));
-                      const days = areaData?.days || [];
-                      
-                      let availableDays: string[] = [];
-                      if (Array.isArray(days)) {
-                        days.forEach(dayEntry => {
-                          if (typeof dayEntry === 'string' && dayEntry.includes(',')) {
-                            availableDays.push(...dayEntry.split(',').map(d => d.trim()));
-                          } else if (typeof dayEntry === 'string') {
-                            availableDays.push(dayEntry);
-                          }
-                        });
-                      }
-                      
-                      if (availableDays.length === 0) return '-';
-                      if (availableDays.length === 1) {
-                        return <div>{formatDistributionDaysShort([availableDays[0]])}</div>;
-                      }
-                      
-                      if (currentUser?.agentnumber === "4") {
-                        return (
-                          <Select
-                            value={customer.selected_day ? JSON.stringify(customer.selected_day) : JSON.stringify(days)}
-                            onValueChange={(value) => {
-                              const selectedDays = JSON.parse(value);
-                              updateSelectedDaysMutation.mutate({
-                                customernumber: customer.customernumber,
-                                selectedDay: selectedDays,
-                                isExtra: false
-                              });
-                            }}
-                          >
-                            <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent [&>svg]:hidden">
-                              <SelectValue>
-                                {formatDistributionDaysShort(customer.selected_day || days)}
-                              </SelectValue>
-                            </SelectTrigger>
-                            <SelectContent className="z-50 bg-popover">
-                              {availableDays.map(day => (
-                                <SelectItem key={day} value={JSON.stringify([day])} className="text-xs">
-                                  {formatDistributionDaysShort([day])}
-                                </SelectItem>
-                              ))}
-                              <SelectItem value={JSON.stringify(availableDays)} className="text-xs font-semibold">
-                                {formatDistributionDaysShort(availableDays)}
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        );
-                      }
-                      
-                      return <div>{formatDistributionDaysShort(customer.selected_day || days)}</div>;
-                    })()}
-                  </TableCell>
-                  <TableCell className="px-2 py-1 text-xs">
-                    {currentUser?.agentnumber === "4" ? (
-                      <Select
-                        value={customer.extraarea || 'none'}
-                        onValueChange={(value) => {
-                          supabase
-                            .from('customerlist')
-                            .update({ extraarea: value === 'none' ? null : value })
-                            .eq('customernumber', customer.customernumber)
-                            .then(() => {
-                              queryClient.invalidateQueries({ queryKey: ['customers'] });
-                              toast({
-                                title: "עודכן בהצלחה",
-                                description: "האזור הנוסף עודכן",
-                              });
-                            });
-                        }}
-                      >
-                            <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent [&>svg]:hidden">
-                              <SelectValue placeholder="-" />
-                            </SelectTrigger>
-          <SelectContent className="z-50 bg-popover">
-            <SelectItem value="none" className="text-xs">ללא</SelectItem>
-            {distributionAreas.map((area) => (
-              <SelectItem key={area} value={area} className="text-xs">
-                {area}
-              </SelectItem>
-            ))}
-          </SelectContent>
-                      </Select>
-                    ) : (
-                      <span>{customer.extraarea || '-'}</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="px-2 py-1 text-xs">
-                    {(() => {
-                      if (!customer.extraarea) return '-';
-                      
-                      const areaData = areasWithDays.find(a => a.separation === customer.extraarea);
-                      const days = areaData?.days || [];
-                      
-                      let availableDays: string[] = [];
-                      if (Array.isArray(days)) {
-                        days.forEach(dayEntry => {
-                          if (typeof dayEntry === 'string' && dayEntry.includes(',')) {
-                            availableDays.push(...dayEntry.split(',').map(d => d.trim()));
-                          } else if (typeof dayEntry === 'string') {
-                            availableDays.push(dayEntry);
-                          }
-                        });
-                      }
-                      
-                      if (availableDays.length === 0) return '-';
-                      if (availableDays.length === 1) {
-                        return <div>{formatDistributionDaysShort([availableDays[0]])}</div>;
-                      }
-                      
-                      if (currentUser?.agentnumber === "4") {
-                        return (
-                          <Select
-                            value={customer.selected_day_extra ? JSON.stringify(customer.selected_day_extra) : JSON.stringify(days)}
-                            onValueChange={(value) => {
-                              const selectedDays = JSON.parse(value);
-                              updateSelectedDaysMutation.mutate({
-                                customernumber: customer.customernumber,
-                                selectedDay: selectedDays,
-                                isExtra: true
-                              });
-                            }}
-                          >
-                            <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent [&>svg]:hidden">
-                              <SelectValue>
-                                {formatDistributionDaysShort(customer.selected_day_extra || days)}
-                              </SelectValue>
-                            </SelectTrigger>
-                            <SelectContent className="z-50 bg-popover">
-                              {availableDays.map(day => (
-                                <SelectItem key={day} value={JSON.stringify([day])} className="text-xs">
-                                  {formatDistributionDaysShort([day])}
-                                </SelectItem>
-                              ))}
-                              <SelectItem value={JSON.stringify(availableDays)} className="text-xs font-semibold">
-                                {formatDistributionDaysShort(availableDays)}
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        );
-                      }
-                      
-                      return <div>{formatDistributionDaysShort(customer.selected_day_extra || days)}</div>;
-                    })()}
-                  </TableCell>
-                  <TableCell className="px-2 py-1 text-xs">
-                    {formatDistributionDaysShort(customer.nodeliverday) || '-'}
-                  </TableCell>
-                  <TableCell className="px-2 py-1 text-xs">
-                    {formatJsonbField(customer.deliverhour)}
-                  </TableCell>
-                  <TableCell className="px-2 py-1 text-xs text-center">
-                    {customer.averagesupply ? customer.averagesupply.toFixed(2) : '-'}
-                  </TableCell>
-                  <TableCell className="px-2 py-1 text-xs">
-                    {customer.customergroup || '-'}
-                  </TableCell>
-                </TableRow>
+                <CustomerTableRow
+                  key={customer.customernumber}
+                  customer={customer}
+                  currentUser={currentUser}
+                  distributionAreas={distributionAreas}
+                  areasWithDays={areasWithDays}
+                  openAreaSelect={openAreaSelect}
+                  setOpenAreaSelect={setOpenAreaSelect}
+                  updateAreaMutation={updateAreaMutation}
+                  updateSelectedDaysMutation={updateSelectedDaysMutation}
+                  updateExtraAreaMutation={updateExtraAreaMutation}
+                />
               ))}
             </TableBody>
           </Table>
