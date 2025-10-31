@@ -196,7 +196,7 @@ const CustomerList = () => {
 
       {currentUser?.agentnumber === "4" && (
         <div className="mb-4 flex gap-4 items-center">
-          <Select value={selectedAgent} onValueChange={(value) => {
+          <Select value={selectedAgent || undefined} onValueChange={(value) => {
             setSelectedAgent(value);
             setCurrentPage(1);
           }}>
@@ -204,7 +204,6 @@ const CustomerList = () => {
               <SelectValue placeholder="בחר סוכן..." />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">כל הסוכנים</SelectItem>
               {agents.map((agent) => (
                 <SelectItem key={agent.agentnumber} value={agent.agentnumber}>
                   {agent.agentnumber} - {agent.agentname}
@@ -213,7 +212,7 @@ const CustomerList = () => {
             </SelectContent>
           </Select>
 
-          <Select value={selectedCity} onValueChange={(value) => {
+          <Select value={selectedCity || undefined} onValueChange={(value) => {
             setSelectedCity(value);
             setCurrentPage(1);
           }}>
@@ -221,7 +220,6 @@ const CustomerList = () => {
               <SelectValue placeholder="בחר עיר..." />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">כל הערים</SelectItem>
               {cities.map((city) => (
                 <SelectItem key={city} value={city}>
                   {city}
