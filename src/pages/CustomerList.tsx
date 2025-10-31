@@ -130,32 +130,33 @@ const CustomerTableRow = memo(({
           }
           
           if (currentUser?.agentnumber === "4") {
+            const isDefaultSelection = !customer.selected_day || customer.selected_day === availableDays.join(',');
+            
             return (
               <Select
-                value={customer.selected_day ? JSON.stringify(customer.selected_day) : JSON.stringify(days)}
+                value={customer.selected_day || availableDays.join(',')}
                 onValueChange={(value) => {
-                  const selectedDays = JSON.parse(value);
+                  const selectedDay = value === availableDays.join(',') ? null : value;
                   updateSelectedDaysMutation.mutate({
                     customernumber: customer.customernumber,
-                    selectedDay: selectedDays,
+                    selectedDay,
                     isExtra: false
                   });
                 }}
               >
                 <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent [&>svg]:hidden">
                   <SelectValue>
-                    {formatDistributionDaysShort(customer.selected_day || days)}
+                    <span className={isDefaultSelection ? 'text-muted-foreground' : ''}>
+                      {formatDistributionDaysShort(customer.selected_day ? [customer.selected_day] : availableDays)}
+                    </span>
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="z-50 bg-popover">
                   {availableDays.map(day => (
-                    <SelectItem key={day} value={JSON.stringify([day])} className="text-xs">
+                    <SelectItem key={day} value={day} className="text-xs">
                       {formatDistributionDaysShort([day])}
                     </SelectItem>
                   ))}
-                  <SelectItem value={JSON.stringify(availableDays)} className="text-xs font-semibold">
-                    {formatDistributionDaysShort(availableDays)}
-                  </SelectItem>
                 </SelectContent>
               </Select>
             );
@@ -215,32 +216,33 @@ const CustomerTableRow = memo(({
           }
           
           if (currentUser?.agentnumber === "4") {
+            const isDefaultSelection = !customer.selected_day_extra || customer.selected_day_extra === availableDays.join(',');
+            
             return (
               <Select
-                value={customer.selected_day_extra ? JSON.stringify(customer.selected_day_extra) : JSON.stringify(days)}
+                value={customer.selected_day_extra || availableDays.join(',')}
                 onValueChange={(value) => {
-                  const selectedDays = JSON.parse(value);
+                  const selectedDay = value === availableDays.join(',') ? null : value;
                   updateSelectedDaysMutation.mutate({
                     customernumber: customer.customernumber,
-                    selectedDay: selectedDays,
+                    selectedDay,
                     isExtra: true
                   });
                 }}
               >
                 <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent [&>svg]:hidden">
                   <SelectValue>
-                    {formatDistributionDaysShort(customer.selected_day_extra || days)}
+                    <span className={isDefaultSelection ? 'text-muted-foreground' : ''}>
+                      {formatDistributionDaysShort(customer.selected_day_extra ? [customer.selected_day_extra] : availableDays)}
+                    </span>
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="z-50 bg-popover">
                   {availableDays.map(day => (
-                    <SelectItem key={day} value={JSON.stringify([day])} className="text-xs">
+                    <SelectItem key={day} value={day} className="text-xs">
                       {formatDistributionDaysShort([day])}
                     </SelectItem>
                   ))}
-                  <SelectItem value={JSON.stringify(availableDays)} className="text-xs font-semibold">
-                    {formatDistributionDaysShort(availableDays)}
-                  </SelectItem>
                 </SelectContent>
               </Select>
             );
