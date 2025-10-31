@@ -54,14 +54,13 @@ export const formatDistributionDaysShort = (daysInput: any): string => {
     }
   }
   
-  // Handle JSONB array format - flatten all values and split by commas
+  // Handle JSONB array format - just return the letters as-is
   if (Array.isArray(parsedInput)) {
     const allDays = parsedInput
       .filter(entry => entry && typeof entry === 'string')
-      .join(',')
-      .split(',')
+      .flatMap(entry => entry.split(','))
       .map(day => day.trim())
-      .filter(day => day.length > 0);
+      .filter(day => day.length > 0 && day !== '...');
     
     return allDays.join(', ');
   }
