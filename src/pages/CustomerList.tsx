@@ -2,7 +2,7 @@ import React, { useMemo, useState, useCallback, memo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { Loader2, ArrowRight } from 'lucide-react';
+import { Loader2, ArrowRight, ArrowUp, ArrowDown } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDistributionDays, formatDistributionDaysShort } from '@/utils/dateUtils';
@@ -39,6 +39,33 @@ const formatJsonbField = (value: any): string => {
       .replace(/[\[\]"]/g, '');
   }
   return String(value).replace(/[\[\]"]/g, '');
+};
+
+const formatDeliveryHour = (value: any): { text: string; direction: 'up' | 'down' | null } => {
+  if (!value) return { text: '-', direction: null };
+  
+  let hourStr = '';
+  if (Array.isArray(value)) {
+    hourStr = value
+      .map(item => typeof item === 'string' ? item : JSON.stringify(item))
+      .join(', ')
+      .replace(/[\[\]"]/g, '');
+  } else {
+    hourStr = String(value).replace(/[\[\]"]/g, '');
+  }
+  
+  // Check if it's a range (contains hyphen between two times)
+  if (hourStr.includes(':') && hourStr.match(/\d+:\d+\s*-\s*\d+:\d+/)) {
+    return { text: hourStr, direction: null };
+  }
+  
+  // Check if it starts with minus (up to time)
+  if (hourStr.startsWith('-')) {
+    return { text: hourStr.substring(1), direction: 'down' };
+  }
+  
+  // Otherwise it's from time
+  return { text: hourStr, direction: 'up' };
 };
 
 // Memoized row component to prevent unnecessary re-renders
@@ -255,7 +282,16 @@ const CustomerTableRow = memo(({
         {formatDistributionDaysShort(customer.nodeliverday) || '-'}
       </TableCell>
       <TableCell className="px-2 py-1 text-xs">
-        {formatJsonbField(customer.deliverhour)}
+        {(() => {
+          const { text, direction } = formatDeliveryHour(customer.deliverhour);
+          return (
+            <div className="flex items-center gap-1">
+              <span>{text}</span>
+              {direction === 'up' && <ArrowUp className="h-3 w-3" />}
+              {direction === 'down' && <ArrowDown className="h-3 w-3" />}
+            </div>
+          );
+        })()}
       </TableCell>
       <TableCell className="px-2 py-1 text-xs text-center">
         {customer.averagesupply ? customer.averagesupply.toFixed(2) : '-'}
