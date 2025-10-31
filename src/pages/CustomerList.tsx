@@ -224,7 +224,7 @@ const CustomerList = () => {
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="בחר סוכן..." />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-50 bg-popover">
               {agents.map((agent) => (
                 <SelectItem key={agent.agentnumber} value={agent.agentnumber}>
                   {agent.agentnumber} - {agent.agentname}
@@ -240,7 +240,7 @@ const CustomerList = () => {
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="בחר עיר..." />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-50 bg-popover">
               {cities.map((city) => (
                 <SelectItem key={city} value={city}>
                   {city}
@@ -329,7 +329,7 @@ const CustomerList = () => {
                         <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="z-50 bg-popover">
                           {areas.map((area) => (
                             <SelectItem key={area} value={area} className="text-xs">
                               {area}
@@ -351,7 +351,7 @@ const CustomerList = () => {
                     {formatJsonbField(customer.deliverhour)}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs text-center">
-                    {customer.averagesupply ? Math.round(customer.averagesupply) : '-'}
+                    {customer.averagesupply ? customer.averagesupply.toFixed(2) : '-'}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
                     {customer.customergroup || '-'}
