@@ -475,11 +475,11 @@ const CustomerList = () => {
                   <TableCell className="px-2 py-1 text-xs">
                     {currentUser?.agentnumber === "4" ? (
                       <Select
-                        value={customer.extraarea || ''}
+                        value={customer.extraarea || 'none'}
                         onValueChange={(value) => {
                           supabase
                             .from('customerlist')
-                            .update({ extraarea: value || null })
+                            .update({ extraarea: value === 'none' ? null : value })
                             .eq('customernumber', customer.customernumber)
                             .then(() => {
                               queryClient.invalidateQueries({ queryKey: ['customers'] });
@@ -493,14 +493,14 @@ const CustomerList = () => {
                         <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent">
                           <SelectValue placeholder="-" />
                         </SelectTrigger>
-                        <SelectContent className="z-50 bg-popover">
-                          <SelectItem value="" className="text-xs">ללא</SelectItem>
-                          {areas.map((area) => (
-                            <SelectItem key={area} value={area} className="text-xs">
-                              {area}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
+          <SelectContent className="z-50 bg-popover">
+            <SelectItem value="none" className="text-xs">ללא</SelectItem>
+            {areas.map((area) => (
+              <SelectItem key={area} value={area} className="text-xs">
+                {area}
+              </SelectItem>
+            ))}
+          </SelectContent>
                       </Select>
                     ) : (
                       <span>{customer.extraarea || '-'}</span>
