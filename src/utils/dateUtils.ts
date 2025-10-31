@@ -63,15 +63,19 @@ export const formatDistributionDaysShort = (daysInput: any): string => {
       if (typeof dayEntry === 'string') {
         if (dayEntry.includes(',')) {
           // Handle comma-separated like "ד,ה"
-          dayEntry.split(',').forEach(day => daysArray.push(day.trim()));
+          dayEntry.split(',').forEach(day => {
+            const trimmedDay = day.trim();
+            if (trimmedDay) daysArray.push(trimmedDay);
+          });
         } else {
           // Handle single letter like "ד"
-          daysArray.push(dayEntry);
+          const trimmedDay = dayEntry.trim();
+          if (trimmedDay) daysArray.push(trimmedDay);
         }
       }
     });
     
-    return daysArray.join(', ');
+    return daysArray.filter(d => d).join(', ');
   }
   
   return '';
