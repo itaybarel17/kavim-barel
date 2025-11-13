@@ -1,7 +1,8 @@
-import React, { useMemo, useState, useCallback, memo } from 'react';
+import React, { useMemo, useState, useCallback, memo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription';
 import { Loader2, ArrowRight, ArrowUp, ArrowDown } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -310,6 +311,11 @@ const CustomerList = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Enable realtime subscription for live updates
+  useRealtimeSubscription();
+  
+  const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedAgent, setSelectedAgent] = useState<string>('');
@@ -320,6 +326,16 @@ const CustomerList = () => {
   const [areaSelectOpen, setAreaSelectOpen] = useState(false);
   const [openAreaSelect, setOpenAreaSelect] = useState<string | null>(null);
   const ITEMS_PER_PAGE = Math.ceil(1000 / 3); // ~333 items per page
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setCurrentPage(1); // Reset to first page on search
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const { data: customers = [], isLoading } = useQuery({
     queryKey: ['customers', currentUser?.agentnumber, selectedAgent, selectedCity, selectedArea],
@@ -354,8 +370,10 @@ const CustomerList = () => {
       currentUser.agentnumber !== "4" || 
       (currentUser.agentnumber === "4" && (!!selectedAgent || !!selectedCity || !!selectedArea))
     ),
-    staleTime: 30000, // Data stays fresh for 30 seconds
-    gcTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
+    staleTime: 5 * 60 * 1000, // Data stays fresh for 5 minutes (increased from 30s)
+    gcTime: 10 * 60 * 1000, // Keep unused data in cache for 10 minutes
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    refetchOnMount: false, // Don't refetch on mount if data is fresh
   });
 
   // Get unique areas from customers for filter
@@ -711,11 +729,8 @@ const CustomerList = () => {
       <div className="mb-4 flex items-center justify-between">
         <Input
           placeholder="חיפוש לפי מספר לקוח, שם או עיר..."
-          value={searchTerm}
-          onChange={(e) => {
-            setSearchTerm(e.target.value);
-            setCurrentPage(1);
-          }}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
           className="max-w-md"
         />
         <div className="text-sm text-muted-foreground">

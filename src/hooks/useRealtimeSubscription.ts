@@ -94,6 +94,19 @@ export const useRealtimeSubscription = () => {
           queryClient.invalidateQueries({ queryKey: ['lines-distribution-groups'] });
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'customerlist'
+        },
+        (payload) => {
+          console.log('customerlist changed:', payload);
+          // Only invalidate the specific customer query, not all queries
+          queryClient.invalidateQueries({ queryKey: ['customers'] });
+        }
+      )
       .subscribe();
 
     return () => {
