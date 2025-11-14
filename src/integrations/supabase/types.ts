@@ -584,11 +584,9 @@ export type Database = {
           agentsworkarea: Json | null
           days: Json | null
           dayvisit: Json | null
-          freq: Json | null
           groups_id: number
           orderlabelinkavim: number | null
           separation: string | null
-          total_spots: Json | null
           totalsupplyspots: number | null
         }
         Insert: {
@@ -596,11 +594,9 @@ export type Database = {
           agentsworkarea?: Json | null
           days?: Json | null
           dayvisit?: Json | null
-          freq?: Json | null
           groups_id?: number
           orderlabelinkavim?: number | null
           separation?: string | null
-          total_spots?: Json | null
           totalsupplyspots?: number | null
         }
         Update: {
@@ -608,11 +604,9 @@ export type Database = {
           agentsworkarea?: Json | null
           days?: Json | null
           dayvisit?: Json | null
-          freq?: Json | null
           groups_id?: number
           orderlabelinkavim?: number | null
           separation?: string | null
-          total_spots?: Json | null
           totalsupplyspots?: number | null
         }
         Relationships: []
@@ -1762,7 +1756,7 @@ export type Database = {
       calculate_docdate: { Args: { input_date: string }; Returns: string }
       calculate_total_spots_for_area: {
         Args: { area_separation: string }
-        Returns: Json
+        Returns: number
       }
       calculate_valuedate:
         | {
