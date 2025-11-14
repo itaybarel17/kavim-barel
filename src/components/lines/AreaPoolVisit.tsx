@@ -117,7 +117,7 @@ export const AreaPoolVisit: React.FC<AreaPoolVisitProps> = ({
               <div key={areaItem.area} className="relative">
                 <div 
                   className={`${
-                    isDragged || isAssigned ? 'grayscale opacity-50' : ''
+                    isDragged || isAssigned ? 'opacity-70' : ''
                   }`}
                   onDragStart={() => handleAreaDrag(areaItem.area)}
                 >
