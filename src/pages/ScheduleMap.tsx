@@ -123,14 +123,14 @@ const ScheduleMap: React.FC = () => {
           .single();
 
         if (!driverError && driverData && (driverData as any).truck) {
-          // Get truck fuel consumption
+          // Get truck fuel consumption from vehicles table
           const { data: truckData, error: truckError } = await supabase
-            .from('trucks')
+            .from('vehicles')
             .select('literperkm')
-            .eq('truck_id', (driverData as any).truck)
+            .eq('vehicle_id', (driverData as any).truck)
             .single();
 
-          if (!truckError && truckData && (truckData as any).literperkm) {
+          if (!truckError && truckData && truckData.literperkm) {
             // For now, use a default fuel price since fuelprice table is not in types
             // In production, this should fetch from the fuelprice table
             const defaultFuelPrice = 5.80; // ₪ per liter - can be updated

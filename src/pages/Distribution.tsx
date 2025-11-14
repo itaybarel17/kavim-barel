@@ -222,7 +222,10 @@ const Distribution = () => {
       const {
         data,
         error
-      } = await supabase.from('distribution_groups').select('groups_id, separation, days');
+      } = await supabase
+        .from('distribution_groups')
+        .select('groups_id, separation, days')
+        .order('separation', { ascending: true });
       if (error) throw error;
       console.log('Distribution groups fetched:', data);
       return data as DistributionGroup[];
