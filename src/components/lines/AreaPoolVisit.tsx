@@ -116,9 +116,6 @@ export const AreaPoolVisit: React.FC<AreaPoolVisitProps> = ({
             return (
               <div key={areaItem.area} className="relative">
                 <div 
-                  className={`${
-                    isDragged || isAssigned ? 'opacity-70' : ''
-                  }`}
                   onDragStart={() => handleAreaDrag(areaItem.area)}
                 >
                   <div className={`relative flex items-center justify-between text-sm rounded px-3 py-2 cursor-move transition-all ${

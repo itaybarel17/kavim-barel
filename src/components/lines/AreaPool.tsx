@@ -112,9 +112,6 @@ export const AreaPool: React.FC<AreaPoolProps> = ({
             return (
               <div key={areaItem.area} className="relative">
                 <div 
-                  className={`${
-                    isDragged || isAssigned ? 'opacity-70' : ''
-                  }`}
                   onDragStart={() => handleAreaDrag(areaItem.area)}
                 >
                   <AreaTag
@@ -125,19 +122,6 @@ export const AreaPool: React.FC<AreaPoolProps> = ({
                     totalsupplyspots={areaItem.totalsupplyspots}
                   />
                 </div>
-                
-                {(isDragged || isAssigned) && (
-                  <div className="absolute top-0 right-0 -mt-1 -mr-1">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="h-5 w-5 p-0 rounded-full"
-                      onClick={() => handleRestoreArea(areaItem.area)}
-                    >
-                      <Plus className="h-3 w-3" />
-                    </Button>
-                  </div>
-                )}
               </div>
             );
           })}
