@@ -1211,6 +1211,7 @@ const Distribution = () => {
               scheduleMessageMap={scheduleMessageMap}
               onScheduleImportantMessageClick={handleScheduleImportantMessageClick}
               onLiveAppMelaketToggle={handleLiveAppMelaketToggle}
+              onReturnToHorizontal={handleRemoveFromZone}
             />
           )}
         </div>

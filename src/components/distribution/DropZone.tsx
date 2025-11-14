@@ -118,6 +118,9 @@ interface DropZoneProps {
   // customer replacement map for "order on another customer" functionality
   customerReplacementMap?: Map<string, any>;
   
+  // return to horizontal kanban functionality
+  onReturnToHorizontal?: (item: { type: 'order' | 'return'; data: Order | Return }) => void;
+  
   // schedule message props
   scheduleMessageMap?: Record<string, { subject: string; content?: string; tagAgent?: string; agentName?: string }>;
   onScheduleImportantMessageClick?: (scheduleId: number) => void;
@@ -161,7 +164,8 @@ export const DropZone: React.FC<DropZoneProps> = ({
   customerReplacementMap,
   scheduleMessageMap = {},
   onScheduleImportantMessageClick,
-  onLiveAppMelaketToggle
+  onLiveAppMelaketToggle,
+  onReturnToHorizontal
 }) => {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [scheduleId, setScheduleId] = useState<number | null>(null);
@@ -664,6 +668,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
             hasCancellationMessage={cancellationMap?.has(`order-${order.ordernumber}`) || false}
             orderOnAnotherCustomerDetails={customerReplacementMap?.get(`order-${order.ordernumber}`)}
             onLocalCompletionChange={handleOrderCompletionChange}
+            onReturnToHorizontal={() => onReturnToHorizontal?.({ type: 'order', data: order })}
           />
         ))}
         {sortedReturns.map(returnItem => (
@@ -680,6 +685,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
             messagesInfo={messageMap[`return-${returnItem.returnnumber}`]}
             onMessageBadgeClick={onMessageBadgeClick}
             hasCancellationMessage={cancellationMap?.has(`return-${returnItem.returnnumber}`) || false}
+            onReturnToHorizontal={() => onReturnToHorizontal?.({ type: 'return', data: returnItem })}
             orderOnAnotherCustomerDetails={customerReplacementMap?.get(`return-${returnItem.returnnumber}`)}
           />
         ))}

@@ -4,7 +4,7 @@ import { useDrag } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Package, Monitor, X, Map } from 'lucide-react';
+import { Package, Monitor, X, Map, Undo2 } from 'lucide-react';
 import { SirenButton } from './SirenButton';
 import { MessageBadge } from './MessageBadge';
 import { OrderMapDialog } from '../map/OrderMapDialog';
@@ -110,6 +110,9 @@ interface OrderCardProps {
   
   // horizontal kanban flag
   isHorizontalKanban?: boolean;
+  
+  // return to horizontal kanban button
+  onReturnToHorizontal?: () => void;
 }
 export const OrderCard: React.FC<OrderCardProps> = ({
   type,
@@ -125,7 +128,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   hasCancellationMessage = false,
   orderOnAnotherCustomerDetails,
   onLocalCompletionChange,
-  isHorizontalKanban = false
+  isHorizontalKanban = false,
+  onReturnToHorizontal
 }) => {
   // Initialize state from data
   useEffect(() => {
@@ -309,6 +313,21 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   }, [hasOrderOnAnotherCustomer, orderOnAnotherCustomerDetails]);
 
   return <Card ref={drag} className={`min-w-[250px] cursor-move relative ${isDragging ? 'opacity-50' : ''} ${isOrder ? `border-blue-200 ${setAsideState ? 'bg-orange-50' : 'bg-blue-50'}` : 'border-red-200 bg-red-50'} ${(hasInvoiceNumber || (data as Order).copied_to_hashavshevet) ? 'ring-2 ring-green-300' : ''} ${isCandyPlus ? 'ring-2 ring-pink-300 border-pink-200' : ''} ${data.alert_status ? 'ring-2 ring-red-500 shadow-lg shadow-red-200' : ''}`}>
+      {/* Return to horizontal kanban button - only in area kanban */}
+      {!isHorizontalKanban && onReturnToHorizontal && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="absolute top-1 left-1 z-20 rounded-full p-1 h-auto w-auto transition-all duration-200 hover:scale-110 opacity-60 hover:opacity-100 text-gray-500 hover:text-blue-600 hover:bg-blue-50 pointer-events-auto"
+          onClick={(e) => {
+            e.stopPropagation();
+            onReturnToHorizontal();
+          }}
+          title="החזר לקנבן אופקי"
+        >
+          <Undo2 className="h-4 w-4" />
+        </Button>
+      )}
       {/* Red X overlay for cancellation */}
       {hasCancellationMessage && (
         <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
