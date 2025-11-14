@@ -151,6 +151,7 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
               onMessageBadgeClick={onMessageBadgeClick}
               hasCancellationMessage={cancellationMap.has(`order-${order.ordernumber}`)}
               orderOnAnotherCustomerDetails={customerReplacementMap.get(`order-${order.ordernumber}`)}
+              isHorizontalKanban={true}
             />
             {onDeleteItem && (
               <button
@@ -178,6 +179,7 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
               onMessageBadgeClick={onMessageBadgeClick}
               hasCancellationMessage={cancellationMap.has(`return-${returnItem.returnnumber}`)}
               orderOnAnotherCustomerDetails={customerReplacementMap.get(`return-${returnItem.returnnumber}`)}
+              isHorizontalKanban={true}
             />
             {onDeleteItem && (
               <button
