@@ -224,7 +224,6 @@ export type Database = {
       cities: {
         Row: {
           area: string | null
-          averagesupply3month: number | null
           averagesupplyweek: number | null
           centralcity: boolean | null
           city: string
@@ -236,7 +235,6 @@ export type Database = {
         }
         Insert: {
           area?: string | null
-          averagesupply3month?: number | null
           averagesupplyweek?: number | null
           centralcity?: boolean | null
           city: string
@@ -248,7 +246,6 @@ export type Database = {
         }
         Update: {
           area?: string | null
-          averagesupply3month?: number | null
           averagesupplyweek?: number | null
           centralcity?: boolean | null
           city?: string
