@@ -23,7 +23,8 @@ export const getAreaColor = (areaName: string) => {
     'חדרה': 'bg-rose-500 text-white',
     'באר שבע': 'bg-yellow-500 text-white',
     'אשדוד': 'bg-emerald-500 text-white',
-    'משולש': 'bg-slate-500 text-white'
+    'משולש': 'bg-slate-500 text-white',
+    'כרמיאל': 'bg-sky-500 text-white'
   };
   return areaColors[mainArea] || 'bg-gray-500 text-white';
 };
@@ -59,7 +60,8 @@ export const getAreaColorHex = (areaName: string): string => {
     'חדרה': '#f43f5e', // rose-500
     'באר שבע': '#eab308', // yellow-500
     'אשדוד': '#10b981', // emerald-500
-    'משולש': '#64748b' // slate-500
+    'משולש': '#64748b', // slate-500
+    'כרמיאל': '#0ea5e9' // sky-500
   };
   return colorMap[mainArea] || '#6b7280'; // gray-500
 };

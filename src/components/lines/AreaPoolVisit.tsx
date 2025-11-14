@@ -114,9 +114,7 @@ export const AreaPoolVisit: React.FC<AreaPoolVisitProps> = ({
                 <div 
                   onDragStart={() => handleAreaDrag(areaItem.area)}
                 >
-                  <div className={`relative flex items-center justify-between text-sm rounded px-3 py-2 cursor-move transition-all ${
-                    isDragged || isAssigned ? 'opacity-50 scale-95' : 'opacity-100'
-                  } ${getAreaColor(areaItem.area)}`}>
+                  <div className={`relative flex items-center justify-between text-sm rounded px-3 py-2 cursor-move transition-all ${getAreaColor(areaItem.area)}`}>
                     <span className="truncate flex-1 font-medium">
                       {areaItem.area}
                       {(() => {
@@ -132,19 +130,6 @@ export const AreaPoolVisit: React.FC<AreaPoolVisitProps> = ({
                     </span>
                   </div>
                 </div>
-                
-                {(isDragged || isAssigned) && (
-                  <div className="absolute top-0 right-0 -mt-1 -mr-1">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="h-5 w-5 p-0 rounded-full"
-                      onClick={() => handleRestoreArea(areaItem.area)}
-                    >
-                      <Plus className="h-3 w-3" />
-                    </Button>
-                  </div>
-                )}
               </div>
             );
           })}
