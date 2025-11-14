@@ -53,25 +53,21 @@ export const AreaPool: React.FC<AreaPoolProps> = ({
     });
   };
 
-  // Get all unique areas from distribution groups with their order and totalsupplyspots
+  // Get all areas from distribution groups with their order and totalsupplyspots
   const areasWithOrder = distributionGroups
     .filter(group => group.separation)
     .map(group => ({
-      area: group.separation!.replace(/\s+\d+$/, '').trim(),
+      area: group.separation!,
       orderlabelinkavim: group.orderlabelinkavim || 0,
       totalsupplyspots: group.totalsupplyspots || 0
     }))
-    .filter((value, index, self) => 
-      index === self.findIndex(item => item.area === value.area)
-    )
     .sort((a, b) => a.orderlabelinkavim - b.orderlabelinkavim);
 
   // Check if area is assigned to any day
   const isAreaAssigned = (area: string) => {
     return distributionGroups.some(group => {
       if (!group.days || !group.separation) return false;
-      const mainArea = group.separation.replace(/\s+\d+$/, '').trim();
-      if (mainArea !== area) return false;
+      if (group.separation !== area) return false;
       
       return group.days.some(dayString => {
         const daysArray = dayString.split(',').map(d => d.trim());
