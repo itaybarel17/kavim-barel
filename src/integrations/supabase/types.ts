@@ -347,7 +347,6 @@ export type Database = {
           arvot: string | null
           average_inv_month: number | null
           averagesupply: number | null
-          averagesupply3month: number | null
           cash_discount: number | null
           city: string | null
           city_area: string | null
@@ -397,7 +396,6 @@ export type Database = {
           arvot?: string | null
           average_inv_month?: number | null
           averagesupply?: number | null
-          averagesupply3month?: number | null
           cash_discount?: number | null
           city?: string | null
           city_area?: string | null
@@ -447,7 +445,6 @@ export type Database = {
           arvot?: string | null
           average_inv_month?: number | null
           averagesupply?: number | null
-          averagesupply3month?: number | null
           cash_discount?: number | null
           city?: string | null
           city_area?: string | null
