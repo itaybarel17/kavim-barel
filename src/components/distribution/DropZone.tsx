@@ -280,12 +280,14 @@ export const DropZone: React.FC<DropZoneProps> = ({
   const currentSchedule = distributionSchedules.find(schedule => schedule.schedule_id === scheduleId);
   const deliveryDate = currentSchedule?.distribution_date;
   
-  // Format delivery date to DD/MM
+  // Format delivery date to include day of week and DD/MM
   const formatDeliveryDate = (dateString: string) => {
+    const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
     const date = new Date(dateString);
+    const dayName = dayNames[date.getDay()];
     const day = date.getDate().toString().padStart(2, '0');
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    return `${day}/${month}`;
+    return `${dayName} ${day}/${month}`;
   };
 
   // Update local state based on zone state from parent

@@ -14,6 +14,7 @@ export const getAreaColor = (areaName: string) => {
     'שרון צפון': 'bg-pink-500 text-white',
     'ראשון לציון': 'bg-indigo-500 text-white',
     'שפלה': 'bg-teal-500 text-white',
+    'חולון-בת ים': 'bg-teal-500 text-white',
     'צפון רחוק': 'bg-red-500 text-white',
     'צפון קרוב': 'bg-cyan-500 text-white',
     'דרום': 'bg-amber-500 text-white',
@@ -49,6 +50,7 @@ export const getAreaColorHex = (areaName: string): string => {
     'שרון צפון': '#ec4899', // pink-500
     'ראשון לציון': '#6366f1', // indigo-500
     'שפלה': '#14b8a6', // teal-500
+    'חולון-בת ים': '#14b8a6', // teal-500
     'צפון רחוק': '#ef4444', // red-500
     'צפון קרוב': '#06b6d4', // cyan-500
     'דרום': '#f59e0b', // amber-500
