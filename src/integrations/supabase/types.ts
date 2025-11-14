@@ -412,6 +412,7 @@ export type Database = {
       }
       customerlist: {
         Row: {
+          active: string | null
           activemonth: number | null
           address: string | null
           agentnumber: string | null
@@ -461,6 +462,7 @@ export type Database = {
           vat_exemption: string | null
         }
         Insert: {
+          active?: string | null
           activemonth?: number | null
           address?: string | null
           agentnumber?: string | null
@@ -510,6 +512,7 @@ export type Database = {
           vat_exemption?: string | null
         }
         Update: {
+          active?: string | null
           activemonth?: number | null
           address?: string | null
           agentnumber?: string | null
@@ -577,7 +580,6 @@ export type Database = {
       }
       distribution_groups: {
         Row: {
-          "1": number | null
           agents: Json | null
           agentsworkarea: Json | null
           days: Json | null
@@ -590,7 +592,6 @@ export type Database = {
           totalsupplyspots: number | null
         }
         Insert: {
-          "1"?: number | null
           agents?: Json | null
           agentsworkarea?: Json | null
           days?: Json | null
@@ -603,7 +604,6 @@ export type Database = {
           totalsupplyspots?: number | null
         }
         Update: {
-          "1"?: number | null
           agents?: Json | null
           agentsworkarea?: Json | null
           days?: Json | null
@@ -1300,30 +1300,22 @@ export type Database = {
         Row: {
           id: number
           nahag: string | null
-          truck: number | null
+          note: string | null
           updated_at: string | null
         }
         Insert: {
           id: number
           nahag?: string | null
-          truck?: number | null
+          note?: string | null
           updated_at?: string | null
         }
         Update: {
           id?: number
           nahag?: string | null
-          truck?: number | null
+          note?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "nahagim_truck_fkey"
-            columns: ["truck"]
-            isOneToOne: false
-            referencedRelation: "trucks"
-            referencedColumns: ["truck_id"]
-          },
-        ]
+        Relationships: []
       }
       orders: {
         Row: {
@@ -1510,6 +1502,33 @@ export type Database = {
           },
         ]
       }
+      pointer_tokens: {
+        Row: {
+          access_token: string
+          consecutive_failures: number | null
+          created_at: string | null
+          expires_at: string
+          id: string
+          last_login_failure: string | null
+        }
+        Insert: {
+          access_token: string
+          consecutive_failures?: number | null
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          last_login_failure?: string | null
+        }
+        Update: {
+          access_token?: string
+          consecutive_failures?: number | null
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          last_login_failure?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -1542,45 +1561,26 @@ export type Database = {
           },
         ]
       }
-      trucks: {
-        Row: {
-          height: number | null
-          length: number | null
-          literperkm: number | null
-          truck_id: number
-          truck_model: string | null
-          width: number | null
-        }
-        Insert: {
-          height?: number | null
-          length?: number | null
-          literperkm?: number | null
-          truck_id: number
-          truck_model?: string | null
-          width?: number | null
-        }
-        Update: {
-          height?: number | null
-          length?: number | null
-          literperkm?: number | null
-          truck_id?: number
-          truck_model?: string | null
-          width?: number | null
-        }
-        Relationships: []
-      }
       vehicle_locations: {
         Row: {
           address: string | null
           created_at: string | null
           direction: number | null
+          engine_coolant: number | null
+          engine_hours: number | null
           engine_on_sum: number | null
+          engine_speed: number | null
+          fms_datetime: string | null
+          fuel_level: number | null
           gps_datetime: string
           id: string
           ignition_on: boolean | null
+          last_driver_name: string | null
+          last_driver_num: number | null
           latitude: number
           longitude: number
           odometer: number | null
+          pto_state: number | null
           speed: number | null
           vehicle_number: string
           vehicle_type: string
@@ -1589,13 +1589,21 @@ export type Database = {
           address?: string | null
           created_at?: string | null
           direction?: number | null
+          engine_coolant?: number | null
+          engine_hours?: number | null
           engine_on_sum?: number | null
+          engine_speed?: number | null
+          fms_datetime?: string | null
+          fuel_level?: number | null
           gps_datetime: string
           id?: string
           ignition_on?: boolean | null
+          last_driver_name?: string | null
+          last_driver_num?: number | null
           latitude: number
           longitude: number
           odometer?: number | null
+          pto_state?: number | null
           speed?: number | null
           vehicle_number: string
           vehicle_type: string
@@ -1604,24 +1612,153 @@ export type Database = {
           address?: string | null
           created_at?: string | null
           direction?: number | null
+          engine_coolant?: number | null
+          engine_hours?: number | null
           engine_on_sum?: number | null
+          engine_speed?: number | null
+          fms_datetime?: string | null
+          fuel_level?: number | null
           gps_datetime?: string
           id?: string
           ignition_on?: boolean | null
+          last_driver_name?: string | null
+          last_driver_num?: number | null
           latitude?: number
           longitude?: number
           odometer?: number | null
+          pto_state?: number | null
           speed?: number | null
           vehicle_number?: string
           vehicle_type?: string
         }
         Relationships: []
       }
+      vehicle_trips: {
+        Row: {
+          created_at: string | null
+          distance_meter: number | null
+          driver_id: number | null
+          driver_name: string | null
+          duration_second: number | null
+          end_address: string | null
+          end_datetime: string
+          end_latitude: number
+          end_longitude: number
+          id: string
+          idle: number | null
+          item_id: number
+          start_address: string | null
+          start_datetime: string
+          start_latitude: number
+          start_longitude: number
+          vehicle_number: string
+        }
+        Insert: {
+          created_at?: string | null
+          distance_meter?: number | null
+          driver_id?: number | null
+          driver_name?: string | null
+          duration_second?: number | null
+          end_address?: string | null
+          end_datetime: string
+          end_latitude: number
+          end_longitude: number
+          id?: string
+          idle?: number | null
+          item_id: number
+          start_address?: string | null
+          start_datetime: string
+          start_latitude: number
+          start_longitude: number
+          vehicle_number: string
+        }
+        Update: {
+          created_at?: string | null
+          distance_meter?: number | null
+          driver_id?: number | null
+          driver_name?: string | null
+          duration_second?: number | null
+          end_address?: string | null
+          end_datetime?: string
+          end_latitude?: number
+          end_longitude?: number
+          id?: string
+          idle?: number | null
+          item_id?: number
+          start_address?: string | null
+          start_datetime?: string
+          start_latitude?: number
+          start_longitude?: number
+          vehicle_number?: string
+        }
+        Relationships: []
+      }
+      vehicles: {
+        Row: {
+          agent_id: string | null
+          driver_id: number | null
+          height: number | null
+          is_company_vehicle: boolean | null
+          length: number | null
+          literperkm: number | null
+          model: string | null
+          num_of_pallets: number | null
+          "vehicle number": number | null
+          vehicle_id: number
+          width: number | null
+        }
+        Insert: {
+          agent_id?: string | null
+          driver_id?: number | null
+          height?: number | null
+          is_company_vehicle?: boolean | null
+          length?: number | null
+          literperkm?: number | null
+          model?: string | null
+          num_of_pallets?: number | null
+          "vehicle number"?: number | null
+          vehicle_id: number
+          width?: number | null
+        }
+        Update: {
+          agent_id?: string | null
+          driver_id?: number | null
+          height?: number | null
+          is_company_vehicle?: boolean | null
+          length?: number | null
+          literperkm?: number | null
+          model?: string | null
+          num_of_pallets?: number | null
+          "vehicle number"?: number | null
+          vehicle_id?: number
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["agentnumber"]
+          },
+          {
+            foreignKeyName: "vehicles_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "nahagim"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      assign_driver_to_vehicle: {
+        Args: { p_driver_id: number; p_notes?: string; p_vehicle_id: number }
+        Returns: string
+      }
       calculate_docdate: { Args: { input_date: string }; Returns: string }
       calculate_total_spots_for_area: {
         Args: { area_separation: string }
@@ -1650,8 +1787,8 @@ export type Database = {
       }
       dblink_get_connections: { Args: never; Returns: string[] }
       dblink_get_notify:
-        | { Args: { conname: string }; Returns: Record<string, unknown>[] }
         | { Args: never; Returns: Record<string, unknown>[] }
+        | { Args: { conname: string }; Returns: Record<string, unknown>[] }
       dblink_get_pkey: {
         Args: { "": string }
         Returns: Database["public"]["CompositeTypes"]["dblink_pkey_results"][]
@@ -1732,6 +1869,7 @@ export type Database = {
         }[]
       }
       produce_schedule: { Args: { schedule_id_param: number }; Returns: number }
+      sync_averagesupply: { Args: { data: Json }; Returns: undefined }
       update_agent_password: {
         Args: { agent_number: string; new_password: string }
         Returns: boolean
