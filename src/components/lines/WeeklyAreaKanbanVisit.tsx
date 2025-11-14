@@ -8,7 +8,7 @@ interface DistributionGroup {
   dayvisit: string[] | null;
   freq: number[] | null;
   orderlabelinkavim: number | null;
-  agentsworkarea: string | null;
+  agentsworkarea: number[] | null;
 }
 
 interface WeeklyAreaKanbanVisitProps {
@@ -33,33 +33,31 @@ export const WeeklyAreaKanbanVisit: React.FC<WeeklyAreaKanbanVisitProps> = ({
 
   // Get areas assigned to each day with their group IDs and agent info
   const getAreasForDay = (targetDay: string) => {
-    const areas: { area: string; groupId: number; agentsworkarea: string | null }[] = [];
+    const areas: { area: string; groupId: number; agentsworkarea: number[] | null }[] = [];
     
     distributionGroups.forEach(group => {
       if (!group.dayvisit || !group.separation) return;
       
       const mainArea = group.separation.replace(/\s+\d+$/, '').trim();
       
-      group.dayvisit.forEach(dayString => {
-        const daysArray = dayString.split(',').map(d => d.trim());
-        if (daysArray.includes(targetDay)) {
-          // Check if this exact area already exists (to avoid duplicates)
-          const existingArea = areas.find(a => a.area === mainArea && a.groupId === group.groups_id);
-          if (!existingArea) {
-            areas.push({ 
-              area: mainArea, 
-              groupId: group.groups_id,
-              agentsworkarea: group.agentsworkarea
-            });
-          }
+      // dayvisit is already an array of strings - just check if targetDay is in it
+      if (group.dayvisit.includes(targetDay)) {
+        // Check if this exact area already exists (to avoid duplicates)
+        const existingArea = areas.find(a => a.area === mainArea && a.groupId === group.groups_id);
+        if (!existingArea) {
+          areas.push({
+            area: mainArea, 
+            groupId: group.groups_id,
+            agentsworkarea: group.agentsworkarea
+          });
         }
-      });
+      }
     });
     
     return areas;
   };
 
-  const DayColumn: React.FC<{ day: string; areas: { area: string; groupId: number; agentsworkarea: string | null }[] }> = ({ day, areas }) => {
+  const DayColumn: React.FC<{ day: string; areas: { area: string; groupId: number; agentsworkarea: number[] | null }[] }> = ({ day, areas }) => {
     const [{ isOver }, drop] = useDrop({
       accept: ['area-from-pool-visit', 'area-from-day-visit'],
       drop: (item: any) => {

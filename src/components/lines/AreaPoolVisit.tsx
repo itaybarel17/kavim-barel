@@ -12,7 +12,7 @@ interface DistributionGroup {
   dayvisit: string[] | null;
   freq: number[] | null;
   orderlabelinkavim: number | null;
-  agentsworkarea: string | null;
+  agentsworkarea: number[] | null;
   totalsupplyspots: number | null;
 }
 
@@ -73,10 +73,8 @@ export const AreaPoolVisit: React.FC<AreaPoolVisitProps> = ({
       if (!group.dayvisit || !group.separation) return false;
       if (group.separation !== area) return false;
       
-      return group.dayvisit.some(dayString => {
-        const daysArray = dayString.split(',').map(d => d.trim());
-        return daysArray.some(day => ['א', 'ב', 'ג', 'ד', 'ה'].includes(day));
-      });
+      // dayvisit is already an array of strings - just check if any are Hebrew days
+      return group.dayvisit.some(day => ['א', 'ב', 'ג', 'ד', 'ה'].includes(day));
     });
   };
 

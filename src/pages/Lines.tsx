@@ -23,7 +23,7 @@ interface DistributionGroup {
   dayvisit: string[] | null;
   freq: number[] | null;
   orderlabelinkavim: number | null;
-  agentsworkarea: string | null;
+  agentsworkarea: number[] | null;
   totalsupplyspots: number | null;
 }
 

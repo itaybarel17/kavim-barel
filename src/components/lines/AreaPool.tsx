@@ -69,10 +69,8 @@ export const AreaPool: React.FC<AreaPoolProps> = ({
       if (!group.days || !group.separation) return false;
       if (group.separation !== area) return false;
       
-      return group.days.some(dayString => {
-        const daysArray = dayString.split(',').map(d => d.trim());
-        return daysArray.some(day => ['א', 'ב', 'ג', 'ד', 'ה'].includes(day));
-      });
+      // days is already an array of strings - just check if any are Hebrew days
+      return group.days.some(day => ['א', 'ב', 'ג', 'ד', 'ה'].includes(day));
     });
   };
 

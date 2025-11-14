@@ -38,16 +38,14 @@ export const WeeklyAreaKanban: React.FC<WeeklyAreaKanbanProps> = ({
       
       const mainArea = group.separation.replace(/\s+\d+$/, '').trim();
       
-      group.days.forEach(dayString => {
-        const daysArray = dayString.split(',').map(d => d.trim());
-        if (daysArray.includes(targetDay)) {
-          // Check if this exact area already exists (to avoid duplicates)
-          const existingArea = areas.find(a => a.area === mainArea && a.groupId === group.groups_id);
-          if (!existingArea) {
-            areas.push({ area: mainArea, groupId: group.groups_id });
-          }
+      // days is already an array of strings - just check if targetDay is in it
+      if (group.days.includes(targetDay)) {
+        // Check if this exact area already exists (to avoid duplicates)
+        const existingArea = areas.find(a => a.area === mainArea && a.groupId === group.groups_id);
+        if (!existingArea) {
+          areas.push({ area: mainArea, groupId: group.groups_id });
         }
-      });
+      }
     });
     
     return areas;
