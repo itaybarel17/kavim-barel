@@ -919,6 +919,7 @@ export type Database = {
           return_reason: Json | null
           schedule_id: number | null
           schedule_id_if_changed: Json | null
+          set_aside: boolean | null
           start_checking_time: string | null
           start_picking_time: string | null
           temp_save_time: Json | null
@@ -987,6 +988,7 @@ export type Database = {
           return_reason?: Json | null
           schedule_id?: number | null
           schedule_id_if_changed?: Json | null
+          set_aside?: boolean | null
           start_checking_time?: string | null
           start_picking_time?: string | null
           temp_save_time?: Json | null
@@ -1055,6 +1057,7 @@ export type Database = {
           return_reason?: Json | null
           schedule_id?: number | null
           schedule_id_if_changed?: Json | null
+          set_aside?: boolean | null
           start_checking_time?: string | null
           start_picking_time?: string | null
           temp_save_time?: Json | null
