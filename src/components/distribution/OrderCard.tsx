@@ -308,7 +308,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     fetchManualCustomerArea();
   }, [hasOrderOnAnotherCustomer, orderOnAnotherCustomerDetails]);
 
-  return <Card ref={drag} className={`min-w-[250px] cursor-move relative ${isDragging ? 'opacity-50' : ''} ${isOrder ? (setAsideState ? 'border-orange-200 bg-orange-50' : 'border-blue-200 bg-blue-50') : 'border-red-200 bg-red-50'} ${(hasInvoiceNumber || (data as Order).copied_to_hashavshevet) ? 'ring-2 ring-green-300' : ''} ${isCandyPlus ? 'ring-2 ring-pink-300 border-pink-200' : ''} ${data.alert_status ? 'ring-2 ring-red-500 shadow-lg shadow-red-200' : ''}`}>
+  return <Card ref={drag} className={`min-w-[250px] cursor-move relative ${isDragging ? 'opacity-50' : ''} ${isOrder ? `border-blue-200 ${setAsideState ? 'bg-orange-50' : 'bg-blue-50'}` : 'border-red-200 bg-red-50'} ${(hasInvoiceNumber || (data as Order).copied_to_hashavshevet) ? 'ring-2 ring-green-300' : ''} ${isCandyPlus ? 'ring-2 ring-pink-300 border-pink-200' : ''} ${data.alert_status ? 'ring-2 ring-red-500 shadow-lg shadow-red-200' : ''}`}>
       {/* Red X overlay for cancellation */}
       {hasCancellationMessage && (
         <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
@@ -317,7 +317,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           <X className="w-12 h-12 text-red-600 bg-white rounded-full p-2 shadow-lg border-2 border-red-600" />
         </div>
       )}
-      <CardContent className={`p-4 bg-[#e8f6fb] relative ${hasOrderOnAnotherCustomer ? 'blur-[1px]' : ''}`}>
+      <CardContent className={`p-4 ${isOrder && setAsideState ? 'bg-orange-50' : 'bg-[#e8f6fb]'} relative ${hasOrderOnAnotherCustomer ? 'blur-[1px]' : ''}`}>
         {/* שורה ראשונה: מספר הזמנה/החזרה + תאריך + שעה + כפתור ארגז קרטון */}
         <div className="flex justify-between items-start mb-2">
           <div className="flex items-center gap-1">
