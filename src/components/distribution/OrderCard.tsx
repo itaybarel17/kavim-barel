@@ -107,6 +107,9 @@ interface OrderCardProps {
   
   // callback for local completion status updates
   onLocalCompletionChange?: (ordernumber: number, isCompleted: boolean) => void;
+  
+  // horizontal kanban flag
+  isHorizontalKanban?: boolean;
 }
 export const OrderCard: React.FC<OrderCardProps> = ({
   type,
@@ -121,7 +124,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   onMessageBadgeClick,
   hasCancellationMessage = false,
   orderOnAnotherCustomerDetails,
-  onLocalCompletionChange
+  onLocalCompletionChange,
+  isHorizontalKanban = false
 }) => {
   // Initialize state from data
   useEffect(() => {
@@ -138,6 +142,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   );
   const [hashavshevtState, setHashavshevtState] = useState<string | null>(
     type === 'order' ? (data as Order).hashavshevet || null : null
+  );
+  const [setAsideState, setSetAsideState] = useState<boolean>(
+    type === 'order' ? (data as any).set_aside || false : false
   );
   const [{
     isDragging
@@ -264,6 +271,31 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     setHashavshevtState(newValue);
   };
 
+  // Handle set aside toggle (for orders only in horizontal kanban)
+  const handleSetAsideToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent drag interference
+    console.log('Set aside toggle clicked');
+    
+    if (!isOrder) return;
+    
+    const orderData = data as Order;
+    const newValue = !setAsideState;
+    
+    const { error } = await supabase
+      .from('mainorder')
+      .update({ set_aside: newValue })
+      .eq('ordernumber', orderData.ordernumber);
+    
+    if (error) {
+      console.error('Error updating set_aside:', error);
+      return;
+    }
+    
+    // Update local data and state
+    (data as any).set_aside = newValue;
+    setSetAsideState(newValue);
+  };
+
   // Fetch area for manual customers (when they don't exist in system)
   useEffect(() => {
     const fetchManualCustomerArea = async () => {
@@ -276,7 +308,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     fetchManualCustomerArea();
   }, [hasOrderOnAnotherCustomer, orderOnAnotherCustomerDetails]);
 
-  return <Card ref={drag} className={`min-w-[250px] cursor-move relative ${isDragging ? 'opacity-50' : ''} ${isOrder ? 'border-blue-200 bg-blue-50' : 'border-red-200 bg-red-50'} ${(hasInvoiceNumber || (data as Order).copied_to_hashavshevet) ? 'ring-2 ring-green-300' : ''} ${isCandyPlus ? 'ring-2 ring-pink-300 border-pink-200' : ''} ${data.alert_status ? 'ring-2 ring-red-500 shadow-lg shadow-red-200' : ''}`}>
+  return <Card ref={drag} className={`min-w-[250px] cursor-move relative ${isDragging ? 'opacity-50' : ''} ${isOrder ? (setAsideState ? 'border-orange-200 bg-orange-50' : 'border-blue-200 bg-blue-50') : 'border-red-200 bg-red-50'} ${(hasInvoiceNumber || (data as Order).copied_to_hashavshevet) ? 'ring-2 ring-green-300' : ''} ${isCandyPlus ? 'ring-2 ring-pink-300 border-pink-200' : ''} ${data.alert_status ? 'ring-2 ring-red-500 shadow-lg shadow-red-200' : ''}`}>
       {/* Red X overlay for cancellation */}
       {hasCancellationMessage && (
         <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
@@ -288,15 +320,33 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       <CardContent className={`p-4 bg-[#e8f6fb] relative ${hasOrderOnAnotherCustomer ? 'blur-[1px]' : ''}`}>
         {/* שורה ראשונה: מספר הזמנה/החזרה + תאריך + שעה + כפתור ארגז קרטון */}
         <div className="flex justify-between items-start mb-2">
-          <span className={`text-sm font-semibold flex items-center gap-2 ${isOrder ? 'text-blue-600' : 'text-red-600'}`}>
-            {isOrder ? <>#{number}
-                {date && <span className="ml-1">{new Date(date).toLocaleDateString('he-IL')}</span>}
-                {hour && <span className="ml-1">{formatHour(hour)}</span>}
-                </> : <>החזרה #{number}
-                {date && <span className="ml-1">{new Date(date).toLocaleDateString('he-IL')}</span>}
-                {hour && <span className="ml-1">{formatHour(hour)}</span>}
-                </>}
-          </span>
+          <div className="flex items-center gap-1">
+            {/* כפתור "שים בצד" - רק בקנבן אופקי ולהזמנות */}
+            {isOrder && isHorizontalKanban && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`rounded p-0.5 h-auto transition-all duration-200 active:scale-95 pointer-events-auto relative z-10 ${
+                  setAsideState 
+                    ? 'text-orange-500 hover:text-orange-600 hover:bg-orange-50' 
+                    : 'text-gray-300 hover:text-gray-500 hover:bg-gray-50'
+                }`}
+                onClick={handleSetAsideToggle}
+                title={setAsideState ? 'החזר לרשימה' : 'שים בצד'}
+              >
+                <div className="w-1.5 h-4 bg-current rounded-full"></div>
+              </Button>
+            )}
+            <span className={`text-sm font-semibold flex items-center gap-2 ${isOrder ? 'text-blue-600' : 'text-red-600'}`}>
+              {isOrder ? <>#{number}
+                  {date && <span className="ml-1">{new Date(date).toLocaleDateString('he-IL')}</span>}
+                  {hour && <span className="ml-1">{formatHour(hour)}</span>}
+                  </> : <>החזרה #{number}
+                  {date && <span className="ml-1">{new Date(date).toLocaleDateString('he-IL')}</span>}
+                  {hour && <span className="ml-1">{formatHour(hour)}</span>}
+                  </>}
+            </span>
+          </div>
           {/* כפתור ארגז קרטון - רק להזמנות */}
           {isOrder && (
             <Button
