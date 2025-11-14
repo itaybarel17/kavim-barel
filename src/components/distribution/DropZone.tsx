@@ -545,15 +545,17 @@ export const DropZone: React.FC<DropZoneProps> = ({
               <SelectValue placeholder="בחר אזור הפצה" />
             </SelectTrigger>
             <SelectContent className="bg-popover border border-border shadow-md z-50 max-h-[200px] overflow-y-auto">
-              {distributionGroups.map(group => (
-                <SelectItem
-                  key={group.groups_id}
-                  value={group.groups_id.toString()}
-                  className="cursor-pointer hover:bg-accent focus:bg-accent"
-                >
-                  {group.separation}
-                </SelectItem>
-              ))}
+              {[...distributionGroups]
+                .sort((a, b) => (a.separation || '').localeCompare(b.separation || '', 'he'))
+                .map(group => (
+                  <SelectItem
+                    key={group.groups_id}
+                    value={group.groups_id.toString()}
+                    className="cursor-pointer hover:bg-accent focus:bg-accent"
+                  >
+                    {group.separation}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
 

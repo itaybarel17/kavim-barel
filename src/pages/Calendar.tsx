@@ -346,7 +346,10 @@ const Calendar = () => {
       const {
         data,
         error
-      } = await supabase.from('distribution_groups').select('groups_id, separation, agents, days');
+      } = await supabase
+        .from('distribution_groups')
+        .select('groups_id, separation, agents, days')
+        .order('separation', { ascending: true });
 
       if (error) throw error;
       console.log('Calendar distribution groups fetched:', data);
