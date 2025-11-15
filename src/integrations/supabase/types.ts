@@ -1842,6 +1842,7 @@ export type Database = {
         }[]
       }
       produce_schedule: { Args: { schedule_id_param: number }; Returns: number }
+      refresh_all_city_agent_averagesupply: { Args: never; Returns: undefined }
       sync_averagesupply: { Args: { data: Json }; Returns: undefined }
       update_agent_password: {
         Args: { agent_number: string; new_password: string }
@@ -1850,6 +1851,10 @@ export type Database = {
       update_all_quotation_doc: { Args: never; Returns: undefined }
       update_candy_customer_averagesupply: { Args: never; Returns: undefined }
       update_cities_and_groups_from_candy: { Args: never; Returns: undefined }
+      update_city_agent_averagesupply: {
+        Args: { target_agentnumber: string; target_city: string }
+        Returns: undefined
+      }
       update_discount_rows_by_customer_discounts: {
         Args: { order_num: number }
         Returns: undefined
