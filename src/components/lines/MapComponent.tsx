@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { getAreaColorHex, getMarkerStrokeColor } from '@/utils/areaColors';
+import { Button } from '@/components/ui/button';
+import { Maximize2, RefreshCw } from 'lucide-react';
 
 interface City {
   cityid: number;
@@ -11,6 +13,8 @@ interface City {
 
 interface MapComponentProps {
   cities: City[];
+  fullscreen?: boolean;
+  onRefresh?: () => void;
 }
 
 declare global {
@@ -19,7 +23,7 @@ declare global {
   }
 }
 
-export const MapComponent: React.FC<MapComponentProps> = ({ cities }) => {
+export const MapComponent: React.FC<MapComponentProps> = ({ cities, fullscreen = false, onRefresh }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
@@ -27,6 +31,10 @@ export const MapComponent: React.FC<MapComponentProps> = ({ cities }) => {
   // Save current map position and zoom
   const savedCenterRef = useRef<{ lat: number; lng: number } | null>(null);
   const savedZoomRef = useRef<number | null>(null);
+
+  const handleOpenFullscreen = () => {
+    window.open('/map-fullscreen', '_blank', 'width=1400,height=900');
+  };
 
   useEffect(() => {
     if (!mapRef.current || !window.google) return;
@@ -136,14 +144,38 @@ export const MapComponent: React.FC<MapComponentProps> = ({ cities }) => {
   }, [cities]);
 
   return (
-    <div className="border rounded-lg overflow-hidden bg-card">
-      <div className="p-4 border-b">
-        <h2 className="text-xl font-semibold">מפת ערים</h2>
-        <p className="text-sm text-muted-foreground">נקודות מוצבעות לפי אזור</p>
+    <div className={`border rounded-lg overflow-hidden bg-card ${fullscreen ? 'h-full' : ''}`}>
+      <div className="p-4 border-b flex justify-between items-center">
+        <div>
+          <h2 className="text-xl font-semibold">מפת ערים</h2>
+          <p className="text-sm text-muted-foreground">נקודות מוצבעות לפי אזור</p>
+        </div>
+        {!fullscreen && (
+          <div className="flex gap-2">
+            {onRefresh && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={onRefresh}
+              >
+                <RefreshCw className="h-4 w-4 ml-2" />
+                רענן
+              </Button>
+            )}
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleOpenFullscreen}
+            >
+              <Maximize2 className="h-4 w-4 ml-2" />
+              פתח במסך מלא
+            </Button>
+          </div>
+        )}
       </div>
       <div 
         ref={mapRef} 
-        className="w-full h-[400px]"
+        className={fullscreen ? "w-full h-full" : "w-full h-[400px]"}
         style={{ direction: 'ltr' }}
       />
     </div>

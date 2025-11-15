@@ -69,7 +69,7 @@ const Lines = () => {
   });
 
   // Fetch cities
-  const { data: cities = [], isLoading: citiesLoading } = useQuery({
+  const { data: cities = [], isLoading: citiesLoading, refetch: refetchCities } = useQuery({
     queryKey: ['lines-cities'],
     queryFn: async () => {
       console.log('Fetching cities for lines...');
@@ -567,7 +567,7 @@ const Lines = () => {
         </div>
 
         {/* Map Component */}
-        <MapComponent cities={cities} />
+        <MapComponent cities={cities} onRefresh={() => refetchCities()} />
 
         {/* City Pool */}
         <CityPool 

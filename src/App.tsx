@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import Distribution from "./pages/Distribution";
 import Calendar from "./pages/Calendar";
 import Lines from "./pages/Lines";
+import MapFullscreen from "./pages/MapFullscreen";
 import Archive from "./pages/Archive";
 import Messages from "./pages/Messages";
 import ZoneReport from "./pages/ZoneReport";
@@ -90,6 +91,7 @@ function App() {
                     <Route path="/lines" element={<ProtectedRoute adminOnly>
                         <Lines />
                       </ProtectedRoute>} />
+                    <Route path="/map-fullscreen" element={<MapFullscreen />} />
                     <Route path="/customer-list" element={<ProtectedRoute>
                         <CustomerList />
                       </ProtectedRoute>} />
