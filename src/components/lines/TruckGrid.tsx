@@ -49,12 +49,12 @@ export const TruckGrid: React.FC<TruckGridProps> = ({
       {/* Areas header for each day */}
       <div className="grid grid-cols-5 gap-4" dir="rtl">
         {days.map(day => (
-          <div key={day} className="p-2 bg-card border border-border rounded-lg shadow-sm h-[80px]">
-            <div className="flex flex-col gap-1">
+          <div key={day} className="p-2 bg-card border border-border rounded-lg shadow-sm min-h-[80px]">
+            <div className="flex flex-col gap-1.5">
               {(areas[day] || []).map((area, index) => (
                 <div
                   key={index}
-                  className={`${getAreaColor(area)} text-xs px-2 py-1 font-bold border rounded-sm`}
+                  className={`${getAreaColor(area)} text-sm px-3 py-1.5 font-medium border rounded-md shadow-sm transition-all hover:shadow-md`}
                 >
                   {area}
                 </div>

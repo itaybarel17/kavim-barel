@@ -86,8 +86,8 @@ export const TruckColumn: React.FC<TruckColumnProps> = ({
   return (
     <div 
       ref={drop}
-      className={`relative min-h-24 border border-border rounded-lg p-2 transition-colors ${
-        isOver ? 'border-primary bg-primary/5' : getBackgroundColor()
+      className={`relative min-h-24 border-2 rounded-lg p-2 transition-all duration-200 ${
+        isOver ? 'border-primary bg-primary/10 shadow-md ring-2 ring-primary/30' : 'border-border ' + getBackgroundColor()
       }`}
     >
       <div className="flex justify-between items-center mb-2">

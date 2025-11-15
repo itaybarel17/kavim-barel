@@ -3,6 +3,7 @@ import { useDrag } from 'react-dnd';
 import { X, ChevronDown } from 'lucide-react';
 import { getAreaColor } from '@/utils/areaColors';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,18 +54,20 @@ export const CityTag: React.FC<CityTagProps> = ({
   return (
     <div
       ref={drag}
-      className={`relative flex items-center justify-between text-xs rounded px-2 py-1 cursor-move transition-all ${
-        isDragging ? 'opacity-50 scale-95' : 'opacity-100'
+      className={`relative flex items-center justify-between text-sm rounded-md px-3 py-2 cursor-move transition-all duration-200 shadow-sm ${
+        isDragging ? 'opacity-50 scale-95 shadow-lg' : 'opacity-100 hover:shadow-md'
       } ${colorClass}`}
     >
-      <span className="truncate flex-1">
-        {city.city}
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <span className="truncate font-medium">
+          {city.city}
+        </span>
         {city.averagesupplyweek && (
-          <span className="text-xs text-muted-foreground ml-1">
-            ({city.averagesupplyweek})
-          </span>
+          <Badge variant="secondary" className="bg-white/90 text-gray-800 font-bold text-xs shrink-0">
+            {city.averagesupplyweek}
+          </Badge>
         )}
-      </span>
+      </div>
       
       <div className="flex items-center gap-1 ml-1">
         {/* Future dropdown for customers */}
