@@ -22,8 +22,9 @@ interface UnassignedCitiesPoolProps {
 const CityBadge: React.FC<{
   city: string;
   customer_count: number;
+  averagesupplyweek?: number;
   areaColor: string;
-}> = ({ city, customer_count, areaColor }) => {
+}> = ({ city, customer_count, averagesupplyweek, areaColor }) => {
   const [{ isDragging }, drag] = useDrag({
     type: 'city-visit-calendar',
     item: { city, sourceType: 'pool', type: 'city-visit-calendar' },
@@ -35,16 +36,23 @@ const CityBadge: React.FC<{
   return (
     <div
       ref={drag}
-      className={`relative inline-flex items-center gap-2 text-sm rounded px-3 py-2 cursor-move transition-all ${
+      className={`relative flex flex-col gap-1 text-sm rounded px-3 py-2 cursor-move transition-all ${
         isDragging ? 'opacity-50 scale-95' : 'opacity-100'
       } ${areaColor} hover:opacity-90`}
     >
       <span className="font-medium">{city}</span>
-      {customer_count > 0 && (
-        <Badge variant="secondary" className="bg-white/90 text-gray-800 font-bold">
-          {customer_count}
-        </Badge>
-      )}
+      <div className="flex gap-2">
+        {customer_count > 0 && (
+          <Badge variant="secondary" className="text-xs px-2 py-0.5 h-5 bg-white/95 text-gray-900 font-bold">
+            {customer_count}
+          </Badge>
+        )}
+        {averagesupplyweek !== undefined && averagesupplyweek > 0 && (
+          <Badge variant="outline" className="text-xs px-2 py-0.5 h-5 bg-white/95 text-gray-900 border-gray-300 font-bold">
+            {averagesupplyweek.toFixed(1)}
+          </Badge>
+        )}
+      </div>
     </div>
   );
 };
@@ -95,6 +103,7 @@ export const UnassignedCitiesPool: React.FC<UnassignedCitiesPoolProps> = ({
                   key={item.id}
                   city={item.city}
                   customer_count={item.customer_count}
+                  averagesupplyweek={item.averagesupplyweek}
                   areaColor={areaColor}
                 />
               );
