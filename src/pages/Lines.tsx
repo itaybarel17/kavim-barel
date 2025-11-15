@@ -421,7 +421,7 @@ const Lines = () => {
       // For day-to-day moves with specific groupId, update only that group
       updateAreaDaysMutation.mutate({ groupId, newDays: [day] });
     } else {
-      // For pool-to-day moves or when no specific groupId, use area-based logic
+      // For pool-to-day moves
       const groupsForArea = distributionGroups.filter(group => {
         if (!group.separation) return false;
         const mainArea = group.separation.replace(/\s+\d+$/, '').trim();
@@ -430,31 +430,9 @@ const Lines = () => {
 
       groupsForArea.forEach(group => {
         const currentDays = group.days || [];
-        // For pool-to-day moves, add to existing days if not already present
-        const newDays = [...currentDays];
-        
-        // Check if this day is already included in any day string
-        let dayExists = false;
-        newDays.forEach((dayString, index) => {
-          const daysArray = dayString.split(',').map(d => d.trim());
-          if (daysArray.includes(day)) {
-            dayExists = true;
-          }
-        });
-        
-        if (!dayExists) {
-          // Add the day to the first day string, or create a new one
-          if (newDays.length > 0) {
-            const firstDayString = newDays[0];
-            const daysArray = firstDayString.split(',').map(d => d.trim());
-            if (!daysArray.includes(day)) {
-              daysArray.push(day);
-              newDays[0] = daysArray.join(',');
-            }
-          } else {
-            newDays.push(day);
-          }
-          
+        // Add day only if not already present
+        if (!currentDays.includes(day)) {
+          const newDays = [...currentDays, day];
           updateAreaDaysMutation.mutate({ groupId: group.groups_id, newDays });
         }
       });
@@ -471,12 +449,7 @@ const Lines = () => {
 
     groupsForArea.forEach(group => {
       const currentDays = group.days || [];
-      const newDays = currentDays.map(dayString => {
-        const daysArray = dayString.split(',').map(d => d.trim());
-        const filteredDays = daysArray.filter(d => d !== day);
-        return filteredDays.join(',');
-      }).filter(dayString => dayString.length > 0);
-      
+      const newDays = currentDays.filter(d => d !== day);
       updateAreaDaysMutation.mutate({ groupId: group.groups_id, newDays });
     });
   };
@@ -487,7 +460,7 @@ const Lines = () => {
       // For day-to-day moves with specific groupId, update only that group
       updateAreaDayVisitMutation.mutate({ groupId, newDays: [day] });
     } else {
-      // For pool-to-day moves or when no specific groupId, use area-based logic
+      // For pool-to-day moves
       const groupsForArea = distributionGroups.filter(group => {
         if (!group.separation) return false;
         const mainArea = group.separation.replace(/\s+\d+$/, '').trim();
@@ -496,31 +469,9 @@ const Lines = () => {
 
       groupsForArea.forEach(group => {
         const currentDays = group.dayvisit || [];
-        // For pool-to-day moves, add to existing days if not already present
-        const newDays = [...currentDays];
-        
-        // Check if this day is already included in any day string
-        let dayExists = false;
-        newDays.forEach((dayString, index) => {
-          const daysArray = dayString.split(',').map(d => d.trim());
-          if (daysArray.includes(day)) {
-            dayExists = true;
-          }
-        });
-        
-        if (!dayExists) {
-          // Add the day to the first day string, or create a new one
-          if (newDays.length > 0) {
-            const firstDayString = newDays[0];
-            const daysArray = firstDayString.split(',').map(d => d.trim());
-            if (!daysArray.includes(day)) {
-              daysArray.push(day);
-              newDays[0] = daysArray.join(',');
-            }
-          } else {
-            newDays.push(day);
-          }
-          
+        // Add day only if not already present
+        if (!currentDays.includes(day)) {
+          const newDays = [...currentDays, day];
           updateAreaDayVisitMutation.mutate({ groupId: group.groups_id, newDays });
         }
       });
@@ -537,12 +488,7 @@ const Lines = () => {
 
     groupsForArea.forEach(group => {
       const currentDays = group.dayvisit || [];
-      const newDays = currentDays.map(dayString => {
-        const daysArray = dayString.split(',').map(d => d.trim());
-        const filteredDays = daysArray.filter(d => d !== day);
-        return filteredDays.join(',');
-      }).filter(dayString => dayString.length > 0);
-      
+      const newDays = currentDays.filter(d => d !== day);
       updateAreaDayVisitMutation.mutate({ groupId: group.groups_id, newDays });
     });
   };
