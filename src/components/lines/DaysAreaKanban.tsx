@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 import { getAreaColor } from '@/utils/areaColors';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 interface DistributionGroup {
   groups_id: number;
@@ -41,12 +42,14 @@ const AreaTag: React.FC<{
         isDragging ? 'opacity-50 scale-95' : 'opacity-100'
       } ${colorClass}`}
     >
-      <span className="truncate flex-1 font-medium">
-        {area}
+      <div className="flex items-center gap-2 flex-1">
+        <span className="font-medium">{area}</span>
         {totalsupplyspots !== null && totalsupplyspots > 0 && (
-          <span className="text-xs opacity-75 mr-1"> ({totalsupplyspots})</span>
+          <Badge variant="secondary" className="bg-white/90 text-gray-800 font-bold">
+            {totalsupplyspots}
+          </Badge>
         )}
-      </span>
+      </div>
       <Button
         variant="ghost"
         size="sm"
@@ -78,7 +81,7 @@ const DayColumn: React.FC<{
   });
 
   return (
-    <Card className="flex-1 min-w-[200px]">
+    <Card>
       <CardContent className="p-4">
         <div className="text-center font-bold mb-3 text-lg">{dayName}</div>
         <div
@@ -117,8 +120,6 @@ export const DaysAreaKanban: React.FC<DaysAreaKanbanProps> = ({
   const days = ['א', 'ב', 'ג', 'ד', 'ה'];
   const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי'];
 
-  console.log('DaysAreaKanban - distributionGroups:', distributionGroups);
-
   const getAreasForDay = (targetDay: string) => {
     return distributionGroups
       .filter(
@@ -141,12 +142,10 @@ export const DaysAreaKanban: React.FC<DaysAreaKanbanProps> = ({
     onAreaDrop(area, null);
   };
 
-  console.log('DaysAreaKanban - areas for א:', getAreasForDay('א'));
-
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">שיוך אזורים לימי אספקה</h3>
-      <div className="flex gap-4 overflow-x-auto pb-4" dir="rtl">
+      <div className="grid grid-cols-5 gap-4" dir="rtl">
         {days.map((day, index) => (
           <DayColumn
             key={day}
