@@ -3,6 +3,7 @@ import { useDrag, useDrop } from 'react-dnd';
 import { getAreaColor } from '@/utils/areaColors';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface DistributionGroup {
   groups_id: number;
@@ -10,6 +11,8 @@ interface DistributionGroup {
   dayvisit: string[] | null;
   orderlabelinkavim: number | null;
   totalsupplyspots_barelcandy: number | null;
+  totalsupplyspots: number | null;
+  totalsupplyspots_candy: number | null;
   agentsworkarea: number[] | null;
 }
 
@@ -21,8 +24,10 @@ interface UnassignedAreasPoolVisitProps {
 const AreaBadge: React.FC<{
   area: string;
   totalsupplyspots_barelcandy: number | null;
+  totalsupplyspots: number | null;
+  totalsupplyspots_candy: number | null;
   agentsworkarea: number[] | null;
-}> = ({ area, totalsupplyspots_barelcandy }) => {
+}> = ({ area, totalsupplyspots_barelcandy, totalsupplyspots, totalsupplyspots_candy }) => {
   const [{ isDragging }, drag] = useDrag({
     type: 'area-visit',
     item: { area, sourceType: 'pool', type: 'area-visit' },
@@ -42,9 +47,21 @@ const AreaBadge: React.FC<{
     >
       <span className="font-medium">{area}</span>
       {totalsupplyspots_barelcandy !== null && totalsupplyspots_barelcandy > 0 && (
-        <Badge variant="secondary" className="mr-2 bg-white/90 text-gray-800 font-bold">
-          {totalsupplyspots_barelcandy}
-        </Badge>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge variant="secondary" className="mr-2 bg-white/90 text-gray-800 font-bold cursor-help">
+                {totalsupplyspots_barelcandy}
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="text-sm">
+                <div>בראל: {totalsupplyspots || 0}</div>
+                <div>קנדי: {totalsupplyspots_candy || 0}</div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )}
     </div>
   );
@@ -72,6 +89,8 @@ export const UnassignedAreasPoolVisit: React.FC<UnassignedAreasPoolVisitProps> =
       area: group.separation,
       orderlabelinkavim: group.orderlabelinkavim || 0,
       totalsupplyspots_barelcandy: group.totalsupplyspots_barelcandy,
+      totalsupplyspots: group.totalsupplyspots,
+      totalsupplyspots_candy: group.totalsupplyspots_candy,
       agentsworkarea: group.agentsworkarea,
     }))
     .sort((a, b) => a.orderlabelinkavim - b.orderlabelinkavim);
@@ -98,6 +117,8 @@ export const UnassignedAreasPoolVisit: React.FC<UnassignedAreasPoolVisitProps> =
                 key={item.area}
                 area={item.area}
                 totalsupplyspots_barelcandy={item.totalsupplyspots_barelcandy}
+                totalsupplyspots={item.totalsupplyspots}
+                totalsupplyspots_candy={item.totalsupplyspots_candy}
                 agentsworkarea={item.agentsworkarea}
               />
             ))

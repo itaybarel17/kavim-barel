@@ -5,6 +5,7 @@ import { getAreaColor } from '@/utils/areaColors';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface DistributionGroup {
   groups_id: number;
@@ -12,6 +13,8 @@ interface DistributionGroup {
   days: string[] | null;
   orderlabelinkavim: number | null;
   totalsupplyspots_barelcandy: number | null;
+  totalsupplyspots: number | null;
+  totalsupplyspots_candy: number | null;
 }
 
 interface DaysAreaKanbanProps {
@@ -23,8 +26,10 @@ const AreaTag: React.FC<{
   area: string;
   day: string;
   totalsupplyspots_barelcandy: number | null;
+  totalsupplyspots: number | null;
+  totalsupplyspots_candy: number | null;
   onRemove: () => void;
-}> = ({ area, day, totalsupplyspots_barelcandy, onRemove }) => {
+}> = ({ area, day, totalsupplyspots_barelcandy, totalsupplyspots, totalsupplyspots_candy, onRemove }) => {
   const [{ isDragging }, drag] = useDrag({
     type: 'area-delivery',
     item: { area, day, sourceType: 'day', type: 'area-delivery' },
@@ -45,9 +50,21 @@ const AreaTag: React.FC<{
       <div className="flex items-center gap-2 flex-1">
         <span className="font-medium">{area}</span>
         {totalsupplyspots_barelcandy !== null && totalsupplyspots_barelcandy > 0 && (
-          <Badge variant="secondary" className="bg-white/90 text-gray-800 font-bold">
-            {totalsupplyspots_barelcandy}
-          </Badge>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="secondary" className="bg-white/90 text-gray-800 font-bold cursor-help">
+                  {totalsupplyspots_barelcandy}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="text-sm">
+                  <div>בראל: {totalsupplyspots || 0}</div>
+                  <div>קנדי: {totalsupplyspots_candy || 0}</div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </div>
       <Button
@@ -65,7 +82,7 @@ const AreaTag: React.FC<{
 const DayColumn: React.FC<{
   day: string;
   dayName: string;
-  areas: { area: string; totalsupplyspots_barelcandy: number | null }[];
+  areas: { area: string; totalsupplyspots_barelcandy: number | null; totalsupplyspots: number | null; totalsupplyspots_candy: number | null }[];
   onDrop: (area: string, day: string) => void;
   onRemove: (area: string) => void;
 }> = ({ day, dayName, areas, onDrop, onRemove }) => {
@@ -103,6 +120,8 @@ const DayColumn: React.FC<{
                 area={item.area}
                 day={day}
                 totalsupplyspots_barelcandy={item.totalsupplyspots_barelcandy}
+                totalsupplyspots={item.totalsupplyspots}
+                totalsupplyspots_candy={item.totalsupplyspots_candy}
                 onRemove={() => onRemove(item.area)}
               />
             ))
@@ -131,6 +150,8 @@ export const DaysAreaKanban: React.FC<DaysAreaKanbanProps> = ({
       .map((group) => ({
         area: group.separation,
         totalsupplyspots_barelcandy: group.totalsupplyspots_barelcandy,
+        totalsupplyspots: group.totalsupplyspots,
+        totalsupplyspots_candy: group.totalsupplyspots_candy,
       }));
   };
 
