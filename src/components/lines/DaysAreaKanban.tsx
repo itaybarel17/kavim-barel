@@ -19,6 +19,7 @@ interface DistributionGroup {
 interface DaysAreaKanbanProps {
   distributionGroups: DistributionGroup[];
   onAreaDrop: (area: string, day: string | null) => void;
+  readOnly?: boolean;
 }
 
 const AreaTag: React.FC<{
@@ -28,7 +29,8 @@ const AreaTag: React.FC<{
   totalsupplyspots: number | null;
   totalsupplyspots_candy: number | null;
   onRemove: () => void;
-}> = ({ area, day, totalsupplyspots_barelcandy, totalsupplyspots, totalsupplyspots_candy, onRemove }) => {
+  readOnly?: boolean;
+}> = ({ area, day, totalsupplyspots_barelcandy, totalsupplyspots, totalsupplyspots_candy, onRemove, readOnly }) => {
   const [showDetails, setShowDetails] = React.useState(false);
   
   const [{ isDragging }, drag] = useDrag({
@@ -37,14 +39,17 @@ const AreaTag: React.FC<{
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
+    canDrag: !readOnly,
   });
 
   const colorClass = getAreaColor(area);
 
   return (
     <div
-      ref={drag}
-      className={`relative flex items-center justify-between text-sm rounded px-3 py-2 cursor-move transition-all ${
+      ref={readOnly ? null : drag}
+      className={`relative flex items-center justify-between text-sm rounded px-3 py-2 ${
+        readOnly ? '' : 'cursor-move'
+      } transition-all ${
         isDragging ? 'opacity-50 scale-95' : 'opacity-100'
       } ${colorClass}`}
     >
@@ -88,7 +93,8 @@ const DayColumn: React.FC<{
   areas: { area: string; totalsupplyspots_barelcandy: number | null; totalsupplyspots: number | null; totalsupplyspots_candy: number | null }[];
   onDrop: (area: string, day: string) => void;
   onRemove: (area: string) => void;
-}> = ({ day, dayName, areas, onDrop, onRemove }) => {
+  readOnly?: boolean;
+}> = ({ day, dayName, areas, onDrop, onRemove, readOnly }) => {
   const [{ isOver, canDrop }, drop] = useDrop({
     accept: 'area-delivery',
     drop: (item: { area: string; day?: string; sourceType: string }) => {
@@ -126,6 +132,7 @@ const DayColumn: React.FC<{
                 totalsupplyspots={item.totalsupplyspots}
                 totalsupplyspots_candy={item.totalsupplyspots_candy}
                 onRemove={() => onRemove(item.area)}
+                readOnly={readOnly}
               />
             ))
           )}
@@ -138,6 +145,7 @@ const DayColumn: React.FC<{
 export const DaysAreaKanban: React.FC<DaysAreaKanbanProps> = ({
   distributionGroups,
   onAreaDrop,
+  readOnly,
 }) => {
   const days = ['א', 'ב', 'ג', 'ד', 'ה'];
   const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי'];
@@ -178,6 +186,7 @@ export const DaysAreaKanban: React.FC<DaysAreaKanbanProps> = ({
             areas={getAreasForDay(day)}
             onDrop={handleDrop}
             onRemove={handleRemove}
+            readOnly={readOnly}
           />
         ))}
       </div>
