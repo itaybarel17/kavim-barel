@@ -55,6 +55,8 @@ const Lines = () => {
       
       if (error) throw error;
       console.log('Lines distribution groups fetched:', data);
+      console.log('Lines distribution groups length:', data?.length);
+      console.log('Lines distribution groups first item:', data?.[0]);
       return data as any as DistributionGroup[];
     }
   });
@@ -252,18 +254,14 @@ const Lines = () => {
       
       const mainArea = getMainAreaFromSeparation(group.separation);
       
-      group.days.forEach(dayString => {
-        // Split comma-separated days and process each one
-        const daysArray = dayString.split(',').map(d => d.trim());
-        daysArray.forEach(day => {
-          if (['א', 'ב', 'ג', 'ד', 'ה'].includes(day)) {
-            group.freq.forEach(week => {
-              if ([1, 2, 3, 4].includes(week)) {
-                schedule[week][day].push(mainArea);
-              }
-            });
-          }
-        });
+      group.days.forEach(day => {
+        if (['א', 'ב', 'ג', 'ד', 'ה'].includes(day)) {
+          group.freq.forEach(week => {
+            if ([1, 2, 3, 4].includes(week)) {
+              schedule[week][day].push(mainArea);
+            }
+          });
+        }
       });
     });
 

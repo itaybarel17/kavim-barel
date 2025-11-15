@@ -54,6 +54,7 @@ export const WeeklyAreaKanbanVisit: React.FC<WeeklyAreaKanbanVisitProps> = ({
       }
     });
     
+    console.log('WeeklyAreaKanbanVisit - day:', targetDay, 'areas found:', areas.length, 'areas:', areas);
     return areas;
   };
 
