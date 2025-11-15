@@ -24,6 +24,8 @@ interface DistributionGroup {
   dayvisit: Json | null;
   agents: Json | null;
   totalsupplyspots_barelcandy: number | null;
+  totalsupplyspots: number | null;
+  totalsupplyspots_candy: number | null;
   orderlabelinkavim: number | null;
   agentsworkarea: Json | null;
 }
@@ -51,7 +53,7 @@ const Lines = () => {
       console.log('Fetching distribution groups for lines...');
       const { data, error } = await supabase
         .from('distribution_groups')
-        .select('groups_id, separation, days, dayvisit, orderlabelinkavim, agentsworkarea, totalsupplyspots_barelcandy')
+        .select('groups_id, separation, days, dayvisit, orderlabelinkavim, agentsworkarea, totalsupplyspots_barelcandy, totalsupplyspots, totalsupplyspots_candy')
         .order('orderlabelinkavim', { ascending: true, nullsFirst: false });
       
       if (error) throw error;
