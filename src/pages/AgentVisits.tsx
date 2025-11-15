@@ -117,6 +117,27 @@ const AgentVisits = () => {
     enabled: !!selectedAgent,
   });
 
+  // Fetch cities data to get area assignments
+  const { data: citiesData = [] } = useQuery({
+    queryKey: ['cities-for-areas'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('cities')
+        .select('city, area');
+      
+      if (error) throw error;
+      return data as { city: string; area: string | null }[];
+    },
+  });
+
+  // Create a map of city to area for color coding
+  const cityAreaMap = new Map<string, string>();
+  citiesData.forEach(cityData => {
+    if (cityData.area) {
+      cityAreaMap.set(cityData.city, cityData.area);
+    }
+  });
+
   // Mutation to update city visit day
   const updateCityVisitDayMutation = useMutation({
     mutationFn: async ({ city, agentnumber, visit_day }: { city: string; agentnumber: string; visit_day: string | null }) => {
@@ -239,6 +260,7 @@ const AgentVisits = () => {
           <UnassignedCitiesPool
             cities={citySchedules}
             onCityDrop={handleCityDrop}
+            cityAreaMap={cityAreaMap}
           />
         </>
       )}

@@ -2,6 +2,7 @@ import React from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { getAreaColor } from '@/utils/areaColors';
 
 interface CitySchedule {
   id: string;
@@ -15,15 +16,17 @@ interface CitySchedule {
 interface UnassignedCitiesPoolProps {
   cities: CitySchedule[];
   onCityDrop: (city: string, day: string | null) => void;
+  cityAreaMap: Map<string, string>;
 }
 
 const CityBadge: React.FC<{
   city: string;
   customer_count: number;
-}> = ({ city, customer_count }) => {
+  areaColor: string;
+}> = ({ city, customer_count, areaColor }) => {
   const [{ isDragging }, drag] = useDrag({
-    type: 'city-visit',
-    item: { city, sourceType: 'pool', type: 'city-visit' },
+    type: 'city-visit-calendar',
+    item: { city, sourceType: 'pool', type: 'city-visit-calendar' },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
@@ -34,7 +37,7 @@ const CityBadge: React.FC<{
       ref={drag}
       className={`relative inline-flex items-center gap-2 text-sm rounded px-3 py-2 cursor-move transition-all ${
         isDragging ? 'opacity-50 scale-95' : 'opacity-100'
-      } bg-blue-100 text-blue-900 border border-blue-300 hover:bg-blue-200`}
+      } ${areaColor} hover:opacity-90`}
     >
       <span className="font-medium">{city}</span>
       {customer_count > 0 && (
@@ -49,9 +52,10 @@ const CityBadge: React.FC<{
 export const UnassignedCitiesPool: React.FC<UnassignedCitiesPoolProps> = ({
   cities,
   onCityDrop,
+  cityAreaMap,
 }) => {
   const [{ isOver }, drop] = useDrop({
-    accept: 'city-visit',
+    accept: 'city-visit-calendar',
     drop: (item: { city: string; sourceType: string; type: string }) => {
       if (item.sourceType === 'day') {
         onCityDrop(item.city, null);
@@ -83,13 +87,18 @@ export const UnassignedCitiesPool: React.FC<UnassignedCitiesPoolProps> = ({
               כל הערים משויכות לימים
             </div>
           ) : (
-            unassignedCities.map((item) => (
-              <CityBadge
-                key={item.id}
-                city={item.city}
-                customer_count={item.customer_count}
-              />
-            ))
+            unassignedCities.map((item) => {
+              const area = cityAreaMap.get(item.city);
+              const areaColor = area ? getAreaColor(area) : 'bg-gray-400 text-white';
+              return (
+                <CityBadge
+                  key={item.id}
+                  city={item.city}
+                  customer_count={item.customer_count}
+                  areaColor={areaColor}
+                />
+              );
+            })
           )}
         </div>
       </CardContent>
