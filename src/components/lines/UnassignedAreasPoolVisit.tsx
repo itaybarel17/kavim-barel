@@ -2,6 +2,7 @@ import React from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 import { getAreaColor } from '@/utils/areaColors';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 interface DistributionGroup {
   groups_id: number;
@@ -21,7 +22,7 @@ const AreaBadge: React.FC<{
   area: string;
   totalsupplyspots: number | null;
   agentsworkarea: number[] | null;
-}> = ({ area, totalsupplyspots, agentsworkarea }) => {
+}> = ({ area, totalsupplyspots }) => {
   const [{ isDragging }, drag] = useDrag({
     type: 'area-visit',
     item: { area, sourceType: 'pool', type: 'area-visit' },
@@ -32,24 +33,19 @@ const AreaBadge: React.FC<{
 
   const colorClass = getAreaColor(area);
 
-  const getAgentNumbers = () => {
-    if (!agentsworkarea || !Array.isArray(agentsworkarea) || agentsworkarea.length === 0) return '';
-    return ` (${agentsworkarea.join(', ')})`;
-  };
-
   return (
     <div
       ref={drag}
-      className={`${colorClass} px-4 py-2 rounded-md cursor-move transition-all ${
-        isDragging ? 'opacity-50 scale-95' : 'opacity-100 hover:scale-105'
-      }`}
+      className={`relative inline-flex items-center gap-2 text-sm rounded px-3 py-2 cursor-move transition-all ${
+        isDragging ? 'opacity-50 scale-95' : 'opacity-100'
+      } ${colorClass}`}
     >
-      <span className="font-medium">
-        {area}{getAgentNumbers()}
-        {totalsupplyspots !== null && totalsupplyspots > 0 && (
-          <span className="text-xs opacity-75 mr-1"> ({totalsupplyspots})</span>
-        )}
-      </span>
+      <span className="font-medium">{area}</span>
+      {totalsupplyspots !== null && totalsupplyspots > 0 && (
+        <Badge variant="secondary" className="mr-2 bg-white/90 text-gray-800 font-bold">
+          {totalsupplyspots}
+        </Badge>
+      )}
     </div>
   );
 };
@@ -79,9 +75,6 @@ export const UnassignedAreasPoolVisit: React.FC<UnassignedAreasPoolVisitProps> =
       agentsworkarea: group.agentsworkarea,
     }))
     .sort((a, b) => a.orderlabelinkavim - b.orderlabelinkavim);
-
-  console.log('UnassignedAreasPoolVisit - distributionGroups:', distributionGroups);
-  console.log('UnassignedAreasPoolVisit - unassignedAreas:', unassignedAreas);
 
   return (
     <Card>

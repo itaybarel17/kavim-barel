@@ -34,16 +34,16 @@ const AreaBadge: React.FC<{
   return (
     <div
       ref={drag}
-      className={`${colorClass} px-4 py-2 rounded-md cursor-move transition-all ${
-        isDragging ? 'opacity-50 scale-95' : 'opacity-100 hover:scale-105'
-      }`}
+      className={`relative inline-flex items-center gap-2 text-sm rounded px-3 py-2 cursor-move transition-all ${
+        isDragging ? 'opacity-50 scale-95' : 'opacity-100'
+      } ${colorClass}`}
     >
-      <span className="font-medium">
-        {area}
-        {totalsupplyspots !== null && totalsupplyspots > 0 && (
-          <span className="text-xs opacity-75 mr-1"> ({totalsupplyspots})</span>
-        )}
-      </span>
+      <span className="font-medium">{area}</span>
+      {totalsupplyspots !== null && totalsupplyspots > 0 && (
+        <Badge variant="secondary" className="mr-2 bg-white/90 text-gray-800 font-bold">
+          {totalsupplyspots}
+        </Badge>
+      )}
     </div>
   );
 };
@@ -72,9 +72,6 @@ export const UnassignedAreasPool: React.FC<UnassignedAreasPoolProps> = ({
       totalsupplyspots: group.totalsupplyspots,
     }))
     .sort((a, b) => a.orderlabelinkavim - b.orderlabelinkavim);
-
-  console.log('UnassignedAreasPool - distributionGroups:', distributionGroups);
-  console.log('UnassignedAreasPool - unassignedAreas:', unassignedAreas);
 
   return (
     <Card>
