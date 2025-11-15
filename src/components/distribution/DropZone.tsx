@@ -100,6 +100,7 @@ interface DropZoneProps {
   // existing props for icons
   multiOrderActiveCustomerList?: any[];
   dualActiveOrderReturnCustomers?: any[];
+  linkedCustomersWithBothOrders?: Set<string>; // NEW: for linked customers
   // new props for supply details - removed agentNameMap
   customerSupplyMap?: Record<string, string>;
   customerCoordinatesMap?: Record<string, { lat: number; lng: number }>;
@@ -154,6 +155,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
   getZoneState,
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
+  linkedCustomersWithBothOrders = new Set(),
   customerSupplyMap = {},
   customerCoordinatesMap = {},
   onSirenToggle,
@@ -660,6 +662,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
             onDragStart={handleItemDragStart}
             multiOrderActiveCustomerList={multiOrderActiveCustomerList}
             dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
+            isLinkedCustomerWithBothOrders={linkedCustomersWithBothOrders.has(order.customernumber || '')}
             customerSupplyMap={customerSupplyMap}
             customerCoordinatesMap={customerCoordinatesMap}
             onSirenToggle={onSirenToggle}
@@ -679,6 +682,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
             onDragStart={handleItemDragStart}
             multiOrderActiveCustomerList={multiOrderActiveCustomerList}
             dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
+            isLinkedCustomerWithBothOrders={linkedCustomersWithBothOrders.has(returnItem.customernumber || '')}
             customerSupplyMap={customerSupplyMap}
             customerCoordinatesMap={customerCoordinatesMap}
             onSirenToggle={onSirenToggle}

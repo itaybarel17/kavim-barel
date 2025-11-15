@@ -364,6 +364,7 @@ export type Database = {
           ice_cream_discount: number | null
           import_discount: number | null
           lat: number | null
+          linked_candy_customernumber: string | null
           lng: number | null
           misharit_also_local: number | null
           misharit_discount: number | null
@@ -413,6 +414,7 @@ export type Database = {
           ice_cream_discount?: number | null
           import_discount?: number | null
           lat?: number | null
+          linked_candy_customernumber?: string | null
           lng?: number | null
           misharit_also_local?: number | null
           misharit_discount?: number | null
@@ -462,6 +464,7 @@ export type Database = {
           ice_cream_discount?: number | null
           import_discount?: number | null
           lat?: number | null
+          linked_candy_customernumber?: string | null
           lng?: number | null
           misharit_also_local?: number | null
           misharit_discount?: number | null

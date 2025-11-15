@@ -75,6 +75,7 @@ interface OrderCardProps {
     name: string;
     city: string;
   }[];
+  isLinkedCustomerWithBothOrders?: boolean; // NEW: half blue, half pink icon
 
   // new props for supply details - removed agentNameMap as we'll display agentnumber directly
   customerSupplyMap?: Record<string, string>;
@@ -120,6 +121,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   onDragStart,
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
+  isLinkedCustomerWithBothOrders = false,
   customerSupplyMap = {},
   customerCoordinatesMap = {},
   onSirenToggle,
@@ -521,11 +523,24 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                       קנדי+
                     </Badge>}
                   {/* prominent icons logic */}
-                  {isOrder && isMultiOrderActive && <img src={BlueCustomerIcon} alt="לקוח עם כמה הזמנות פעילות" style={{
+                  {/* Linked customer with both order types: half blue, half pink */}
+                  {isLinkedCustomerWithBothOrders && (
+                    <div 
+                      className="inline-flex align-middle rounded-full overflow-hidden" 
+                      style={{ width: iconSize, height: iconSize }}
+                      title="לקוח משותף - יש הזמנה משלנו וגם מקנדי"
+                    >
+                      <div className="w-1/2 h-full bg-blue-500" />
+                      <div className="w-1/2 h-full bg-pink-500" />
+                    </div>
+                  )}
+                  {/* Regular multi-order icon (only if not linked) */}
+                  {!isLinkedCustomerWithBothOrders && isOrder && isMultiOrderActive && <img src={BlueCustomerIcon} alt="לקוח עם כמה הזמנות פעילות" style={{
                 width: iconSize,
                 height: iconSize
               }} className="inline align-middle" title="ללקוח זה יש יותר מהזמנה אחת פעילה" />}
-                  {isDualActiveOrderReturn && <img src={RedCustomerIcon} alt="לקוח עם החזרה וגם הזמנה פעילים" style={{
+                  {/* Dual order/return icon (only if not linked) */}
+                  {!isLinkedCustomerWithBothOrders && isDualActiveOrderReturn && <img src={RedCustomerIcon} alt="לקוח עם החזרה וגם הזמנה פעילים" style={{
                 width: iconSize,
                 height: iconSize
               }} className="inline align-middle" title="יש ללקוח זה הזמנה והחזרה פעילות" />}
