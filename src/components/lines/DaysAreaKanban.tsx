@@ -11,7 +11,7 @@ interface DistributionGroup {
   separation: string;
   days: string[] | null;
   orderlabelinkavim: number | null;
-  totalsupplyspots: number | null;
+  totalsupplyspots_barelcandy: number | null;
 }
 
 interface DaysAreaKanbanProps {
@@ -22,9 +22,9 @@ interface DaysAreaKanbanProps {
 const AreaTag: React.FC<{
   area: string;
   day: string;
-  totalsupplyspots: number | null;
+  totalsupplyspots_barelcandy: number | null;
   onRemove: () => void;
-}> = ({ area, day, totalsupplyspots, onRemove }) => {
+}> = ({ area, day, totalsupplyspots_barelcandy, onRemove }) => {
   const [{ isDragging }, drag] = useDrag({
     type: 'area-delivery',
     item: { area, day, sourceType: 'day', type: 'area-delivery' },
@@ -44,9 +44,9 @@ const AreaTag: React.FC<{
     >
       <div className="flex items-center gap-2 flex-1">
         <span className="font-medium">{area}</span>
-        {totalsupplyspots !== null && totalsupplyspots > 0 && (
+        {totalsupplyspots_barelcandy !== null && totalsupplyspots_barelcandy > 0 && (
           <Badge variant="secondary" className="bg-white/90 text-gray-800 font-bold">
-            {totalsupplyspots}
+            {totalsupplyspots_barelcandy}
           </Badge>
         )}
       </div>
@@ -65,7 +65,7 @@ const AreaTag: React.FC<{
 const DayColumn: React.FC<{
   day: string;
   dayName: string;
-  areas: { area: string; totalsupplyspots: number | null }[];
+  areas: { area: string; totalsupplyspots_barelcandy: number | null }[];
   onDrop: (area: string, day: string) => void;
   onRemove: (area: string) => void;
 }> = ({ day, dayName, areas, onDrop, onRemove }) => {
@@ -102,7 +102,7 @@ const DayColumn: React.FC<{
                 key={item.area}
                 area={item.area}
                 day={day}
-                totalsupplyspots={item.totalsupplyspots}
+                totalsupplyspots_barelcandy={item.totalsupplyspots_barelcandy}
                 onRemove={() => onRemove(item.area)}
               />
             ))
@@ -130,7 +130,7 @@ export const DaysAreaKanban: React.FC<DaysAreaKanbanProps> = ({
       )
       .map((group) => ({
         area: group.separation,
-        totalsupplyspots: group.totalsupplyspots,
+        totalsupplyspots_barelcandy: group.totalsupplyspots_barelcandy,
       }));
   };
 

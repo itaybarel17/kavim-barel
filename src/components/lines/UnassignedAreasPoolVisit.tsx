@@ -9,7 +9,7 @@ interface DistributionGroup {
   separation: string;
   dayvisit: string[] | null;
   orderlabelinkavim: number | null;
-  totalsupplyspots: number | null;
+  totalsupplyspots_barelcandy: number | null;
   agentsworkarea: number[] | null;
 }
 
@@ -20,9 +20,9 @@ interface UnassignedAreasPoolVisitProps {
 
 const AreaBadge: React.FC<{
   area: string;
-  totalsupplyspots: number | null;
+  totalsupplyspots_barelcandy: number | null;
   agentsworkarea: number[] | null;
-}> = ({ area, totalsupplyspots }) => {
+}> = ({ area, totalsupplyspots_barelcandy }) => {
   const [{ isDragging }, drag] = useDrag({
     type: 'area-visit',
     item: { area, sourceType: 'pool', type: 'area-visit' },
@@ -41,9 +41,9 @@ const AreaBadge: React.FC<{
       } ${colorClass}`}
     >
       <span className="font-medium">{area}</span>
-      {totalsupplyspots !== null && totalsupplyspots > 0 && (
+      {totalsupplyspots_barelcandy !== null && totalsupplyspots_barelcandy > 0 && (
         <Badge variant="secondary" className="mr-2 bg-white/90 text-gray-800 font-bold">
-          {totalsupplyspots}
+          {totalsupplyspots_barelcandy}
         </Badge>
       )}
     </div>
@@ -71,7 +71,7 @@ export const UnassignedAreasPoolVisit: React.FC<UnassignedAreasPoolVisitProps> =
     .map((group) => ({
       area: group.separation,
       orderlabelinkavim: group.orderlabelinkavim || 0,
-      totalsupplyspots: group.totalsupplyspots,
+      totalsupplyspots_barelcandy: group.totalsupplyspots_barelcandy,
       agentsworkarea: group.agentsworkarea,
     }))
     .sort((a, b) => a.orderlabelinkavim - b.orderlabelinkavim);
@@ -97,7 +97,7 @@ export const UnassignedAreasPoolVisit: React.FC<UnassignedAreasPoolVisitProps> =
               <AreaBadge
                 key={item.area}
                 area={item.area}
-                totalsupplyspots={item.totalsupplyspots}
+                totalsupplyspots_barelcandy={item.totalsupplyspots_barelcandy}
                 agentsworkarea={item.agentsworkarea}
               />
             ))

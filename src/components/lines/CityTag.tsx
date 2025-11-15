@@ -14,7 +14,7 @@ interface City {
   cityid: number;
   city: string;
   area: string | null;
-  averagesupplyweek?: number | null;
+  averagesupplyweek_barelcandy?: number | null;
 }
 
 interface CityTagProps {
@@ -62,9 +62,9 @@ export const CityTag: React.FC<CityTagProps> = ({
         <span className="truncate font-medium">
           {city.city}
         </span>
-        {city.averagesupplyweek && (
+        {city.averagesupplyweek_barelcandy && (
           <Badge variant="secondary" className="bg-white/90 text-gray-800 font-bold text-xs shrink-0">
-            {city.averagesupplyweek}
+            {city.averagesupplyweek_barelcandy}
           </Badge>
         )}
       </div>

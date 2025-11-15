@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import { getAreaColor, getMainAreaFromSeparation } from '@/utils/areaColors';
 import { Loader2, Users, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -19,12 +20,12 @@ import { useIsMobile } from '@/hooks/use-mobile';
 interface DistributionGroup {
   groups_id: number;
   separation: string;
-  days: string[] | null;
-  dayvisit: string[] | null;
-  freq: number[] | null;
+  days: Json | null;
+  dayvisit: Json | null;
+  agents: Json | null;
+  totalsupplyspots_barelcandy: number | null;
   orderlabelinkavim: number | null;
-  agentsworkarea: number[] | null;
-  totalsupplyspots: number | null;
+  agentsworkarea: Json | null;
 }
 
 interface City {
@@ -34,7 +35,7 @@ interface City {
   day: Record<string, any> | null;
   lat: number | null;
   lng: number | null;
-  averagesupplyweek: number | null;
+  averagesupplyweek_barelcandy: number | null;
 }
 
 const Lines = () => {
@@ -50,7 +51,7 @@ const Lines = () => {
       console.log('Fetching distribution groups for lines...');
       const { data, error } = await supabase
         .from('distribution_groups')
-        .select('groups_id, separation, days, dayvisit, orderlabelinkavim, agentsworkarea, totalsupplyspots')
+        .select('groups_id, separation, days, dayvisit, orderlabelinkavim, agentsworkarea, totalsupplyspots_barelcandy')
         .order('orderlabelinkavim', { ascending: true, nullsFirst: false });
       
       if (error) throw error;
@@ -75,7 +76,7 @@ const Lines = () => {
       console.log('Fetching cities for lines...');
       const { data, error } = await supabase
         .from('cities')
-        .select('cityid, city, area, day, lat, lng, averagesupplyweek')
+        .select('cityid, city, area, day, lat, lng, averagesupplyweek_barelcandy')
         .order('area')
         .order('city');
       
@@ -281,17 +282,16 @@ const Lines = () => {
     };
 
     distributionGroups.forEach(group => {
-      if (!group.days || !group.freq || !group.separation) return;
+      if (!group.days || !group.separation) return;
       
       const mainArea = getMainAreaFromSeparation(group.separation);
       const normalizedDays = normalizeDaysArray(group.days);
       
       normalizedDays.forEach(day => {
-        group.freq.forEach(week => {
-          if ([1, 2, 3, 4].includes(week)) {
-            if (!schedule[week][day].includes(mainArea)) {
-              schedule[week][day].push(mainArea);
-            }
+        // Show in all weeks for now (can be enhanced later with frequency data)
+        [1, 2, 3, 4].forEach(week => {
+          if (!schedule[week][day].includes(mainArea)) {
+            schedule[week][day].push(mainArea);
           }
         });
       });
@@ -584,12 +584,12 @@ const Lines = () => {
         {/* Area Management - Delivery */}
         <div className="space-y-6">
           <UnassignedAreasPool
-            distributionGroups={distributionGroups}
+            distributionGroups={distributionGroups as any}
             onAreaDrop={handleDeliveryAreaDrop}
           />
           
           <DaysAreaKanban
-            distributionGroups={distributionGroups}
+            distributionGroups={distributionGroups as any}
             onAreaDrop={handleDeliveryAreaDrop}
           />
         </div>
@@ -597,12 +597,12 @@ const Lines = () => {
         {/* Area Management - Visits */}
         <div className="space-y-6 mt-8">
           <UnassignedAreasPoolVisit
-            distributionGroups={distributionGroups}
+            distributionGroups={distributionGroups as any}
             onAreaDrop={handleVisitAreaDrop}
           />
 
           <DaysAreaKanbanVisit
-            distributionGroups={distributionGroups}
+            distributionGroups={distributionGroups as any}
             onAreaDrop={handleVisitAreaDrop}
           />
         </div>
@@ -614,7 +614,7 @@ const Lines = () => {
         <CityPool 
           citiesByArea={citiesByArea}
           cities={cities}
-          distributionGroups={distributionGroups}
+          distributionGroups={distributionGroups as any}
           onCityAssign={handleCityAssign}
           onCityAreaChange={handleCityAreaChange}
           onAreaOrderChange={handleAreaOrderChange}

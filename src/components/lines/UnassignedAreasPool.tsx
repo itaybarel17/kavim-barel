@@ -9,7 +9,7 @@ interface DistributionGroup {
   separation: string;
   days: string[] | null;
   orderlabelinkavim: number | null;
-  totalsupplyspots: number | null;
+  totalsupplyspots_barelcandy: number | null;
 }
 
 interface UnassignedAreasPoolProps {
@@ -19,8 +19,8 @@ interface UnassignedAreasPoolProps {
 
 const AreaBadge: React.FC<{
   area: string;
-  totalsupplyspots: number | null;
-}> = ({ area, totalsupplyspots }) => {
+  totalsupplyspots_barelcandy: number | null;
+}> = ({ area, totalsupplyspots_barelcandy }) => {
   const [{ isDragging }, drag] = useDrag({
     type: 'area-delivery',
     item: { area, sourceType: 'pool', type: 'area-delivery' },
@@ -39,9 +39,9 @@ const AreaBadge: React.FC<{
       } ${colorClass}`}
     >
       <span className="font-medium">{area}</span>
-      {totalsupplyspots !== null && totalsupplyspots > 0 && (
+      {totalsupplyspots_barelcandy !== null && totalsupplyspots_barelcandy > 0 && (
         <Badge variant="secondary" className="mr-2 bg-white/90 text-gray-800 font-bold">
-          {totalsupplyspots}
+          {totalsupplyspots_barelcandy}
         </Badge>
       )}
     </div>
@@ -69,7 +69,7 @@ export const UnassignedAreasPool: React.FC<UnassignedAreasPoolProps> = ({
     .map((group) => ({
       area: group.separation,
       orderlabelinkavim: group.orderlabelinkavim || 0,
-      totalsupplyspots: group.totalsupplyspots,
+      totalsupplyspots_barelcandy: group.totalsupplyspots_barelcandy,
     }))
     .sort((a, b) => a.orderlabelinkavim - b.orderlabelinkavim);
 
@@ -94,7 +94,7 @@ export const UnassignedAreasPool: React.FC<UnassignedAreasPoolProps> = ({
               <AreaBadge
                 key={item.area}
                 area={item.area}
-                totalsupplyspots={item.totalsupplyspots}
+                totalsupplyspots_barelcandy={item.totalsupplyspots_barelcandy}
               />
             ))
           )}
