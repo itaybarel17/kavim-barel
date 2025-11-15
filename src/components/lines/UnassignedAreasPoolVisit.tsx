@@ -47,21 +47,19 @@ const AreaBadge: React.FC<{
     >
       <span className="font-medium">{area}</span>
       {totalsupplyspots_barelcandy !== null && totalsupplyspots_barelcandy > 0 && (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Badge variant="secondary" className="mr-2 bg-white/90 text-gray-800 font-bold cursor-help">
-                {totalsupplyspots_barelcandy}
-              </Badge>
-            </TooltipTrigger>
-            <TooltipContent>
-              <div className="text-sm">
-                <div>בראל: {totalsupplyspots || 0}</div>
-                <div>קנדי: {totalsupplyspots_candy || 0}</div>
-              </div>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant="secondary" className="mr-2 bg-white/90 text-gray-800 font-bold cursor-help">
+              {totalsupplyspots_barelcandy}
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div className="text-sm">
+              <div>בראל: {totalsupplyspots || 0}</div>
+              <div>קנדי: {totalsupplyspots_candy || 0}</div>
+            </div>
+          </TooltipContent>
+        </Tooltip>
       )}
     </div>
   );
@@ -96,35 +94,37 @@ export const UnassignedAreasPoolVisit: React.FC<UnassignedAreasPoolVisitProps> =
     .sort((a, b) => a.orderlabelinkavim - b.orderlabelinkavim);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">מאגר אזורים (ביקורים)</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div
-          ref={drop}
-          className={`flex flex-wrap gap-2 min-h-[60px] p-3 rounded-lg transition-colors ${
-            isOver ? 'bg-primary/5 ring-2 ring-primary/20' : 'bg-muted/30'
-          }`}
-        >
-          {unassignedAreas.length === 0 ? (
-            <div className="text-muted-foreground text-sm w-full text-center py-4">
-              כל האזורים משויכים לימים
-            </div>
-          ) : (
-            unassignedAreas.map((item) => (
-              <AreaBadge
-                key={item.area}
-                area={item.area}
-                totalsupplyspots_barelcandy={item.totalsupplyspots_barelcandy}
-                totalsupplyspots={item.totalsupplyspots}
-                totalsupplyspots_candy={item.totalsupplyspots_candy}
-                agentsworkarea={item.agentsworkarea}
-              />
-            ))
-          )}
-        </div>
-      </CardContent>
-    </Card>
+    <TooltipProvider>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">מאגר אזורים (ביקורים)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div
+            ref={drop}
+            className={`flex flex-wrap gap-2 min-h-[60px] p-3 rounded-lg transition-colors ${
+              isOver ? 'bg-primary/5 ring-2 ring-primary/20' : 'bg-muted/30'
+            }`}
+          >
+            {unassignedAreas.length === 0 ? (
+              <div className="text-muted-foreground text-sm w-full text-center py-4">
+                כל האזורים משויכים לימים
+              </div>
+            ) : (
+              unassignedAreas.map((item) => (
+                <AreaBadge
+                  key={item.area}
+                  area={item.area}
+                  totalsupplyspots_barelcandy={item.totalsupplyspots_barelcandy}
+                  totalsupplyspots={item.totalsupplyspots}
+                  totalsupplyspots_candy={item.totalsupplyspots_candy}
+                  agentsworkarea={item.agentsworkarea}
+                />
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </TooltipProvider>
   );
 };
