@@ -150,6 +150,7 @@ export type Database = {
         Row: {
           address: string | null
           agentnumber: string | null
+          averagesupply: number | null
           city: string | null
           city_area: string | null
           customername: string | null
@@ -169,6 +170,7 @@ export type Database = {
         Insert: {
           address?: string | null
           agentnumber?: string | null
+          averagesupply?: number | null
           city?: string | null
           city_area?: string | null
           customername?: string | null
@@ -188,6 +190,7 @@ export type Database = {
         Update: {
           address?: string | null
           agentnumber?: string | null
+          averagesupply?: number | null
           city?: string | null
           city_area?: string | null
           customername?: string | null
