@@ -1,5 +1,6 @@
 // Utility function for consistent area colors across the application
-export const getAreaColor = (areaName: string) => {
+export const getAreaColor = (areaName: string | null | undefined) => {
+  if (!areaName) return 'bg-gray-500 text-white';
   // Extract main area name without number suffix
   const mainArea = areaName.replace(/\s+\d+$/, '').trim();
   
@@ -30,13 +31,15 @@ export const getAreaColor = (areaName: string) => {
 };
 
 // Helper function to extract main area name from separation string
-export const getMainAreaFromSeparation = (separation: string) => {
+export const getMainAreaFromSeparation = (separation: string | null | undefined) => {
+  if (!separation) return '';
   // Extract the main area name before the number (e.g., "תל אביב-יפו 1" -> "תל אביב-יפו")
   return separation.replace(/\s+\d+$/, '').trim();
 };
 
 // Convert Tailwind color classes to hex colors for Google Maps
-export const getAreaColorHex = (areaName: string): string => {
+export const getAreaColorHex = (areaName: string | null | undefined): string => {
+  if (!areaName) return '#6b7280'; // gray-500
   // Extract main area name without number suffix
   const mainArea = areaName.replace(/\s+\d+$/, '').trim();
   
@@ -67,7 +70,8 @@ export const getAreaColorHex = (areaName: string): string => {
 };
 
 // Get marker stroke color (black for duplicate colors, white for others)
-export const getMarkerStrokeColor = (areaName: string): string => {
+export const getMarkerStrokeColor = (areaName: string | null | undefined): string => {
+  if (!areaName) return '#ffffff';
   const mainArea = areaName.replace(/\s+\d+$/, '').trim();
   
   // Areas with black stroke to differentiate from similar colored areas
