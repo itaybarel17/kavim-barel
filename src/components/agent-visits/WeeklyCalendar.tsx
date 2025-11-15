@@ -2,9 +2,11 @@ import React from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { getAreaColor } from '@/utils/areaColors';
+import { X } from 'lucide-react';
 
 interface CitySchedule {
   id: string;
@@ -26,10 +28,11 @@ const CityTag: React.FC<{
   customer_count: number;
   averagesupplyweek?: number;
   areaColor: string;
-}> = ({ city, customer_count, averagesupplyweek, areaColor }) => {
+  onRemove: () => void;
+}> = ({ city, customer_count, averagesupplyweek, areaColor, onRemove }) => {
   const [{ isDragging }, drag] = useDrag({
     type: 'city-visit-calendar',
-    item: { city, type: 'city-visit-calendar' },
+    item: { city, sourceType: 'day', type: 'city-visit-calendar' },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
@@ -38,23 +41,36 @@ const CityTag: React.FC<{
   return (
     <div
       ref={drag}
-      className={`text-sm rounded px-3 py-2 cursor-move transition-all ${
+      className={`relative flex items-center justify-between gap-2 text-sm rounded px-3 py-2 cursor-move transition-all ${
         isDragging ? 'opacity-50 scale-95' : 'opacity-100'
       } ${areaColor}`}
     >
-      <div className="font-medium">{city}</div>
-      <div className="flex gap-2 mt-1.5">
-        {customer_count > 0 && (
-          <Badge variant="secondary" className="text-xs px-2 py-0.5 h-5 bg-white/95 text-gray-900 font-bold">
-            {customer_count}
-          </Badge>
-        )}
-        {averagesupplyweek !== undefined && averagesupplyweek > 0 && (
-          <Badge variant="outline" className="text-xs px-2 py-0.5 h-5 bg-white/95 text-gray-900 border-gray-300 font-bold">
-            {averagesupplyweek.toFixed(1)}
-          </Badge>
-        )}
+      <div className="flex-1">
+        <div className="font-medium">{city}</div>
+        <div className="flex gap-2 mt-1.5">
+          {customer_count > 0 && (
+            <Badge variant="secondary" className="text-xs px-2 py-0.5 h-5 bg-white/95 text-gray-900 font-bold">
+              {customer_count}
+            </Badge>
+          )}
+          {averagesupplyweek !== undefined && averagesupplyweek > 0 && (
+            <Badge variant="outline" className="text-xs px-2 py-0.5 h-5 bg-white/95 text-gray-900 border-gray-300 font-bold">
+              {averagesupplyweek.toFixed(1)}
+            </Badge>
+          )}
+        </div>
       </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove();
+        }}
+        className="h-6 w-6 p-0 text-current hover:bg-white/20 flex-shrink-0"
+      >
+        <X className="h-3 w-3" />
+      </Button>
     </div>
   );
 };
@@ -64,8 +80,9 @@ const DayCell: React.FC<{
   week: number;
   cities: CitySchedule[];
   onDrop: (city: string, day: string, week: number) => void;
+  onRemove: (city: string, week: number) => void;
   cityAreaMap: Map<string, string>;
-}> = ({ day, week, cities, onDrop, cityAreaMap }) => {
+}> = ({ day, week, cities, onDrop, onRemove, cityAreaMap }) => {
   const [{ isOver, canDrop }, drop] = useDrop({
     accept: 'city-visit-calendar',
     drop: (item: { city: string }) => {
@@ -97,6 +114,7 @@ const DayCell: React.FC<{
               customer_count={cityItem.customer_count}
               averagesupplyweek={cityItem.averagesupplyweek}
               areaColor={areaColor}
+              onRemove={() => onRemove(cityItem.city, week)}
             />
           );
         })}
@@ -154,6 +172,13 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
     }
   };
 
+  const handleRemove = (city: string, week: number) => {
+    // Remove the city by setting visit_day to null
+    if (week === 1) {
+      onCityDrop(city, null, week);
+    }
+  };
+
   return (
     <div className="space-y-6" dir="rtl">
       {/* Week 1 */}
@@ -168,6 +193,7 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                 week={1}
                 cities={getCitiesForDayAndWeek(day.value, 1)}
                 onDrop={handleDrop}
+                onRemove={handleRemove}
                 cityAreaMap={cityAreaMap}
               />
             </div>
@@ -187,6 +213,7 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                 week={2}
                 cities={getCitiesForDayAndWeek(day.value, 2)}
                 onDrop={handleDrop}
+                onRemove={handleRemove}
                 cityAreaMap={cityAreaMap}
               />
             </div>
