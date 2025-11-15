@@ -50,10 +50,20 @@ const Lines = () => {
       console.log('Fetching distribution groups for lines...');
       const { data, error } = await supabase
         .from('distribution_groups')
-        .select('groups_id, separation, days, dayvisit, freq, orderlabelinkavim, agentsworkarea, totalsupplyspots')
+        .select('groups_id, separation, days, dayvisit, orderlabelinkavim, agentsworkarea, totalsupplyspots')
         .order('orderlabelinkavim', { ascending: true, nullsFirst: false });
       
       if (error) throw error;
+      
+      console.log('=== LINES DEBUG ===');
+      console.log('distributionGroups:', data);
+      console.log('distributionGroups length:', data?.length);
+      console.log('First group:', data?.[0]);
+      console.log('First group days type:', typeof data?.[0]?.days);
+      console.log('First group days:', data?.[0]?.days);
+      console.log('First group dayvisit type:', typeof data?.[0]?.dayvisit);
+      console.log('First group dayvisit:', data?.[0]?.dayvisit);
+      
       return data as any as DistributionGroup[];
     }
   });
