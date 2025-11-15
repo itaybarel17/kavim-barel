@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { ArrowLeft, MapPin, Package, RotateCcw, Clock, Route } from 'lucide-react';
 import { RouteMapComponent } from '@/components/map/RouteMapComponent';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { createLinkedCustomersMap } from '@/utils/scheduleUtils';
 
 interface Customer {
   customername: string;
@@ -78,6 +79,24 @@ const ScheduleMap: React.FC = () => {
 
     return `אספקה: ${formattedHours.join(', ')}`;
   };
+
+  // Fetch customer links
+  const { data: customerLinks = [] } = useQuery({
+    queryKey: ['customer-links-map', scheduleId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('customerlist')
+        .select('customernumber, linked_candy_customernumber')
+        .not('linked_candy_customernumber', 'is', null);
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const linkedCustomersMap = React.useMemo(() => 
+    createLinkedCustomersMap(customerLinks), 
+    [customerLinks]
+  );
 
   // Fetch orders and returns for this schedule
   const { data: orderData, isLoading } = useQuery({
@@ -243,14 +262,34 @@ const ScheduleMap: React.FC = () => {
         }
       });
 
-      // Process customer data - include ALL customers
+      // Process customer data - filter duplicates, prefer customerlist
       const processedCustomers: Customer[] = [];
+      const processedCustomerNumbers = new Set<string>();
       
       for (const customerNumber of uniqueCustomerNumbers) {
+        // Skip if already processed
+        if (processedCustomerNumbers.has(customerNumber)) continue;
+        
+        // Check if this is a candy customer with a linked main customer
+        const linkedNum = linkedCustomersMap.get(customerNumber);
+        
+        // If candy customer (starts with 3) has a linked main customer (starts with 9), skip it
+        if (customerNumber.startsWith('3') && linkedNum?.startsWith('9')) {
+          continue; // Skip candy customer, we'll use main customer instead
+        }
+        
+        // Mark both as processed if linked
+        processedCustomerNumbers.add(customerNumber);
+        if (linkedNum) {
+          processedCustomerNumbers.add(linkedNum);
+        }
+        
         const orderDataItem = orderData.items.find(item => item.customernumber === customerNumber);
         if (!orderDataItem) continue;
 
-        const coords = customerCoordsMap.get(customerNumber);
+        // ALWAYS prefer customerlist coordinates (those starting with 9)
+        const preferredCustomerNum = customerNumber.startsWith('9') ? customerNumber : linkedNum || customerNumber;
+        const coords = customerCoordsMap.get(preferredCustomerNum) || customerCoordsMap.get(customerNumber);
         const cityCoords = cityCoordsMap.get(orderDataItem.city);
         
         let lat, lng, isExcluded = false;
