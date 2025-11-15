@@ -5,7 +5,6 @@ import { getAreaColor } from '@/utils/areaColors';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface DistributionGroup {
   groups_id: number;
@@ -50,19 +49,14 @@ const AreaTag: React.FC<{
       <div className="flex items-center gap-2 flex-1">
         <span className="font-medium">{area}</span>
         {totalsupplyspots_barelcandy !== null && totalsupplyspots_barelcandy > 0 && (
-          <Popover>
-            <PopoverTrigger asChild>
-              <Badge variant="secondary" className="bg-white/90 text-gray-800 font-bold cursor-pointer">
-                {totalsupplyspots_barelcandy}
-              </Badge>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-3" side="top">
-              <div className="text-sm space-y-1">
-                <div>בראל: {totalsupplyspots || 0}</div>
-                <div>קנדי: {totalsupplyspots_candy || 0}</div>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <div className="flex items-center gap-1">
+            <Badge variant="secondary" className="bg-white/90 text-gray-800 font-bold">
+              {totalsupplyspots_barelcandy}
+            </Badge>
+            <span className="text-xs">
+              (בראל: {totalsupplyspots || 0}, קנדי: {totalsupplyspots_candy || 0})
+            </span>
+          </div>
         )}
       </div>
       <Button
