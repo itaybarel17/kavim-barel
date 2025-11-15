@@ -120,9 +120,10 @@ const CustomerCard = ({
   }, [customer.customernumber, updateSelectedDaysMutation]);
   
   const handleExtraAreaUpdate = useCallback((extraArea: string) => {
+    const valueToUpdate = extraArea === 'none' ? null : extraArea;
     updateExtraAreaMutation.mutate({
       customernumber: customer.customernumber,
-      extraarea: extraArea
+      extraarea: valueToUpdate
     });
   }, [customer.customernumber, updateExtraAreaMutation]);
 
@@ -254,14 +255,14 @@ const CustomerCard = ({
                 <div className="text-xs text-muted-foreground mb-2">אזור נוסף</div>
                 {isAgent4 ? (
                   <Select 
-                    value={customer.extraarea || ''} 
+                    value={customer.extraarea || 'none'} 
                     onValueChange={handleExtraAreaUpdate}
                   >
                     <SelectTrigger className="h-8 text-sm">
                       <SelectValue placeholder="בחר אזור נוסף" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">ללא</SelectItem>
+                      <SelectItem value="none">ללא</SelectItem>
                       {distributionAreas.map((areaOption) => (
                         <SelectItem key={areaOption} value={areaOption}>
                           {areaOption}
@@ -545,12 +546,12 @@ const CustomerList = () => {
 
             {isAgent4 && (
               <div className="flex flex-wrap gap-2">
-                <Select value={selectedAgent} onValueChange={setSelectedAgent}>
+                <Select value={selectedAgent || 'all'} onValueChange={(value) => setSelectedAgent(value === 'all' ? '' : value)}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="כל הסוכנים" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">כל הסוכנים</SelectItem>
+                    <SelectItem value="all">כל הסוכנים</SelectItem>
                     {agents.map((agent) => (
                       <SelectItem key={agent.agentnumber} value={agent.agentnumber}>
                         {agent.agentname}
@@ -559,12 +560,12 @@ const CustomerList = () => {
                   </SelectContent>
                 </Select>
 
-                <Select value={selectedCity} onValueChange={setSelectedCity}>
+                <Select value={selectedCity || 'all'} onValueChange={(value) => setSelectedCity(value === 'all' ? '' : value)}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="כל הערים" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">כל הערים</SelectItem>
+                    <SelectItem value="all">כל הערים</SelectItem>
                     {cities.map((city) => (
                       <SelectItem key={city} value={city}>
                         {city}
@@ -573,12 +574,12 @@ const CustomerList = () => {
                   </SelectContent>
                 </Select>
 
-                <Select value={selectedArea} onValueChange={setSelectedArea}>
+                <Select value={selectedArea || 'all'} onValueChange={(value) => setSelectedArea(value === 'all' ? '' : value)}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="כל האזורים" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">כל האזורים</SelectItem>
+                    <SelectItem value="all">כל האזורים</SelectItem>
                     {distributionAreas.map((area) => (
                       <SelectItem key={area} value={area}>
                         {area}
