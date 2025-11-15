@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { getAreaColorHex, getMarkerStrokeColor } from '@/utils/areaColors';
 import { Button } from '@/components/ui/button';
-import { Maximize2, RefreshCw } from 'lucide-react';
+import { Maximize2 } from 'lucide-react';
 
 interface City {
   cityid: number;
@@ -14,7 +14,6 @@ interface City {
 interface MapComponentProps {
   cities: City[];
   fullscreen?: boolean;
-  onRefresh?: () => void;
 }
 
 declare global {
@@ -23,7 +22,7 @@ declare global {
   }
 }
 
-export const MapComponent: React.FC<MapComponentProps> = ({ cities, fullscreen = false, onRefresh }) => {
+export const MapComponent: React.FC<MapComponentProps> = ({ cities, fullscreen = false }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
@@ -151,26 +150,14 @@ export const MapComponent: React.FC<MapComponentProps> = ({ cities, fullscreen =
           <p className="text-sm text-muted-foreground">נקודות מוצבעות לפי אזור</p>
         </div>
         {!fullscreen && (
-          <div className="flex gap-2">
-            {onRefresh && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={onRefresh}
-              >
-                <RefreshCw className="h-4 w-4 ml-2" />
-                רענן
-              </Button>
-            )}
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handleOpenFullscreen}
-            >
-              <Maximize2 className="h-4 w-4 ml-2" />
-              פתח במסך מלא
-            </Button>
-          </div>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleOpenFullscreen}
+          >
+            <Maximize2 className="h-4 w-4 ml-2" />
+            פתח במסך מלא
+          </Button>
         )}
       </div>
       <div 
