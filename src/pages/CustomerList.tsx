@@ -1,18 +1,28 @@
-import React, { useMemo, useState, useCallback, memo, useEffect } from 'react';
+import React, { useMemo, useState, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription';
-import { Loader2, ArrowRight, ArrowUp, ArrowDown } from 'lucide-react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { formatDistributionDays, formatDistributionDaysShort } from '@/utils/dateUtils';
+import { 
+  Loader2, 
+  MapPin, 
+  Calendar, 
+  Clock, 
+  TrendingUp, 
+  Search,
+  ChevronDown,
+  X
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { getAreaColor } from '@/utils/areaColors';
+import { cn } from '@/lib/utils';
 
 interface Customer {
   customernumber: string;
@@ -28,18 +38,26 @@ interface Customer {
   selected_day?: any;
   selected_day_extra?: any;
   extraarea?: string | null;
-  agentnumber: string;
+  agent_visit_day?: string;
 }
 
-const formatJsonbField = (value: any): string => {
-  if (!value) return '-';
-  if (Array.isArray(value)) {
-    return value
-      .map(item => typeof item === 'string' ? item : JSON.stringify(item))
-      .join(', ')
-      .replace(/[\[\]"]/g, '');
-  }
-  return String(value).replace(/[\[\]"]/g, '');
+const getGroupBorderColor = (group?: string): string => {
+  const groupColors: Record<string, string> = {
+    'סופר-מרקט': 'border-l-blue-500',
+    'מכולת': 'border-l-green-500',
+    'מזנון': 'border-l-purple-500',
+    'מסעדה': 'border-l-orange-500',
+    'קיוסק': 'border-l-pink-500',
+    'בית קפה': 'border-l-cyan-500',
+  };
+  return groupColors[group || ''] || 'border-l-gray-400';
+};
+
+const formatDays = (days: any): string[] => {
+  if (!days) return [];
+  if (Array.isArray(days)) return days;
+  if (typeof days === 'string') return [days];
+  return [];
 };
 
 const formatDeliveryHour = (value: any): { text: string; direction: 'up' | 'down' | null } => {
@@ -47,345 +65,312 @@ const formatDeliveryHour = (value: any): { text: string; direction: 'up' | 'down
   
   let hourStr = '';
   if (Array.isArray(value)) {
-    hourStr = value
-      .map(item => typeof item === 'string' ? item : JSON.stringify(item))
-      .join(', ')
-      .replace(/[\[\]"]/g, '');
+    hourStr = value.join(', ').replace(/[\[\]"]/g, '');
   } else {
     hourStr = String(value).replace(/[\[\]"]/g, '');
   }
   
-  // Check if it's a range (contains hyphen between two times)
   if (hourStr.includes(':') && hourStr.match(/\d+:\d+\s*-\s*\d+:\d+/)) {
     return { text: hourStr, direction: null };
   }
   
-  // Check if it starts with minus (up to time)
   if (hourStr.startsWith('-')) {
     return { text: hourStr.substring(1), direction: 'down' };
   }
   
-  // Otherwise it's from time
   return { text: hourStr, direction: 'up' };
 };
 
-// Memoized row component to prevent unnecessary re-renders
-const CustomerTableRow = memo(({ 
+const CustomerCard = ({ 
   customer, 
-  currentUser, 
-  distributionAreas, 
-  areasWithDays,
-  openAreaSelect,
-  setOpenAreaSelect,
+  currentUser,
+  distributionAreas,
   updateAreaMutation,
   updateSelectedDaysMutation,
   updateExtraAreaMutation
-}: {
+}: { 
   customer: Customer;
   currentUser: any;
   distributionAreas: string[];
-  areasWithDays: any[];
-  openAreaSelect: string | null;
-  setOpenAreaSelect: (val: string | null) => void;
   updateAreaMutation: any;
   updateSelectedDaysMutation: any;
   updateExtraAreaMutation: any;
 }) => {
-  return (
-    <TableRow className="h-8 hover:bg-muted/50">
-      <TableCell className="px-2 py-1 text-xs font-medium">
-        {customer.customernumber}
-      </TableCell>
-      <TableCell className="px-2 py-1 text-xs max-w-[150px] truncate" title={customer.customername}>
-        {customer.customername}
-      </TableCell>
-      <TableCell className="px-2 py-1 text-xs max-w-[120px] truncate" title={customer.address}>
-        {customer.address || '-'}
-      </TableCell>
-      <TableCell className="px-2 py-1 text-xs">
-        {customer.city || '-'}
-      </TableCell>
-      <TableCell className="px-2 py-1 text-xs">
-        {currentUser?.agentnumber === "4" ? (
-          <Select
-            value={customer.newarea || customer.city_area || ''}
-            onValueChange={(value) => {
-              updateAreaMutation.mutate({
-                customernumber: customer.customernumber,
-                newarea: value === customer.city_area ? null : value
-              });
-              setOpenAreaSelect(null);
-            }}
-            open={openAreaSelect === customer.customernumber}
-            onOpenChange={(isOpen) => {
-              setOpenAreaSelect(isOpen ? customer.customernumber : null);
-            }}
-          >
-            <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent [&>svg]:hidden">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="z-50 bg-popover">
-              {distributionAreas.map((area) => (
-                <SelectItem key={area} value={area} className="text-xs">
-                  {area}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : (
-          <span>{customer.newarea || customer.city_area || '-'}</span>
-        )}
-      </TableCell>
-      <TableCell className="px-2 py-1 text-xs">
-        {(() => {
-          const areaData = areasWithDays.find(a => a.separation === (customer.newarea || customer.city_area));
-          const days = areaData?.days || [];
-          
-          let availableDays: string[] = [];
-          if (Array.isArray(days)) {
-            days.forEach(dayEntry => {
-              if (typeof dayEntry === 'string' && dayEntry.includes(',')) {
-                availableDays.push(...dayEntry.split(',').map(d => d.trim()));
-              } else if (typeof dayEntry === 'string') {
-                availableDays.push(dayEntry);
-              }
-            });
-          }
-          
-          if (availableDays.length === 0) return '-';
-          if (availableDays.length === 1) {
-            return <div>{formatDistributionDaysShort([availableDays[0]])}</div>;
-          }
-          
-          if (currentUser?.agentnumber === "4") {
-            const isDefaultSelection = !customer.selected_day || customer.selected_day === availableDays.join(',');
-            
-            return (
-              <Select
-                value={customer.selected_day || availableDays.join(',')}
-                onValueChange={(value) => {
-                  const selectedDay = value === availableDays.join(',') ? null : value;
-                  updateSelectedDaysMutation.mutate({
-                    customernumber: customer.customernumber,
-                    selectedDay,
-                    isExtra: false
-                  });
-                }}
-              >
-                <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent [&>svg]:hidden">
-                  <SelectValue>
-                    <span className={isDefaultSelection ? 'text-muted-foreground' : ''}>
-                      {formatDistributionDaysShort(customer.selected_day ? [customer.selected_day] : availableDays)}
-                    </span>
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent className="z-50 bg-popover">
-                  {availableDays.map(day => (
-                    <SelectItem key={day} value={day} className="text-xs">
-                      {formatDistributionDaysShort([day])}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            );
-          }
-          
-          return <div>{formatDistributionDaysShort(customer.selected_day || days)}</div>;
-        })()}
-      </TableCell>
-      <TableCell className="px-2 py-1 text-xs">
-        {currentUser?.agentnumber === "4" ? (
-          <Select
-            value={customer.extraarea || 'none'}
-            onValueChange={(value) => {
-              updateExtraAreaMutation.mutate({
-                customernumber: customer.customernumber,
-                extraarea: value === 'none' ? null : value
-              });
-            }}
-          >
-            <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent [&>svg]:hidden">
-              <SelectValue placeholder="-" />
-            </SelectTrigger>
-            <SelectContent className="z-50 bg-popover">
-              <SelectItem value="none" className="text-xs">ללא</SelectItem>
-              {distributionAreas.map((area) => (
-                <SelectItem key={area} value={area} className="text-xs">
-                  {area}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : (
-          <span>{customer.extraarea || '-'}</span>
-        )}
-      </TableCell>
-      <TableCell className="px-2 py-1 text-xs">
-        {(() => {
-          if (!customer.extraarea) return '-';
-          
-          const areaData = areasWithDays.find(a => a.separation === customer.extraarea);
-          const days = areaData?.days || [];
-          
-          let availableDays: string[] = [];
-          if (Array.isArray(days)) {
-            days.forEach(dayEntry => {
-              if (typeof dayEntry === 'string' && dayEntry.includes(',')) {
-                availableDays.push(...dayEntry.split(',').map(d => d.trim()));
-              } else if (typeof dayEntry === 'string') {
-                availableDays.push(dayEntry);
-              }
-            });
-          }
-          
-          if (availableDays.length === 0) return '-';
-          if (availableDays.length === 1) {
-            return <div>{formatDistributionDaysShort([availableDays[0]])}</div>;
-          }
-          
-          if (currentUser?.agentnumber === "4") {
-            const isDefaultSelection = !customer.selected_day_extra || customer.selected_day_extra === availableDays.join(',');
-            
-            return (
-              <Select
-                value={customer.selected_day_extra || availableDays.join(',')}
-                onValueChange={(value) => {
-                  const selectedDay = value === availableDays.join(',') ? null : value;
-                  updateSelectedDaysMutation.mutate({
-                    customernumber: customer.customernumber,
-                    selectedDay,
-                    isExtra: true
-                  });
-                }}
-              >
-                <SelectTrigger className="h-6 text-xs border-0 shadow-none hover:bg-accent [&>svg]:hidden">
-                  <SelectValue>
-                    <span className={isDefaultSelection ? 'text-muted-foreground' : ''}>
-                      {formatDistributionDaysShort(customer.selected_day_extra ? [customer.selected_day_extra] : availableDays)}
-                    </span>
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent className="z-50 bg-popover">
-                  {availableDays.map(day => (
-                    <SelectItem key={day} value={day} className="text-xs">
-                      {formatDistributionDaysShort([day])}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            );
-          }
-          
-          return <div>{formatDistributionDaysShort(customer.selected_day_extra || days)}</div>;
-        })()}
-      </TableCell>
-      <TableCell className="px-2 py-1 text-xs">
-        {formatDistributionDaysShort(customer.nodeliverday) || '-'}
-      </TableCell>
-      <TableCell className="px-2 py-1 text-xs">
-        {(() => {
-          const { text, direction } = formatDeliveryHour(customer.deliverhour);
-          return (
-            <div className="flex items-center gap-1">
-              <span>{text}</span>
-              {direction === 'up' && <ArrowUp className="h-3 w-3" />}
-              {direction === 'down' && <ArrowDown className="h-3 w-3" />}
-            </div>
-          );
-        })()}
-      </TableCell>
-      <TableCell className="px-2 py-1 text-xs text-center">
-        {customer.averagesupply ? customer.averagesupply.toFixed(2) : '-'}
-      </TableCell>
-      <TableCell className="px-2 py-1 text-xs">
-        {customer.customergroup || '-'}
-      </TableCell>
-    </TableRow>
-  );
-});
+  const [isOpen, setIsOpen] = useState(false);
+  const area = customer.newarea || customer.city_area;
+  const deliveryHour = formatDeliveryHour(customer.deliverhour);
+  const selectedDays = formatDays(customer.selected_day);
+  const selectedDaysExtra = formatDays(customer.selected_day_extra);
+  const noDeliveryDays = formatDays(customer.nodeliverday);
+  
+  const isAgent4 = currentUser?.agentnumber === "4";
+  
+  const handleAreaUpdate = useCallback((newArea: string) => {
+    updateAreaMutation.mutate({
+      customernumber: customer.customernumber,
+      newarea: newArea
+    });
+  }, [customer.customernumber, updateAreaMutation]);
+  
+  const handleDaysUpdate = useCallback((days: string) => {
+    updateSelectedDaysMutation.mutate({
+      customernumber: customer.customernumber,
+      selected_day: days
+    });
+  }, [customer.customernumber, updateSelectedDaysMutation]);
+  
+  const handleExtraAreaUpdate = useCallback((extraArea: string) => {
+    updateExtraAreaMutation.mutate({
+      customernumber: customer.customernumber,
+      extraarea: extraArea
+    });
+  }, [customer.customernumber, updateExtraAreaMutation]);
 
-CustomerTableRow.displayName = 'CustomerTableRow';
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Card className={cn(
+        "border-l-4 transition-all duration-200 hover:shadow-lg",
+        getGroupBorderColor(customer.customergroup)
+      )}>
+        <CollapsibleTrigger className="w-full text-left">
+          <CardHeader className="p-4 space-y-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="outline" className="font-mono text-xs">
+                  {customer.customernumber}
+                </Badge>
+                <h3 className="font-semibold text-base">
+                  {customer.customername}
+                </h3>
+              </div>
+              <ChevronDown 
+                className={cn(
+                  "w-5 h-5 transition-transform duration-200 flex-shrink-0",
+                  isOpen && "rotate-180"
+                )} 
+              />
+            </div>
+            
+            <div className="flex items-center gap-2 flex-wrap text-sm">
+              <MapPin className="w-4 h-4 text-muted-foreground" />
+              <span className="text-muted-foreground">{customer.city}</span>
+              <Badge className={cn("text-xs", getAreaColor(area))}>
+                {area}
+              </Badge>
+            </div>
+            
+            <div className="flex items-center gap-3 flex-wrap">
+              {customer.averagesupply && (
+                <Badge 
+                  className={cn(
+                    "text-xs font-medium",
+                    customer.averagesupply > 1000 
+                      ? "bg-gradient-to-r from-green-500 to-blue-500 text-white" 
+                      : "bg-gradient-to-r from-gray-400 to-orange-400 text-white"
+                  )}
+                >
+                  <TrendingUp className="w-3 h-3 mr-1" />
+                  {customer.averagesupply.toLocaleString()}
+                </Badge>
+              )}
+              {customer.agent_visit_day && (
+                <Badge variant="secondary" className="text-xs">
+                  <Calendar className="w-3 h-3 mr-1" />
+                  {customer.agent_visit_day}
+                </Badge>
+              )}
+            </div>
+          </CardHeader>
+        </CollapsibleTrigger>
+        
+        <CollapsibleContent>
+          <CardContent className="px-4 pb-4 space-y-4 border-t">
+            {/* Address */}
+            <div className="pt-4">
+              <div className="flex items-start gap-2 text-sm">
+                <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <div className="text-xs text-muted-foreground">כתובת</div>
+                  <div className="font-medium">{customer.address || '-'}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Area Selection */}
+            {isAgent4 ? (
+              <div>
+                <div className="text-xs text-muted-foreground mb-2">אזור חלוקה</div>
+                <Select value={area} onValueChange={handleAreaUpdate}>
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {distributionAreas.map((areaOption) => (
+                      <SelectItem key={areaOption} value={areaOption}>
+                        {areaOption}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+
+            {/* Distribution Days */}
+            <div>
+              <div className="text-xs text-muted-foreground mb-2">ימי חלוקה</div>
+              {isAgent4 ? (
+                <Select value={selectedDays.join(',')} onValueChange={handleDaysUpdate}>
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="א,ב,ג,ד,ה,ו">כל השבוע</SelectItem>
+                    <SelectItem value="א">ראשון</SelectItem>
+                    <SelectItem value="ב">שני</SelectItem>
+                    <SelectItem value="ג">שלישי</SelectItem>
+                    <SelectItem value="ד">רביעי</SelectItem>
+                    <SelectItem value="ה">חמישי</SelectItem>
+                    <SelectItem value="ו">שישי</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="flex gap-1 flex-wrap">
+                  {selectedDays.length > 0 ? (
+                    selectedDays.map((day) => (
+                      <Badge key={day} variant="default" className="text-xs">
+                        {day}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-sm text-muted-foreground">-</span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Extra Area */}
+            {(customer.extraarea || isAgent4) && (
+              <div>
+                <div className="text-xs text-muted-foreground mb-2">אזור נוסף</div>
+                {isAgent4 ? (
+                  <Select 
+                    value={customer.extraarea || ''} 
+                    onValueChange={handleExtraAreaUpdate}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="בחר אזור נוסף" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">ללא</SelectItem>
+                      {distributionAreas.map((areaOption) => (
+                        <SelectItem key={areaOption} value={areaOption}>
+                          {areaOption}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  customer.extraarea && (
+                    <Badge className={cn("text-xs", getAreaColor(customer.extraarea))}>
+                      {customer.extraarea}
+                    </Badge>
+                  )
+                )}
+                {customer.extraarea && selectedDaysExtra.length > 0 && (
+                  <div className="flex gap-1 flex-wrap mt-2">
+                    {selectedDaysExtra.map((day) => (
+                      <Badge key={day} variant="outline" className="text-xs">
+                        {day}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* No Delivery Days */}
+            {noDeliveryDays.length > 0 && (
+              <div>
+                <div className="text-xs text-muted-foreground mb-2">ימים ללא חלוקה</div>
+                <div className="flex gap-1 flex-wrap">
+                  {noDeliveryDays.map((day) => (
+                    <Badge key={day} variant="destructive" className="text-xs">
+                      <X className="w-3 h-3 mr-1" />
+                      {day}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Delivery Hours */}
+            <div>
+              <div className="text-xs text-muted-foreground mb-2">שעות חלוקה</div>
+              <div className="flex items-center gap-2 text-sm">
+                <Clock className="w-4 h-4 text-muted-foreground" />
+                <span>{deliveryHour.text}</span>
+                {deliveryHour.direction === 'up' && (
+                  <Badge variant="outline" className="text-xs">
+                    <TrendingUp className="w-3 h-3 mr-1" />
+                    מ-
+                  </Badge>
+                )}
+                {deliveryHour.direction === 'down' && (
+                  <Badge variant="outline" className="text-xs">
+                    <TrendingUp className="w-3 h-3 mr-1 rotate-180" />
+                    עד
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
+  );
+};
 
 const CustomerList = () => {
   const { user: currentUser } = useAuth();
-  const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const parentRef = useRef<HTMLDivElement>(null);
   
-  // Enable realtime subscription for live updates
-  useRealtimeSubscription();
-  
-  const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
   const [selectedAgent, setSelectedAgent] = useState<string>('');
   const [selectedCity, setSelectedCity] = useState<string>('');
   const [selectedArea, setSelectedArea] = useState<string>('');
-  const [agentSelectOpen, setAgentSelectOpen] = useState(false);
-  const [citySelectOpen, setCitySelectOpen] = useState(false);
-  const [areaSelectOpen, setAreaSelectOpen] = useState(false);
-  const [openAreaSelect, setOpenAreaSelect] = useState<string | null>(null);
-  const ITEMS_PER_PAGE = Math.ceil(1000 / 3); // ~333 items per page
+  
+  useRealtimeSubscription();
 
-  // Debounce search input
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearchTerm(searchInput);
-      setCurrentPage(1); // Reset to first page on search
-    }, 300);
-    
-    return () => clearTimeout(timer);
-  }, [searchInput]);
-
+  // Fetch customers
   const { data: customers = [], isLoading } = useQuery({
     queryKey: ['customers', currentUser?.agentnumber, selectedAgent, selectedCity, selectedArea],
     queryFn: async () => {
       let query = supabase
         .from('customerlist')
-        .select('*')
+        .select('customernumber, customername, address, city, city_area, newarea, selected_day, selected_day_extra, extraarea, nodeliverday, deliverhour, averagesupply, customergroup, agent_visit_day, agentnumber')
+        .eq('active', 'פעיל')
         .not('averagesupply', 'is', null)
-        .order('customernumber');
+        .order('customername');
       
-      // If not agent 4, filter by their agent number
       if (currentUser?.agentnumber !== "4") {
         query = query.eq('agentnumber', currentUser?.agentnumber);
-      } else {
-        // For agent 4, apply selected filters
-        if (selectedAgent) {
-          query = query.eq('agentnumber', selectedAgent);
-        }
-        if (selectedCity) {
-          query = query.eq('city', selectedCity);
-        }
-        if (selectedArea) {
-          query = query.or(`city_area.eq.${selectedArea},newarea.eq.${selectedArea}`);
-        }
+      } else if (selectedAgent || selectedCity || selectedArea) {
+        if (selectedAgent) query = query.eq('agentnumber', selectedAgent);
+        if (selectedCity) query = query.eq('city', selectedCity);
+        if (selectedArea) query = query.or(`city_area.eq.${selectedArea},newarea.eq.${selectedArea}`);
       }
       
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as Customer[];
+      return data as Customer[];
     },
-    enabled: !!currentUser && (
-      currentUser.agentnumber !== "4" || 
-      (currentUser.agentnumber === "4" && (!!selectedAgent || !!selectedCity || !!selectedArea))
-    ),
-    staleTime: 5 * 60 * 1000, // Data stays fresh for 5 minutes (increased from 30s)
-    gcTime: 10 * 60 * 1000, // Keep unused data in cache for 10 minutes
-    refetchOnWindowFocus: false, // Don't refetch on window focus
-    refetchOnMount: false, // Don't refetch on mount if data is fresh
+    enabled: !!currentUser,
+    staleTime: 5 * 60 * 1000,
   });
 
-  // Get unique areas from customers for filter
-  const areas = React.useMemo(() => {
-    const areaSet = new Set<string>();
-    customers?.forEach(customer => {
-      if (customer.city_area && customer.city_area.trim()) areaSet.add(customer.city_area);
-      if (customer.newarea && customer.newarea.trim()) areaSet.add(customer.newarea);
-    });
-    return Array.from(areaSet).filter(area => area && area.trim()).sort();
-  }, [customers]);
-
+  // Fetch distribution areas
   const { data: distributionAreas = [] } = useQuery({
     queryKey: ['distribution-areas'],
     queryFn: async () => {
@@ -395,29 +380,13 @@ const CustomerList = () => {
         .order('separation');
       
       if (error) throw error;
-      return (data || []).map(d => d.separation).filter(Boolean);
+      return data.map(d => d.separation).filter(Boolean) as string[];
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
-  const { data: areasWithDays = [] } = useQuery({
-    queryKey: ['distribution-areas-with-days'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('distribution_groups')
-        .select('separation, days')
-        .order('separation');
-      
-      if (error) throw error;
-      return data || [];
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-  });
-
+  // Fetch agents
   const { data: agents = [] } = useQuery({
-    queryKey: ['agents-list'],
+    queryKey: ['agents'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('agents')
@@ -425,410 +394,262 @@ const CustomerList = () => {
         .order('agentnumber');
       
       if (error) throw error;
-      return data || [];
+      return data;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    enabled: currentUser?.agentnumber === "4",
   });
 
+  // Fetch cities
   const { data: cities = [] } = useQuery({
     queryKey: ['cities-list'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('customerlist')
         .select('city')
-        .not('city', 'is', null)
-        .not('averagesupply', 'is', null);
+        .eq('active', 'פעיל')
+        .not('city', 'is', null);
       
       if (error) throw error;
-      
-      // Get unique list of cities, sorted
-      const uniqueCities = [...new Set((data || []).map(item => item.city))].sort();
-      
-      return uniqueCities;
+      const uniqueCities = Array.from(new Set(data.map(d => d.city).filter(Boolean))) as string[];
+      return uniqueCities.sort();
     },
     enabled: currentUser?.agentnumber === "4",
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
+  // Update mutations
   const updateAreaMutation = useMutation({
-    mutationFn: async ({ customernumber, newarea }: { customernumber: string; newarea: string | null }) => {
+    mutationFn: async ({ customernumber, newarea }: { customernumber: string; newarea: string }) => {
       const { error } = await supabase
         .from('customerlist')
-        .update({ 
-          newarea,
-          selected_day: null,
-          selected_day_extra: null
-        })
+        .update({ newarea })
         .eq('customernumber', customernumber);
       
       if (error) throw error;
-      return { customernumber, newarea };
-    },
-    onMutate: async ({ customernumber, newarea }) => {
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['customers'] });
-      
-      // Snapshot the previous value
-      const previousCustomers = queryClient.getQueryData(['customers', currentUser?.agentnumber, selectedAgent, selectedCity, selectedArea]);
-      
-      // Optimistically update
-      queryClient.setQueryData(['customers', currentUser?.agentnumber, selectedAgent, selectedCity, selectedArea], (old: Customer[] = []) => {
-        return old.map(customer => 
-          customer.customernumber === customernumber 
-            ? { ...customer, newarea, selected_day: null, selected_day_extra: null }
-            : customer
-        );
-      });
-      
-      return { previousCustomers };
-    },
-    onError: (err, variables, context) => {
-      // Rollback on error
-      if (context?.previousCustomers) {
-        queryClient.setQueryData(['customers', currentUser?.agentnumber, selectedAgent, selectedCity, selectedArea], context.previousCustomers);
-      }
-      toast({
-        title: "שגיאה",
-        description: "אירעה שגיאה בעדכון האזור",
-        variant: "destructive",
-      });
     },
     onSuccess: () => {
-      toast({
-        title: "עודכן בהצלחה",
-        description: "האזור עודכן בהצלחה",
-      });
-    }
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      toast({ title: 'אזור עודכן בהצלחה' });
+    },
+    onError: () => {
+      toast({ title: 'שגיאה בעדכון אזור', variant: 'destructive' });
+    },
   });
 
   const updateSelectedDaysMutation = useMutation({
-    mutationFn: async ({ customernumber, selectedDay, isExtra }: { customernumber: string; selectedDay: any; isExtra: boolean }) => {
+    mutationFn: async ({ customernumber, selected_day }: { customernumber: string; selected_day: string }) => {
       const { error } = await supabase
         .from('customerlist')
-        .update({ [isExtra ? 'selected_day_extra' : 'selected_day']: selectedDay })
+        .update({ selected_day })
         .eq('customernumber', customernumber);
       
       if (error) throw error;
-      return { customernumber, selectedDay, isExtra };
-    },
-    onMutate: async ({ customernumber, selectedDay, isExtra }) => {
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['customers'] });
-      
-      // Snapshot the previous value
-      const previousCustomers = queryClient.getQueryData(['customers', currentUser?.agentnumber, selectedAgent, selectedCity, selectedArea]);
-      
-      // Optimistically update
-      queryClient.setQueryData(['customers', currentUser?.agentnumber, selectedAgent, selectedCity, selectedArea], (old: Customer[] = []) => {
-        return old.map(customer => 
-          customer.customernumber === customernumber 
-            ? { ...customer, [isExtra ? 'selected_day_extra' : 'selected_day']: selectedDay }
-            : customer
-        );
-      });
-      
-      return { previousCustomers };
-    },
-    onError: (err, variables, context) => {
-      // Rollback on error
-      if (context?.previousCustomers) {
-        queryClient.setQueryData(['customers', currentUser?.agentnumber, selectedAgent, selectedCity, selectedArea], context.previousCustomers);
-      }
-      toast({
-        title: "שגיאה",
-        description: "אירעה שגיאה בעדכון ימי החלוקה",
-        variant: "destructive",
-      });
     },
     onSuccess: () => {
-      toast({
-        title: "עודכן בהצלחה",
-        description: "ימי החלוקה עודכנו בהצלחה",
-      });
-    }
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      toast({ title: 'ימים עודכנו בהצלחה' });
+    },
+    onError: () => {
+      toast({ title: 'שגיאה בעדכון ימים', variant: 'destructive' });
+    },
   });
 
   const updateExtraAreaMutation = useMutation({
-    mutationFn: async ({ customernumber, extraarea }: { customernumber: string; extraarea: string | null }) => {
+    mutationFn: async ({ customernumber, extraarea }: { customernumber: string; extraarea: string }) => {
       const { error } = await supabase
         .from('customerlist')
-        .update({ extraarea })
+        .update({ extraarea: extraarea || null })
         .eq('customernumber', customernumber);
       
       if (error) throw error;
-      return { customernumber, extraarea };
-    },
-    onMutate: async ({ customernumber, extraarea }) => {
-      await queryClient.cancelQueries({ queryKey: ['customers'] });
-      
-      const previousCustomers = queryClient.getQueryData(['customers', currentUser?.agentnumber, selectedAgent, selectedCity, selectedArea]);
-      
-      queryClient.setQueryData(['customers', currentUser?.agentnumber, selectedAgent, selectedCity, selectedArea], (old: Customer[] = []) => {
-        return old.map(customer => 
-          customer.customernumber === customernumber 
-            ? { ...customer, extraarea }
-            : customer
-        );
-      });
-      
-      return { previousCustomers };
-    },
-    onError: (err, variables, context) => {
-      if (context?.previousCustomers) {
-        queryClient.setQueryData(['customers', currentUser?.agentnumber, selectedAgent, selectedCity, selectedArea], context.previousCustomers);
-      }
-      toast({
-        title: "שגיאה",
-        description: "אירעה שגיאה בעדכון האזור הנוסף",
-        variant: "destructive",
-      });
     },
     onSuccess: () => {
-      toast({
-        title: "עודכן בהצלחה",
-        description: "האזור הנוסף עודכן",
-      });
-    }
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      toast({ title: 'אזור נוסף עודכן בהצלחה' });
+    },
+    onError: () => {
+      toast({ title: 'שגיאה בעדכון אזור נוסף', variant: 'destructive' });
+    },
   });
 
+  // Filter customers
   const filteredCustomers = useMemo(() => {
-    if (!searchTerm) return customers;
-    
-    const term = searchTerm.toLowerCase();
-    return customers.filter(customer => 
-      customer.customernumber?.toLowerCase().includes(term) ||
-      customer.customername?.toLowerCase().includes(term) ||
-      customer.city?.toLowerCase().includes(term)
-    );
+    return customers.filter(customer => {
+      const matchesSearch = !searchTerm || 
+        customer.customername?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        customer.customernumber?.includes(searchTerm) ||
+        customer.city?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      return matchesSearch;
+    });
   }, [customers, searchTerm]);
 
-  const totalPages = Math.ceil(filteredCustomers.length / ITEMS_PER_PAGE);
-  const paginatedCustomers = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-    return filteredCustomers.slice(startIndex, endIndex);
-  }, [filteredCustomers, currentPage, ITEMS_PER_PAGE]);
+  // Virtual scrolling
+  const virtualizer = useVirtualizer({
+    count: filteredCustomers.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 200,
+    overscan: 5,
+  });
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedAgent('');
+    setSelectedCity('');
+    setSelectedArea('');
+  };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
+  const isAgent4 = currentUser?.agentnumber === "4";
+  const showFilters = isAgent4 && (selectedAgent || selectedCity || selectedArea);
+
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-2xl font-bold mb-1">רשימת לקוחות</h1>
-          <p className="text-sm text-muted-foreground">
-            {currentUser?.agentnumber === "4" 
-              ? `סה"כ ${customers.length} לקוחות בכל המערכת`
-              : `${customers.length} לקוחות שלך`}
-          </p>
-        </div>
-        <Button 
-          onClick={() => navigate('/lines')}
-          variant="outline"
-          size="sm"
-          className="gap-2"
-        >
-          חזרה לקווי הפצה
-          <ArrowRight className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {currentUser?.agentnumber === "4" && (
-        <div className="mb-4 flex gap-4 items-center">
-          <Select 
-            value={selectedAgent || undefined} 
-            onValueChange={(value) => {
-              setSelectedAgent(value);
-              setCurrentPage(1);
-              setAgentSelectOpen(false);
-            }}
-            open={agentSelectOpen}
-            onOpenChange={setAgentSelectOpen}
-          >
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="בחר סוכן..." />
-            </SelectTrigger>
-            <SelectContent className="z-50 bg-popover">
-              {agents.map((agent) => (
-                <SelectItem key={agent.agentnumber} value={agent.agentnumber}>
-                  {agent.agentnumber} - {agent.agentname}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select 
-            value={selectedCity || undefined} 
-            onValueChange={(value) => {
-              setSelectedCity(value);
-              setCurrentPage(1);
-              setCitySelectOpen(false);
-            }}
-            open={citySelectOpen}
-            onOpenChange={setCitySelectOpen}
-          >
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="בחר עיר..." />
-            </SelectTrigger>
-            <SelectContent className="z-50 bg-popover">
-              {cities.map((city) => (
-                <SelectItem key={city} value={city}>
-                  {city}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select 
-            value={selectedArea || undefined} 
-            onValueChange={(value) => {
-              setSelectedArea(value);
-              setCurrentPage(1);
-              setAreaSelectOpen(false);
-            }}
-            open={areaSelectOpen}
-            onOpenChange={setAreaSelectOpen}
-          >
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="בחר אזור..." />
-            </SelectTrigger>
-            <SelectContent className="z-50 bg-popover">
-              {areas.map((area) => (
-                <SelectItem key={area} value={area}>
-                  {area}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {(selectedAgent || selectedCity || selectedArea) && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setSelectedAgent('');
-                setSelectedCity('');
-                setSelectedArea('');
-                setCurrentPage(1);
-              }}
-            >
-              נקה פילטרים
-            </Button>
-          )}
-        </div>
-      )}
-
-      <div className="mb-4 flex items-center justify-between">
-        <Input
-          placeholder="חיפוש לפי מספר לקוח, שם או עיר..."
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          className="max-w-md"
-        />
-        <div className="text-sm text-muted-foreground">
-          עמוד {currentPage} מתוך {totalPages} | סה"כ {filteredCustomers.length} לקוחות
-        </div>
-      </div>
-
-      {(selectedAgent || selectedCity || selectedArea || currentUser?.agentnumber !== "4") && filteredCustomers.length > 0 && (
-        <>
-          <div className="border rounded-lg bg-card">
-        <ScrollArea className="h-[calc(100vh-250px)]">
-          <Table>
-            <TableHeader className="sticky top-0 bg-card z-10">
-              <TableRow>
-                <TableHead className="h-8 px-2 text-xs font-semibold">מספר</TableHead>
-                <TableHead className="h-8 px-2 text-xs font-semibold">שם לקוח</TableHead>
-                <TableHead className="h-8 px-2 text-xs font-semibold">כתובת</TableHead>
-                <TableHead className="h-8 px-2 text-xs font-semibold">עיר</TableHead>
-                <TableHead className="h-8 px-2 text-xs font-semibold">אזור</TableHead>
-                <TableHead className="h-8 px-2 text-xs font-semibold">ימי חלוקה</TableHead>
-                <TableHead className="h-8 px-2 text-xs font-semibold">אזור נוסף</TableHead>
-                <TableHead className="h-8 px-2 text-xs font-semibold">ימי אזור נוסף</TableHead>
-                <TableHead className="h-8 px-2 text-xs font-semibold">ימים ללא חלוקה</TableHead>
-                <TableHead className="h-8 px-2 text-xs font-semibold">שעות חלוקה</TableHead>
-                <TableHead className="h-8 px-2 text-xs font-semibold text-center">ממוצע</TableHead>
-                <TableHead className="h-8 px-2 text-xs font-semibold">קבוצה</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedCustomers.map((customer) => (
-                <CustomerTableRow
-                  key={customer.customernumber}
-                  customer={customer}
-                  currentUser={currentUser}
-                  distributionAreas={distributionAreas}
-                  areasWithDays={areasWithDays}
-                  openAreaSelect={openAreaSelect}
-                  setOpenAreaSelect={setOpenAreaSelect}
-                  updateAreaMutation={updateAreaMutation}
-                  updateSelectedDaysMutation={updateSelectedDaysMutation}
-                  updateExtraAreaMutation={updateExtraAreaMutation}
-                />
-              ))}
-            </TableBody>
-          </Table>
-        </ScrollArea>
+    <div className="h-screen flex flex-col bg-gradient-to-br from-background to-muted/20">
+      {/* Header */}
+      <div className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              רשימת לקוחות
+            </h1>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-sm">
+                {filteredCustomers.length} לקוחות
+              </Badge>
+              {filteredCustomers.length > 0 && (
+                <Badge variant="outline" className="text-sm">
+                  ממוצע: {Math.round(filteredCustomers.reduce((sum, c) => sum + (c.averagesupply || 0), 0) / filteredCustomers.length).toLocaleString()}
+                </Badge>
+              )}
+            </div>
           </div>
 
-          {totalPages > 1 && (
-            <div className="mt-4 flex justify-center">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                    />
-                  </PaginationItem>
-                  
-                  {[1, 2, 3].map((page) => (
-                    page <= totalPages && (
-                      <PaginationItem key={page}>
-                        <PaginationLink
-                          onClick={() => setCurrentPage(page)}
-                          isActive={currentPage === page}
-                          className="cursor-pointer"
-                        >
-                          {page}
-                        </PaginationLink>
-                      </PaginationItem>
-                    )
-                  ))}
-                  
-                  <PaginationItem>
-                    <PaginationNext
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                      className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
+          {/* Search & Filters */}
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="חפש לפי שם, מספר לקוח או עיר..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pr-10"
+              />
             </div>
-          )}
-        </>
-      )}
 
-      {currentUser?.agentnumber === "4" && !selectedAgent && !selectedCity && !selectedArea && (
-        <div className="text-center py-12 text-muted-foreground">
-          <p className="text-lg font-medium mb-2">בחר סוכן, עיר או אזור כדי להציג לקוחות</p>
-          <p className="text-sm">יש יותר מ-2000 לקוחות במערכת, נא לבחור פילטר</p>
-        </div>
-      )}
+            {isAgent4 && (
+              <div className="flex flex-wrap gap-2">
+                <Select value={selectedAgent} onValueChange={setSelectedAgent}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="כל הסוכנים" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">כל הסוכנים</SelectItem>
+                    {agents.map((agent) => (
+                      <SelectItem key={agent.agentnumber} value={agent.agentnumber}>
+                        {agent.agentname}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-      {filteredCustomers.length === 0 && (selectedAgent || selectedCity || selectedArea || currentUser?.agentnumber !== "4") && !isLoading && (
-        <div className="text-center py-12 text-muted-foreground">
-          {searchTerm ? 'לא נמצאו לקוחות התואמים את החיפוש' : 'אין לקוחות להצגה'}
+                <Select value={selectedCity} onValueChange={setSelectedCity}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="כל הערים" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">כל הערים</SelectItem>
+                    {cities.map((city) => (
+                      <SelectItem key={city} value={city}>
+                        {city}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={selectedArea} onValueChange={setSelectedArea}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="כל האזורים" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">כל האזורים</SelectItem>
+                    {distributionAreas.map((area) => (
+                      <SelectItem key={area} value={area}>
+                        {area}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {showFilters && (
+                  <Button variant="outline" size="sm" onClick={clearFilters}>
+                    <X className="w-4 h-4 ml-1" />
+                    נקה
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      )}
+      </div>
+
+      {/* Virtual List */}
+      <div ref={parentRef} className="flex-1 overflow-auto">
+        {!isAgent4 && !showFilters && filteredCustomers.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center text-muted-foreground">
+              <p>לא נמצאו לקוחות</p>
+            </div>
+          </div>
+        ) : filteredCustomers.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center text-muted-foreground">
+              <p>לא נמצאו לקוחות התואמים לחיפוש</p>
+            </div>
+          </div>
+        ) : (
+          <div
+            style={{
+              height: `${virtualizer.getTotalSize()}px`,
+              width: '100%',
+              position: 'relative',
+            }}
+            className="container mx-auto px-4 py-4"
+          >
+            {virtualizer.getVirtualItems().map((virtualRow) => {
+              const customer = filteredCustomers[virtualRow.index];
+              return (
+                <div
+                  key={customer.customernumber}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                  className="pb-3"
+                >
+                  <CustomerCard
+                    customer={customer}
+                    currentUser={currentUser}
+                    distributionAreas={distributionAreas}
+                    updateAreaMutation={updateAreaMutation}
+                    updateSelectedDaysMutation={updateSelectedDaysMutation}
+                    updateExtraAreaMutation={updateExtraAreaMutation}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

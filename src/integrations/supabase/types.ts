@@ -349,6 +349,7 @@ export type Database = {
           active: string | null
           activemonth: number | null
           address: string | null
+          agent_visit_day: string | null
           agentnumber: string | null
           arvot: string | null
           average_inv_month: number | null
@@ -399,6 +400,7 @@ export type Database = {
           active?: string | null
           activemonth?: number | null
           address?: string | null
+          agent_visit_day?: string | null
           agentnumber?: string | null
           arvot?: string | null
           average_inv_month?: number | null
@@ -449,6 +451,7 @@ export type Database = {
           active?: string | null
           activemonth?: number | null
           address?: string | null
+          agent_visit_day?: string | null
           agentnumber?: string | null
           arvot?: string | null
           average_inv_month?: number | null
