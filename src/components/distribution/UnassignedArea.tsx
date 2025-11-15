@@ -96,11 +96,29 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
   cancellationMap = new Set(),
   customerReplacementMap = new Map()
 }) => {
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [itemToDelete, setItemToDelete] = React.useState<{
     type: 'order' | 'return';
     data: Order | Return;
   } | null>(null);
+
+  // Sort returns: those with red circle (dual order/return) first, then the rest
+  const sortedReturns = React.useMemo(() => {
+    return [...unassignedReturns].sort((a, b) => {
+      const aHasRedCircle = dualActiveOrderReturnCustomers.some(
+        customer => customer.name === a.customername && customer.city === a.city
+      );
+      const bHasRedCircle = dualActiveOrderReturnCustomers.some(
+        customer => customer.name === b.customername && customer.city === b.city
+      );
+      
+      // Red circle items first
+      if (aHasRedCircle && !bHasRedCircle) return -1;
+      if (!aHasRedCircle && bHasRedCircle) return 1;
+      return 0;
+    });
+  }, [unassignedReturns, dualActiveOrderReturnCustomers]);
+  
   const [{
     isOver
   }, drop] = useDrop(() => ({
@@ -167,7 +185,7 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
             )}
           </div>
         ))}
-        {unassignedReturns.map(returnItem => (
+        {sortedReturns.map(returnItem => (
           <div key={`return-${returnItem.returnnumber}`} className="relative group">
             <OrderCard 
               type="return" 
