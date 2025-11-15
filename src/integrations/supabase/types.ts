@@ -1807,6 +1807,7 @@ export type Database = {
       }
       update_all_quotation_doc: { Args: never; Returns: undefined }
       update_candy_customer_averagesupply: { Args: never; Returns: undefined }
+      update_cities_and_groups_from_candy: { Args: never; Returns: undefined }
       update_discount_rows_by_customer_discounts: {
         Args: { order_num: number }
         Returns: undefined
