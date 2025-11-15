@@ -11,6 +11,7 @@ interface AreaTagVisitProps {
   isInPool?: boolean;
   groupId?: number;
   agentsWorkArea?: number[] | null;
+  totalsupplyspots?: number;
 }
 
 export const AreaTagVisit: React.FC<AreaTagVisitProps> = ({
@@ -19,7 +20,8 @@ export const AreaTagVisit: React.FC<AreaTagVisitProps> = ({
   onRemove,
   isInPool = false,
   groupId,
-  agentsWorkArea
+  agentsWorkArea,
+  totalsupplyspots
 }) => {
   const [{ isDragging }, drag] = useDrag({
     type: isInPool ? 'area-from-pool-visit' : 'area-from-day-visit',
@@ -47,6 +49,11 @@ export const AreaTagVisit: React.FC<AreaTagVisitProps> = ({
     >
       <span className="truncate flex-1 font-medium">
         {area}{getAgentNumbers()}
+        {totalsupplyspots && (
+          <span className="text-xs text-muted-foreground ml-1">
+            ({totalsupplyspots})
+          </span>
+        )}
       </span>
       
       {!isInPool && (
