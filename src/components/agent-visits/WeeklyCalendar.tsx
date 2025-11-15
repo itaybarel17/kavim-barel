@@ -38,20 +38,20 @@ const CityTag: React.FC<{
   return (
     <div
       ref={drag}
-      className={`text-xs rounded px-2 py-1 cursor-move transition-all ${
+      className={`text-sm rounded px-3 py-2 cursor-move transition-all ${
         isDragging ? 'opacity-50 scale-95' : 'opacity-100'
       } ${areaColor}`}
     >
       <div className="font-medium">{city}</div>
-      <div className="flex gap-1 mt-1">
+      <div className="flex gap-2 mt-1.5">
         {customer_count > 0 && (
-          <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4 bg-white/90 text-gray-800">
-            {customer_count}
+          <Badge variant="secondary" className="text-xs px-2 py-0.5 h-5 bg-white/95 text-gray-900 font-bold">
+            לקוחות: {customer_count}
           </Badge>
         )}
         {averagesupplyweek !== undefined && averagesupplyweek > 0 && (
-          <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 bg-white/50 border-white/50">
-            {averagesupplyweek.toFixed(1)}
+          <Badge variant="outline" className="text-xs px-2 py-0.5 h-5 bg-white/95 text-gray-900 border-gray-300 font-bold">
+            אספקה: {averagesupplyweek.toFixed(1)}
           </Badge>
         )}
       </div>
@@ -86,9 +86,10 @@ const DayCell: React.FC<{
           : 'bg-muted/20 border-border'
       }`}
     >
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         {cities.map((cityItem) => {
-          const areaColor = getAreaColor(cityAreaMap.get(cityItem.city) || '');
+          const area = cityAreaMap.get(cityItem.city);
+          const areaColor = area ? getAreaColor(area) : 'bg-gray-400 text-white';
           return (
             <CityTag
               key={`${cityItem.city}-${week}`}
