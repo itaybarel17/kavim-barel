@@ -5,7 +5,7 @@ import { getAreaColor } from '@/utils/areaColors';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface DistributionGroup {
   groups_id: number;
@@ -52,19 +52,19 @@ const AreaTag: React.FC<{
       <div className="flex items-center gap-2 flex-1">
         <span className="font-medium">{area}</span>
         {totalsupplyspots_barelcandy !== null && totalsupplyspots_barelcandy > 0 && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Badge variant="secondary" className="bg-white/90 text-gray-800 font-bold cursor-help">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Badge variant="secondary" className="bg-white/90 text-gray-800 font-bold cursor-pointer">
                 {totalsupplyspots_barelcandy}
               </Badge>
-            </TooltipTrigger>
-            <TooltipContent>
-              <div className="text-sm">
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-3" side="top">
+              <div className="text-sm space-y-1">
                 <div>בראל: {totalsupplyspots || 0}</div>
                 <div>קנדי: {totalsupplyspots_candy || 0}</div>
               </div>
-            </TooltipContent>
-          </Tooltip>
+            </PopoverContent>
+          </Popover>
         )}
       </div>
       <Button
@@ -172,22 +172,20 @@ export const DaysAreaKanbanVisit: React.FC<DaysAreaKanbanVisitProps> = ({
   };
 
   return (
-    <TooltipProvider>
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">שיוך אזורים לימי ביקור</h3>
-        <div className="grid grid-cols-5 gap-4" dir="rtl">
-          {days.map((day, index) => (
-            <DayColumn
-              key={day}
-              day={day}
-              dayName={dayNames[index]}
-              areas={getAreasForDay(day)}
-              onDrop={handleDrop}
-              onRemove={handleRemove}
-            />
-          ))}
-        </div>
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold">שיוך אזורים לימי ביקור</h3>
+      <div className="grid grid-cols-5 gap-4" dir="rtl">
+        {days.map((day, index) => (
+          <DayColumn
+            key={day}
+            day={day}
+            dayName={dayNames[index]}
+            areas={getAreasForDay(day)}
+            onDrop={handleDrop}
+            onRemove={handleRemove}
+          />
+        ))}
       </div>
-    </TooltipProvider>
+    </div>
   );
 };
