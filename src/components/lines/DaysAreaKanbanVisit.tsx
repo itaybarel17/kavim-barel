@@ -31,6 +31,8 @@ const AreaTag: React.FC<{
   agentsworkarea: number[] | null;
   onRemove: () => void;
 }> = ({ area, day, totalsupplyspots_barelcandy, totalsupplyspots, totalsupplyspots_candy, onRemove }) => {
+  const [showDetails, setShowDetails] = React.useState(false);
+  
   const [{ isDragging }, drag] = useDrag({
     type: 'area-visit',
     item: { area, day, sourceType: 'day', type: 'area-visit' },
@@ -52,12 +54,21 @@ const AreaTag: React.FC<{
         <span className="font-medium">{area}</span>
         {totalsupplyspots_barelcandy !== null && totalsupplyspots_barelcandy > 0 && (
           <div className="flex items-center gap-1">
-            <Badge variant="secondary" className="bg-white/90 text-gray-800 font-bold">
+            <Badge 
+              variant="secondary" 
+              className="bg-white/90 text-gray-800 font-bold cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDetails(!showDetails);
+              }}
+            >
               {totalsupplyspots_barelcandy}
             </Badge>
-            <span className="text-xs">
-              (בראל: {totalsupplyspots || 0}, קנדי: {totalsupplyspots_candy || 0})
-            </span>
+            {showDetails && (
+              <span className="text-xs">
+                (בראל: {totalsupplyspots || 0}, קנדי: {totalsupplyspots_candy || 0})
+              </span>
+            )}
           </div>
         )}
       </div>
