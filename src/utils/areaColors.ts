@@ -24,7 +24,7 @@ export const getAreaColor = (areaName: string) => {
     'באר שבע': 'bg-yellow-500 text-white',
     'אשדוד': 'bg-emerald-500 text-white',
     'משולש': 'bg-slate-500 text-white',
-    'כרמיאל': 'bg-sky-500 text-white'
+    'כרמיאל': 'bg-amber-600 text-white'
   };
   return areaColors[mainArea] || 'bg-gray-500 text-white';
 };
@@ -61,7 +61,22 @@ export const getAreaColorHex = (areaName: string): string => {
     'באר שבע': '#eab308', // yellow-500
     'אשדוד': '#10b981', // emerald-500
     'משולש': '#64748b', // slate-500
-    'כרמיאל': '#0ea5e9' // sky-500
+    'כרמיאל': '#d97706' // amber-600
   };
   return colorMap[mainArea] || '#6b7280'; // gray-500
+};
+
+// Get marker stroke color (black for duplicate colors, white for others)
+export const getMarkerStrokeColor = (areaName: string): string => {
+  const mainArea = areaName.replace(/\s+\d+$/, '').trim();
+  
+  // Areas with black stroke to differentiate from similar colored areas
+  const blackStrokeAreas = [
+    'קריות',          // same as חיפה (green)
+    'צפון תל אביב',   // same as דרום תל אביב (blue)
+    'שרון צפון',      // same as שרון דרום (pink)
+    'חולון-בת ים'     // same as שפלה (teal)
+  ];
+  
+  return blackStrokeAreas.includes(mainArea) ? '#000000' : '#ffffff';
 };
