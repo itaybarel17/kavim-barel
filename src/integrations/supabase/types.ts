@@ -266,6 +266,36 @@ export type Database = {
         }
         Relationships: []
       }
+      city_agent_visit_schedule: {
+        Row: {
+          agentnumber: string
+          city: string
+          created_at: string | null
+          customer_count: number | null
+          id: string
+          updated_at: string | null
+          visit_day: string | null
+        }
+        Insert: {
+          agentnumber: string
+          city: string
+          created_at?: string | null
+          customer_count?: number | null
+          id?: string
+          updated_at?: string | null
+          visit_day?: string | null
+        }
+        Update: {
+          agentnumber?: string
+          city?: string
+          created_at?: string | null
+          customer_count?: number | null
+          id?: string
+          updated_at?: string | null
+          visit_day?: string | null
+        }
+        Relationships: []
+      }
       comm_return: {
         Row: {
           address: string | null
