@@ -223,11 +223,6 @@ const AgentVisits = () => {
 
       {!isLoading && selectedAgent && (
         <>
-          <UnassignedCitiesPool
-            cities={citySchedules}
-            onCityDrop={handleCityDrop}
-          />
-
           <Card>
             <CardHeader>
               <CardTitle>לוח שנה דו-שבועי - שיוך ערים לימי ביקור</CardTitle>
@@ -240,6 +235,11 @@ const AgentVisits = () => {
               />
             </CardContent>
           </Card>
+
+          <UnassignedCitiesPool
+            cities={citySchedules}
+            onCityDrop={handleCityDrop}
+          />
         </>
       )}
 
