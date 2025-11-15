@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { getAreaColorHex } from '@/utils/areaColors';
+import { getAreaColorHex, getMarkerStrokeColor } from '@/utils/areaColors';
 
 interface City {
   cityid: number;
@@ -23,14 +23,31 @@ export const MapComponent: React.FC<MapComponentProps> = ({ cities }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+  
+  // Save current map position and zoom
+  const savedCenterRef = useRef<{ lat: number; lng: number } | null>(null);
+  const savedZoomRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!mapRef.current || !window.google) return;
 
-    // Initialize map centered on Israel
+    // Save position and zoom before updating (if map already exists)
+    if (mapInstanceRef.current) {
+      const currentCenter = mapInstanceRef.current.getCenter();
+      savedCenterRef.current = {
+        lat: currentCenter.lat(),
+        lng: currentCenter.lng()
+      };
+      savedZoomRef.current = mapInstanceRef.current.getZoom();
+    }
+
+    // Initialize map with saved position or default
+    const initialCenter = savedCenterRef.current || { lat: 31.7683, lng: 35.2137 };
+    const initialZoom = savedZoomRef.current || 7;
+
     const map = new window.google.maps.Map(mapRef.current, {
-      center: { lat: 31.7683, lng: 35.2137 }, // Center of Israel
-      zoom: 7,
+      center: initialCenter,
+      zoom: initialZoom,
       mapTypeControl: false,
       streetViewControl: false,
       fullscreenControl: false,
@@ -57,6 +74,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({ cities }) => {
       };
 
       const areaColor = getAreaColorHex(city.area || 'לא מוגדר');
+      const strokeColor = getMarkerStrokeColor(city.area || 'לא מוגדר');
 
       // Create custom marker icon with area color
       const marker = new window.google.maps.Marker({
@@ -67,7 +85,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({ cities }) => {
           path: window.google.maps.SymbolPath.CIRCLE,
           fillColor: areaColor,
           fillOpacity: 0.8,
-          strokeColor: '#ffffff',
+          strokeColor: strokeColor,
           strokeWeight: 2,
           scale: 8,
         },
@@ -96,8 +114,8 @@ export const MapComponent: React.FC<MapComponentProps> = ({ cities }) => {
       markersRef.current.push({ marker, infoWindow });
     });
 
-    // Adjust map bounds if there are markers
-    if (validCities.length > 0) {
+    // Only adjust bounds on initial load (no saved position)
+    if (!savedCenterRef.current && validCities.length > 0) {
       const bounds = new window.google.maps.LatLngBounds();
       validCities.forEach(city => {
         bounds.extend({ lat: Number(city.lat), lng: Number(city.lng) });
