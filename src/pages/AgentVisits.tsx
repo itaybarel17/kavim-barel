@@ -6,8 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { UnassignedCitiesPool } from '@/components/agent-visits/UnassignedCitiesPool';
 import { DaysCityKanban } from '@/components/agent-visits/DaysCityKanban';
+import { WeeklyCalendar } from '@/components/agent-visits/WeeklyCalendar';
 import { DaysAreaKanban } from '@/components/lines/DaysAreaKanban';
-import { DaysAreaKanbanVisit } from '@/components/lines/DaysAreaKanbanVisit';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -85,23 +85,33 @@ const AgentVisits = () => {
     queryFn: async () => {
       if (!selectedAgent) return [];
       
-      const { data, error } = await supabase
+      // First get the city schedules
+      const { data: schedules, error: schedulesError } = await supabase
         .from('city_agent_visit_schedule')
-        .select(`
-          id, 
-          city, 
-          agentnumber, 
-          visit_day, 
-          customer_count,
-          cities!inner(averagesupplyweek)
-        `)
+        .select('id, city, agentnumber, visit_day, customer_count')
         .eq('agentnumber', selectedAgent)
         .order('customer_count', { ascending: false });
       
-      if (error) throw error;
-      return data.map(item => ({
-        ...item,
-        averagesupplyweek: item.cities?.averagesupplyweek || 0
+      if (schedulesError) throw schedulesError;
+      
+      // Then get the cities data with averagesupplyweek
+      const cities = schedules.map(s => s.city);
+      const { data: citiesData, error: citiesError } = await supabase
+        .from('cities')
+        .select('city, averagesupplyweek')
+        .in('city', cities);
+      
+      if (citiesError) throw citiesError;
+      
+      // Create a map of city to averagesupplyweek
+      const citySupplyMap = new Map(
+        citiesData.map(c => [c.city, c.averagesupplyweek || 0])
+      );
+      
+      // Merge the data
+      return schedules.map(schedule => ({
+        ...schedule,
+        averagesupplyweek: citySupplyMap.get(schedule.city) || 0
       })) as (CitySchedule & { averagesupplyweek: number })[];
     },
     enabled: !!selectedAgent,
@@ -139,7 +149,7 @@ const AgentVisits = () => {
     },
   });
 
-  const handleCityDrop = (city: string, day: string | null) => {
+  const handleCityDrop = (city: string, day: string | null, week?: number) => {
     if (!selectedAgent) return;
     
     updateCityVisitDayMutation.mutate({
@@ -220,12 +230,13 @@ const AgentVisits = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>שיוך ערים לימי ביקור</CardTitle>
+              <CardTitle>לוח שנה דו-שבועי - שיוך ערים לימי ביקור</CardTitle>
             </CardHeader>
             <CardContent>
-              <DaysCityKanban
+              <WeeklyCalendar
                 cities={citySchedules}
                 onCityDrop={handleCityDrop}
+                selectedAgent={selectedAgent}
               />
             </CardContent>
           </Card>
