@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 import { getAreaColor, getMainAreaFromSeparation } from '@/utils/areaColors';
-import { Loader2, Users, RefreshCw } from 'lucide-react';
+import { Loader2, Users, RefreshCw, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { TruckGrid } from '@/components/lines/TruckGrid';
@@ -567,6 +567,15 @@ const Lines = () => {
               >
                 <RefreshCw className="h-4 w-4" />
                 {!isMobile && 'רענן'}
+              </Button>
+              <Button 
+                onClick={() => navigate('/agent-visits')}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <Calendar className="h-4 w-4" />
+                {!isMobile && 'ביקורי סוכנים'}
               </Button>
               <Button 
                 onClick={() => navigate('/customer-list')}
