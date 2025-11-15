@@ -228,6 +228,7 @@ export type Database = {
         Row: {
           area: string | null
           averagesupplyweek: number | null
+          averagesupplyweek_candy: number | null
           centralcity: boolean | null
           city: string
           cityid: number
@@ -239,6 +240,7 @@ export type Database = {
         Insert: {
           area?: string | null
           averagesupplyweek?: number | null
+          averagesupplyweek_candy?: number | null
           centralcity?: boolean | null
           city: string
           cityid?: number
@@ -250,6 +252,7 @@ export type Database = {
         Update: {
           area?: string | null
           averagesupplyweek?: number | null
+          averagesupplyweek_candy?: number | null
           centralcity?: boolean | null
           city?: string
           cityid?: number
@@ -516,6 +519,7 @@ export type Database = {
           orderlabelinkavim: number | null
           separation: string | null
           totalsupplyspots: number | null
+          totalsupplyspots_candy: number | null
         }
         Insert: {
           agents?: Json | null
@@ -526,6 +530,7 @@ export type Database = {
           orderlabelinkavim?: number | null
           separation?: string | null
           totalsupplyspots?: number | null
+          totalsupplyspots_candy?: number | null
         }
         Update: {
           agents?: Json | null
@@ -536,6 +541,7 @@ export type Database = {
           orderlabelinkavim?: number | null
           separation?: string | null
           totalsupplyspots?: number | null
+          totalsupplyspots_candy?: number | null
         }
         Relationships: []
       }
