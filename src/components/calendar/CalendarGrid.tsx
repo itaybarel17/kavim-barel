@@ -49,21 +49,26 @@ interface CalendarGridProps {
 // Helper functions for day mapping
 const getDayNumberFromHebrew = (hebrewLetter: string): number => {
   const dayMap: Record<string, number> = {
-    'א': 0, // Sunday
-    'ב': 1, // Monday 
-    'ג': 2, // Tuesday
-    'ד': 3, // Wednesday
-    'ה': 4, // Thursday
-    'ו': 5, // Friday
-    'ש': 6  // Saturday
+    'א': 0,
+    // Sunday
+    'ב': 1,
+    // Monday 
+    'ג': 2,
+    // Tuesday
+    'ד': 3,
+    // Wednesday
+    'ה': 4,
+    // Thursday
+    'ו': 5,
+    // Friday
+    'ש': 6 // Saturday
   };
   return dayMap[hebrewLetter] ?? -1;
 };
-
 const getAreasForDay = (distributionGroups: DistributionGroup[], dayNumber: number): DistributionGroup[] => {
   return distributionGroups.filter(group => {
     if (!group.days || !Array.isArray(group.days)) return false;
-    
+
     // Check if any of the days match our target day
     return group.days.some(dayEntry => {
       // Each dayEntry might be a single letter or multiple letters separated by commas
@@ -87,7 +92,6 @@ const CalendarDay: React.FC<{
   };
   customerReplacementMap?: Map<string, any>;
   selectedAgent?: string;
-  
 }> = ({
   date,
   schedulesForDate,
@@ -99,7 +103,7 @@ const CalendarDay: React.FC<{
   onProductionDialogOpen,
   currentUser,
   customerReplacementMap,
-  selectedAgent,
+  selectedAgent
 }) => {
   // Only admin can drop
   const isAdmin = currentUser?.agentnumber === "4";
@@ -131,10 +135,10 @@ const CalendarDay: React.FC<{
 
   // Hide production button for Agent 99
   const shouldShowProductionButton = schedulesForDate.length > 0 && currentUser?.agentnumber !== "99";
-  
+
   // Get areas for this specific day
   const allAreasForDay = getAreasForDay(distributionGroups, date.getDay());
-  
+
   // Filter areas shown based on user permissions and selected agent
   const areasForDay = allAreasForDay.filter(area => {
     if (currentUser?.agentnumber === "4") {
@@ -178,33 +182,22 @@ const CalendarDay: React.FC<{
       }
       return true; // Show all when "משרד" is selected
     }
-    
     if (!area.agents) return false;
-    const agents = Array.isArray(area.agents) ? area.agents : 
-      typeof area.agents === 'string' ? JSON.parse(area.agents) : [];
+    const agents = Array.isArray(area.agents) ? area.agents : typeof area.agents === 'string' ? JSON.parse(area.agents) : [];
     return agents.includes(parseInt(currentUser?.agentnumber || "0"));
   });
-  
-  return (
-    <div className="space-y-1">
+  return <div className="space-y-1">
       {/* Areas box for this day - always shown with fixed height */}
       <Card className="p-2 bg-white border border-gray-200 shadow-sm h-[128px]">
         <div className="flex flex-col gap-1">
           {areasForDay.map((group, index) => {
-            const areaName = getMainAreaFromSeparation(group.separation);
-            const areaColorClass = getAreaColor(areaName);
-            return (
-              <Badge 
-                key={index}
-                className={`${areaColorClass} text-xs px-2 py-1 font-bold border rounded-sm`}
-              >
+          const areaName = getMainAreaFromSeparation(group.separation);
+          const areaColorClass = getAreaColor(areaName);
+          return <Badge key={index} className={`${areaColorClass} text-xs px-2 py-1 font-bold border rounded-sm`}>
                 {group.separation}
-                <span className="text-xs ml-1 opacity-75">
-                  ({group.totalsupplyspots || 0})
-                </span>
-              </Badge>
-            );
-          })}
+                
+              </Badge>;
+        })}
         </div>
       </Card>
       
@@ -222,11 +215,10 @@ const CalendarDay: React.FC<{
             </Button>}
         </div>
         <div className="space-y-2">
-          {schedulesForDate.map(schedule => <CalendarCard key={schedule.schedule_id} scheduleId={schedule.schedule_id} groupId={schedule.groups_id} distributionGroups={distributionGroups} drivers={drivers} orders={orders} returns={returns} driverId={schedule.driver_id} showAllCustomers={true} isCalendarMode={true} schedule={schedule} currentUser={currentUser} customerReplacementMap={customerReplacementMap} selectedAgent={selectedAgent}  />)}
+          {schedulesForDate.map(schedule => <CalendarCard key={schedule.schedule_id} scheduleId={schedule.schedule_id} groupId={schedule.groups_id} distributionGroups={distributionGroups} drivers={drivers} orders={orders} returns={returns} driverId={schedule.driver_id} showAllCustomers={true} isCalendarMode={true} schedule={schedule} currentUser={currentUser} customerReplacementMap={customerReplacementMap} selectedAgent={selectedAgent} />)}
         </div>
       </Card>
-    </div>
-  );
+    </div>;
 };
 export const CalendarGrid: React.FC<CalendarGridProps> = ({
   currentWeekStart,
@@ -239,8 +231,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
   currentUser,
   onRefreshData,
   customerReplacementMap,
-  selectedAgent,
-  
+  selectedAgent
 }) => {
   const [productionDialogOpen, setProductionDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -312,66 +303,25 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
       onRefreshData();
     }
   };
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       <h2 className="text-lg lg:text-xl font-semibold text-gray-700 px-2 lg:px-0">
         לוח שנה - שבועיים
       </h2>
       
       {/* Week 1 - Mobile: single column, Desktop: 6 columns */}
       <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-6 lg:gap-4" dir="rtl">
-        {firstWeekDays.map((date, index) => (
-          <div key={`week1-${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`} className="w-full">
-            <CalendarDay 
-              date={date}
-              schedulesForDate={getSchedulesForDate(date)}
-              distributionGroups={distributionGroups}
-              drivers={drivers}
-              orders={orders}
-              returns={returns}
-              onDropToDate={onDropToDate}
-              onProductionDialogOpen={handleProductionDialogOpen}
-              currentUser={currentUser}
-              customerReplacementMap={customerReplacementMap}
-              selectedAgent={selectedAgent}
-            />
-          </div>
-        ))}
+        {firstWeekDays.map((date, index) => <div key={`week1-${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`} className="w-full">
+            <CalendarDay date={date} schedulesForDate={getSchedulesForDate(date)} distributionGroups={distributionGroups} drivers={drivers} orders={orders} returns={returns} onDropToDate={onDropToDate} onProductionDialogOpen={handleProductionDialogOpen} currentUser={currentUser} customerReplacementMap={customerReplacementMap} selectedAgent={selectedAgent} />
+          </div>)}
       </div>
 
       {/* Week 2 - Mobile: single column, Desktop: 6 columns */}
       <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-6 lg:gap-4" dir="rtl">
-        {secondWeekDays.map((date, index) => (
-          <div key={`week2-${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`} className="w-full">
-            <CalendarDay 
-              date={date}
-              schedulesForDate={getSchedulesForDate(date)}
-              distributionGroups={distributionGroups}
-              drivers={drivers}
-              orders={orders}
-              returns={returns}
-              onDropToDate={onDropToDate}
-              onProductionDialogOpen={handleProductionDialogOpen}
-              currentUser={currentUser}
-              customerReplacementMap={customerReplacementMap}
-              selectedAgent={selectedAgent}
-            />
-          </div>
-        ))}
+        {secondWeekDays.map((date, index) => <div key={`week2-${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`} className="w-full">
+            <CalendarDay date={date} schedulesForDate={getSchedulesForDate(date)} distributionGroups={distributionGroups} drivers={drivers} orders={orders} returns={returns} onDropToDate={onDropToDate} onProductionDialogOpen={handleProductionDialogOpen} currentUser={currentUser} customerReplacementMap={customerReplacementMap} selectedAgent={selectedAgent} />
+          </div>)}
       </div>
 
-      <ProductionDialog 
-        isOpen={productionDialogOpen}
-        onClose={() => setProductionDialogOpen(false)}
-        selectedDate={selectedDate}
-        distributionSchedules={distributionSchedules}
-        distributionGroups={distributionGroups}
-        drivers={drivers}
-        orders={orders}
-        returns={returns}
-        onProduced={handleProduced}
-        currentUser={currentUser}
-      />
-    </div>
-  );
+      <ProductionDialog isOpen={productionDialogOpen} onClose={() => setProductionDialogOpen(false)} selectedDate={selectedDate} distributionSchedules={distributionSchedules} distributionGroups={distributionGroups} drivers={drivers} orders={orders} returns={returns} onProduced={handleProduced} currentUser={currentUser} />
+    </div>;
 };
