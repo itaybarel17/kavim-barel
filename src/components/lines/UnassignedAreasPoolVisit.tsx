@@ -3,7 +3,7 @@ import { useDrag, useDrop } from 'react-dnd';
 import { getAreaColor } from '@/utils/areaColors';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface DistributionGroup {
   groups_id: number;
@@ -47,19 +47,19 @@ const AreaBadge: React.FC<{
     >
       <span className="font-medium">{area}</span>
       {totalsupplyspots_barelcandy !== null && totalsupplyspots_barelcandy > 0 && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Badge variant="secondary" className="mr-2 bg-white/90 text-gray-800 font-bold cursor-help">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Badge variant="secondary" className="mr-2 bg-white/90 text-gray-800 font-bold cursor-pointer">
               {totalsupplyspots_barelcandy}
             </Badge>
-          </TooltipTrigger>
-          <TooltipContent>
-            <div className="text-sm">
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-3" side="top">
+            <div className="text-sm space-y-1">
               <div>בראל: {totalsupplyspots || 0}</div>
               <div>קנדי: {totalsupplyspots_candy || 0}</div>
             </div>
-          </TooltipContent>
-        </Tooltip>
+          </PopoverContent>
+        </Popover>
       )}
     </div>
   );
@@ -94,37 +94,35 @@ export const UnassignedAreasPoolVisit: React.FC<UnassignedAreasPoolVisitProps> =
     .sort((a, b) => a.orderlabelinkavim - b.orderlabelinkavim);
 
   return (
-    <TooltipProvider>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">מאגר אזורים (ביקורים)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div
-            ref={drop}
-            className={`flex flex-wrap gap-2 min-h-[60px] p-3 rounded-lg transition-colors ${
-              isOver ? 'bg-primary/5 ring-2 ring-primary/20' : 'bg-muted/30'
-            }`}
-          >
-            {unassignedAreas.length === 0 ? (
-              <div className="text-muted-foreground text-sm w-full text-center py-4">
-                כל האזורים משויכים לימים
-              </div>
-            ) : (
-              unassignedAreas.map((item) => (
-                <AreaBadge
-                  key={item.area}
-                  area={item.area}
-                  totalsupplyspots_barelcandy={item.totalsupplyspots_barelcandy}
-                  totalsupplyspots={item.totalsupplyspots}
-                  totalsupplyspots_candy={item.totalsupplyspots_candy}
-                  agentsworkarea={item.agentsworkarea}
-                />
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </TooltipProvider>
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">מאגר אזורים (ביקורים)</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div
+          ref={drop}
+          className={`flex flex-wrap gap-2 min-h-[60px] p-3 rounded-lg transition-colors ${
+            isOver ? 'bg-primary/5 ring-2 ring-primary/20' : 'bg-muted/30'
+          }`}
+        >
+          {unassignedAreas.length === 0 ? (
+            <div className="text-muted-foreground text-sm w-full text-center py-4">
+              כל האזורים משויכים לימים
+            </div>
+          ) : (
+            unassignedAreas.map((item) => (
+              <AreaBadge
+                key={item.area}
+                area={item.area}
+                totalsupplyspots_barelcandy={item.totalsupplyspots_barelcandy}
+                totalsupplyspots={item.totalsupplyspots}
+                totalsupplyspots_candy={item.totalsupplyspots_candy}
+                agentsworkarea={item.agentsworkarea}
+              />
+            ))
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
