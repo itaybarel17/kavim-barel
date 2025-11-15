@@ -60,6 +60,7 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
 }) => {
   const [isProducing, setIsProducing] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState<number | null>(null);
+  const [showUnproduceConfirmation, setShowUnproduceConfirmation] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
@@ -186,6 +187,71 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
     }
   };
 
+  const handleUnproduce = async (scheduleId: number) => {
+    setIsProducing(true);
+    setError(null);
+    
+    try {
+      console.log('Unproducing schedule:', scheduleId);
+      
+      // 1. Reset distribution_schedule
+      const { error: updateError } = await supabase
+        .from('distribution_schedule')
+        .update({ 
+          dis_number: null,
+          done_schedule: null
+        })
+        .eq('schedule_id', scheduleId);
+        
+      if (updateError) throw updateError;
+      
+      // 2. Get and reset orders
+      const scheduleOrders = getOrdersByScheduleId(orders, scheduleId);
+      if (scheduleOrders.length > 0) {
+        const orderNumbers = scheduleOrders.map(order => order.ordernumber);
+        
+        const { error: ordersError } = await supabase
+          .from('mainorder')
+          .update({ done_mainorder: null })
+          .in('ordernumber', orderNumbers);
+          
+        if (ordersError) {
+          console.error('Error resetting orders:', ordersError);
+        }
+      }
+      
+      // 3. Get and reset returns
+      const scheduleReturns = getReturnsByScheduleId(returns, scheduleId);
+      if (scheduleReturns.length > 0) {
+        const returnNumbers = scheduleReturns.map(returnItem => returnItem.returnnumber);
+        
+        const { error: returnsError } = await supabase
+          .from('mainreturns')
+          .update({ done_return: null })
+          .in('returnnumber', returnNumbers);
+          
+        if (returnsError) {
+          console.error('Error resetting returns:', returnsError);
+        }
+      }
+
+      console.log('Unproduction completed');
+      
+      // Refresh data
+      if (onProduced) {
+        onProduced();
+      }
+      
+      setShowUnproduceConfirmation(null);
+      onClose();
+    } catch (error) {
+      console.error('Error unproducing schedule:', error);
+      setError(error instanceof Error ? error.message : 'שגיאה בביטול הפקה');
+    } finally {
+      setIsProducing(false);
+    }
+  };
+
   const handleViewSummary = (scheduleId: number) => {
     navigate(`/production-summary/${scheduleId}`);
     onClose();
@@ -283,9 +349,22 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
                       
                       <div className="flex gap-2 items-center">
                         {isProduced ? (
-                          <span className="text-gray-500 text-sm font-medium px-3 py-1 bg-gray-100 rounded">
-                            הופק
-                          </span>
+                          <>
+                            {isAdmin ? (
+                              <Button
+                                onClick={() => setShowUnproduceConfirmation(schedule.schedule_id)}
+                                disabled={isProducing}
+                                size="sm"
+                                variant="destructive"
+                              >
+                                בטל הפקה
+                              </Button>
+                            ) : (
+                              <span className="text-gray-500 text-sm font-medium px-3 py-1 bg-gray-100 rounded">
+                                הופק
+                              </span>
+                            )}
+                          </>
                         ) : (
                           <>
                             {/* Only show production controls to admin */}
@@ -338,6 +417,37 @@ export const ProductionDialog: React.FC<ProductionDialogProps> = ({
                           <Button
                             onClick={() => setShowConfirmation(null)}
                             disabled={isProducing}
+                            variant="outline"
+                            size="sm"
+                          >
+                            ביטול
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Unproduce confirmation dialog */}
+                    {isAdmin && showUnproduceConfirmation === schedule.schedule_id && (
+                      <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded">
+                        <div className="text-center mb-3">
+                          <div className="font-medium text-red-800">
+                            האם לבטל הפקה של קו חלוקה זה?
+                          </div>
+                          <div className="text-sm text-red-600 mt-1">
+                            פעולה זו תחזיר את כל ההזמנות והחזרות למצב לא מופק
+                          </div>
+                        </div>
+                        <div className="flex gap-2 justify-center">
+                          <Button
+                            onClick={() => handleUnproduce(schedule.schedule_id)}
+                            disabled={isProducing}
+                            variant="destructive"
+                            size="sm"
+                          >
+                            {isProducing ? 'מבטל...' : 'כן, בטל הפקה'}
+                          </Button>
+                          <Button
+                            onClick={() => setShowUnproduceConfirmation(null)}
                             variant="outline"
                             size="sm"
                           >
