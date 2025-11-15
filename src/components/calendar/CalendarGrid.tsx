@@ -13,7 +13,7 @@ interface DistributionGroup {
   separation: string;
   days: string[];
   agents?: number[] | string;
-  totalsupplyspots?: number | null;
+  totalsupplyspots_barelcandy?: number | null;
 }
 interface DistributionSchedule {
   schedule_id: number;

@@ -50,7 +50,7 @@ interface City {
 interface DistributionGroup {
   groups_id: number;
   separation: string;
-  totalsupplyspots: number | null;
+  totalsupplyspots_barelcandy: number | null;
 }
 
 interface CityPoolProps {
@@ -196,11 +196,11 @@ export const CityPool: React.FC<CityPoolProps> = ({
                         const areaGroup = distributionGroups.find(group => 
                           group.separation && group.separation.replace(/\s+\d+$/, '').trim() === area
                         );
-                        const totalsupplyspots = areaGroup?.totalsupplyspots || 0;
+                        const totalsupplyspots_barelcandy = areaGroup?.totalsupplyspots_barelcandy || 0;
                         
                         return (
                           <Badge variant="secondary" className="bg-white/90 text-gray-800 font-bold">
-                            {totalsupplyspots}
+                            {totalsupplyspots_barelcandy}
                           </Badge>
                         );
                       })()}
