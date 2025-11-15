@@ -30,6 +30,7 @@ interface CitySchedule {
   agentnumber: string;
   visit_day: string | null;
   customer_count: number;
+  averagesupplyweek?: number;
 }
 
 interface DistributionGroup {
@@ -78,7 +79,7 @@ const AgentVisits = () => {
     }
   });
 
-  // Fetch city schedules for selected agent
+  // Fetch city schedules for selected agent with city data
   const { data: citySchedules = [], isLoading: schedulesLoading } = useQuery({
     queryKey: ['city-agent-schedules', selectedAgent],
     queryFn: async () => {
@@ -86,12 +87,22 @@ const AgentVisits = () => {
       
       const { data, error } = await supabase
         .from('city_agent_visit_schedule')
-        .select('id, city, agentnumber, visit_day, customer_count')
+        .select(`
+          id, 
+          city, 
+          agentnumber, 
+          visit_day, 
+          customer_count,
+          cities!inner(averagesupplyweek)
+        `)
         .eq('agentnumber', selectedAgent)
         .order('customer_count', { ascending: false });
       
       if (error) throw error;
-      return data as CitySchedule[];
+      return data.map(item => ({
+        ...item,
+        averagesupplyweek: item.cities?.averagesupplyweek || 0
+      })) as (CitySchedule & { averagesupplyweek: number })[];
     },
     enabled: !!selectedAgent,
   });
@@ -165,48 +176,12 @@ const AgentVisits = () => {
         </div>
       </div>
 
-      {/* Read-only area assignments display */}
+      {/* Read-only delivery days display - always open */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <CardTitle>תצוגת שיוך אזורים (קריאה בלבד)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Accordion type="single" collapsible>
-            <AccordionItem value="delivery">
-              <AccordionTrigger>
-                📦 ימי אספקה (days)
-              </AccordionTrigger>
-              <AccordionContent>
-                <DaysAreaKanban 
-                  distributionGroups={distributionGroups}
-                  onAreaDrop={() => {}}
-                />
-              </AccordionContent>
-            </AccordionItem>
-            
-            <AccordionItem value="visit">
-              <AccordionTrigger>
-                👤 ימי ביקור אזורים (dayvisit)
-              </AccordionTrigger>
-              <AccordionContent>
-                <DaysAreaKanbanVisit 
-                  distributionGroups={distributionGroups}
-                  onAreaDrop={() => {}}
-                />
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </CardContent>
-      </Card>
-
-      {/* Agent selector */}
-      <Card>
-        <CardHeader>
-          <CardTitle>בחירת סוכן</CardTitle>
-        </CardHeader>
-        <CardContent>
           <Select value={selectedAgent} onValueChange={setSelectedAgent}>
-            <SelectTrigger className="w-full md:w-[300px]">
+            <SelectTrigger className="w-[250px]">
               <SelectValue placeholder="בחר סוכן" />
             </SelectTrigger>
             <SelectContent>
@@ -217,6 +192,16 @@ const AgentVisits = () => {
               ))}
             </SelectContent>
           </Select>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold mb-3">📦 ימי אספקה (days)</h3>
+            <DaysAreaKanban 
+              distributionGroups={distributionGroups}
+              onAreaDrop={() => {}}
+              readOnly={true}
+            />
+          </div>
         </CardContent>
       </Card>
 

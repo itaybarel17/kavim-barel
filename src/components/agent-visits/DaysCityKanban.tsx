@@ -11,6 +11,7 @@ interface CitySchedule {
   agentnumber: string;
   visit_day: string | null;
   customer_count: number;
+  averagesupplyweek?: number;
 }
 
 interface DaysCityKanbanProps {
@@ -22,8 +23,9 @@ const CityTag: React.FC<{
   city: string;
   day: string;
   customer_count: number;
+  averagesupplyweek?: number;
   onRemove: () => void;
-}> = ({ city, day, customer_count, onRemove }) => {
+}> = ({ city, day, customer_count, averagesupplyweek, onRemove }) => {
   const [{ isDragging }, drag] = useDrag({
     type: 'city-visit',
     item: { city, day, sourceType: 'day', type: 'city-visit' },
@@ -41,11 +43,18 @@ const CityTag: React.FC<{
     >
       <div className="flex items-center gap-2 flex-1">
         <span className="font-medium">{city}</span>
-        {customer_count > 0 && (
-          <Badge variant="secondary" className="bg-white/90 text-gray-800 font-bold">
-            {customer_count}
-          </Badge>
-        )}
+        <div className="flex gap-1">
+          {customer_count > 0 && (
+            <Badge variant="secondary" className="bg-white/90 text-gray-800 font-bold">
+              לקוחות: {customer_count}
+            </Badge>
+          )}
+          {averagesupplyweek !== undefined && averagesupplyweek > 0 && (
+            <Badge variant="outline" className="bg-blue-50 text-blue-800 font-bold border-blue-300">
+              אספקה: {averagesupplyweek.toFixed(1)}
+            </Badge>
+          )}
+        </div>
       </div>
       <Button
         variant="ghost"
@@ -65,6 +74,7 @@ const DayColumn: React.FC<{
   cities: {
     city: string;
     customer_count: number;
+    averagesupplyweek?: number;
   }[];
   onDrop: (city: string, day: string) => void;
   onRemove: (city: string) => void;
@@ -103,6 +113,7 @@ const DayColumn: React.FC<{
                 city={cityItem.city}
                 day={day}
                 customer_count={cityItem.customer_count}
+                averagesupplyweek={cityItem.averagesupplyweek}
                 onRemove={() => onRemove(cityItem.city)}
               />
             ))
@@ -131,6 +142,7 @@ export const DaysCityKanban: React.FC<DaysCityKanbanProps> = ({
       .map((c) => ({
         city: c.city,
         customer_count: c.customer_count,
+        averagesupplyweek: c.averagesupplyweek,
       }));
   };
 
