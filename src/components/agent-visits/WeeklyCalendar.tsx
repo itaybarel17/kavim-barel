@@ -14,7 +14,7 @@ interface CitySchedule {
   agentnumber: string;
   visit_day: string | null;
   customer_count: number;
-  averagesupplyweek?: number;
+  averagesupply?: number;
 }
 
 interface WeeklyCalendarProps {
@@ -26,10 +26,10 @@ interface WeeklyCalendarProps {
 const CityTag: React.FC<{
   city: string;
   customer_count: number;
-  averagesupplyweek?: number;
+  averagesupply?: number;
   areaColor: string;
   onRemove: () => void;
-}> = ({ city, customer_count, averagesupplyweek, areaColor, onRemove }) => {
+}> = ({ city, customer_count, averagesupply, areaColor, onRemove }) => {
   const [{ isDragging }, drag] = useDrag({
     type: 'city-visit-calendar',
     item: { city, sourceType: 'day', type: 'city-visit-calendar' },
@@ -53,9 +53,9 @@ const CityTag: React.FC<{
               {customer_count}
             </Badge>
           )}
-          {averagesupplyweek !== undefined && averagesupplyweek > 0 && (
+          {averagesupply !== undefined && averagesupply > 0 && (
             <Badge variant="outline" className="text-xs px-2 py-0.5 h-5 bg-white/95 text-gray-900 border-gray-300 font-bold">
-              {averagesupplyweek.toFixed(1)}
+              {averagesupply.toFixed(1)}
             </Badge>
           )}
         </div>
@@ -112,7 +112,7 @@ const DayCell: React.FC<{
               key={`${cityItem.city}-${week}`}
               city={cityItem.city}
               customer_count={cityItem.customer_count}
-              averagesupplyweek={cityItem.averagesupplyweek}
+              averagesupply={cityItem.averagesupply}
               areaColor={areaColor}
               onRemove={() => onRemove(cityItem.city, week)}
             />

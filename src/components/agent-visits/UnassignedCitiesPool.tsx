@@ -10,7 +10,7 @@ interface CitySchedule {
   agentnumber: string;
   visit_day: string | null;
   customer_count: number;
-  averagesupplyweek?: number;
+  averagesupply?: number;
 }
 
 interface UnassignedCitiesPoolProps {
@@ -22,9 +22,9 @@ interface UnassignedCitiesPoolProps {
 const CityBadge: React.FC<{
   city: string;
   customer_count: number;
-  averagesupplyweek?: number;
+  averagesupply?: number;
   areaColor: string;
-}> = ({ city, customer_count, averagesupplyweek, areaColor }) => {
+}> = ({ city, customer_count, averagesupply, areaColor }) => {
   const [{ isDragging }, drag] = useDrag({
     type: 'city-visit-calendar',
     item: { city, sourceType: 'pool', type: 'city-visit-calendar' },
@@ -47,9 +47,9 @@ const CityBadge: React.FC<{
             {customer_count}
           </Badge>
         )}
-        {averagesupplyweek !== undefined && averagesupplyweek > 0 && (
+        {averagesupply !== undefined && averagesupply > 0 && (
           <Badge variant="outline" className="text-xs px-2 py-0.5 h-5 bg-white/95 text-gray-900 border-gray-300 font-bold">
-            {averagesupplyweek.toFixed(1)}
+            {averagesupply.toFixed(1)}
           </Badge>
         )}
       </div>
@@ -103,7 +103,7 @@ export const UnassignedCitiesPool: React.FC<UnassignedCitiesPoolProps> = ({
                   key={item.id}
                   city={item.city}
                   customer_count={item.customer_count}
-                  averagesupplyweek={item.averagesupplyweek}
+                  averagesupply={item.averagesupply}
                   areaColor={areaColor}
                 />
               );

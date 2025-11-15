@@ -30,7 +30,7 @@ interface CitySchedule {
   agentnumber: string;
   visit_day: string | null;
   customer_count: number;
-  averagesupplyweek?: number;
+  averagesupply?: number;
 }
 
 interface DistributionGroup {
@@ -85,34 +85,16 @@ const AgentVisits = () => {
     queryFn: async () => {
       if (!selectedAgent) return [];
       
-      // First get the city schedules
+      // Get the city schedules with averagesupply
       const { data: schedules, error: schedulesError } = await supabase
         .from('city_agent_visit_schedule')
-        .select('id, city, agentnumber, visit_day, customer_count')
+        .select('id, city, agentnumber, visit_day, customer_count, averagesupply')
         .eq('agentnumber', selectedAgent)
         .order('customer_count', { ascending: false });
       
       if (schedulesError) throw schedulesError;
       
-      // Then get the cities data with averagesupplyweek
-      const cities = schedules.map(s => s.city);
-      const { data: citiesData, error: citiesError } = await supabase
-        .from('cities')
-        .select('city, averagesupplyweek')
-        .in('city', cities);
-      
-      if (citiesError) throw citiesError;
-      
-      // Create a map of city to averagesupplyweek
-      const citySupplyMap = new Map(
-        citiesData.map(c => [c.city, c.averagesupplyweek || 0])
-      );
-      
-      // Merge the data
-      return schedules.map(schedule => ({
-        ...schedule,
-        averagesupplyweek: citySupplyMap.get(schedule.city) || 0
-      })) as (CitySchedule & { averagesupplyweek: number })[];
+      return schedules as CitySchedule[];
     },
     enabled: !!selectedAgent,
   });
