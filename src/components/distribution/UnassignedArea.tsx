@@ -62,6 +62,7 @@ interface UnassignedAreaProps {
     name: string;
     city: string;
   }[];
+  linkedCustomersWithBothOrders?: Set<string>; // NEW: for linked customers with both order types
   // new props for supply details - removed agentNameMap
   customerSupplyMap?: Record<string, string>;
   customerCoordinatesMap?: Record<string, { lat: number; lng: number }>;
@@ -86,6 +87,7 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
   onDeleteItem,
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
+  linkedCustomersWithBothOrders = new Set(),
   customerSupplyMap = {},
   customerCoordinatesMap = {},
   onSirenToggle,
@@ -143,7 +145,8 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
               data={order} 
               onDragStart={onDragStart} 
               multiOrderActiveCustomerList={multiOrderActiveCustomerList} 
-              dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} 
+              dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
+              isLinkedCustomerWithBothOrders={linkedCustomersWithBothOrders.has(order.customernumber || '')}
               customerSupplyMap={customerSupplyMap} 
               customerCoordinatesMap={customerCoordinatesMap}
               onSirenToggle={onSirenToggle}
@@ -171,7 +174,8 @@ export const UnassignedArea: React.FC<UnassignedAreaProps> = ({
               data={returnItem} 
               onDragStart={onDragStart} 
               multiOrderActiveCustomerList={multiOrderActiveCustomerList} 
-              dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers} 
+              dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
+              isLinkedCustomerWithBothOrders={linkedCustomersWithBothOrders.has(returnItem.customernumber || '')}
               customerSupplyMap={customerSupplyMap} 
               customerCoordinatesMap={customerCoordinatesMap}
               onSirenToggle={onSirenToggle}

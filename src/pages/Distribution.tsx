@@ -14,7 +14,7 @@ import { CentralAlertBanner } from '@/components/distribution/CentralAlertBanner
 import { useIsMobile } from '@/hooks/use-mobile';
 import { WarehouseMessageBanner } from '@/components/distribution/WarehouseMessageBanner';
 import { CustomerMessageBanner } from '@/components/distribution/CustomerMessageBanner';
-import { getCustomerReplacementMap, getReplacementCustomerDetails } from '@/utils/scheduleUtils';
+import { getCustomerReplacementMap, getReplacementCustomerDetails, createLinkedCustomersMap } from '@/utils/scheduleUtils';
 
 interface Order {
   ordernumber: number;
@@ -204,14 +204,33 @@ const Distribution = () => {
       const {
         data,
         error
-      } = await supabase.from('customerlist').select('customernumber, customername, supplydetails, address, city, mobile, phone, lat, lng');
+      } = await supabase.from('customerlist').select('customernumber, customername, supplydetails, address, city, mobile, phone, lat, lng, linked_candy_customernumber');
       if (error) throw error;
       console.log('Customer supply data fetched:', data);
       return data;
     }
   });
 
-  // Fetch distribution groups
+  // Fetch customer links for linked customers functionality
+  const { data: customerLinks = [] } = useQuery({
+    queryKey: ['customer-links'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('customerlist')
+        .select('customernumber, linked_candy_customernumber')
+        .not('linked_candy_customernumber', 'is', null);
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  // Create bidirectional map for linked customers
+  const linkedCustomersMap = useMemo(() => {
+    return createLinkedCustomersMap(customerLinks);
+  }, [customerLinks]);
+
+  // Distribution groups
+
   const {
     data: distributionGroups = [],
     isLoading: groupsLoading
@@ -328,6 +347,26 @@ const Distribution = () => {
       });
     }
   });
+
+  // 3. Linked customers with both order types (half blue, half pink icon)
+  // Identify customers who have both customerlist and candycustomerlist orders
+  const linkedCustomersWithBothOrders = useMemo(() => {
+    const set = new Set<string>();
+    
+    activeOrders.forEach(order => {
+      const linkedNum = linkedCustomersMap.get(order.customernumber || '');
+      if (linkedNum) {
+        // Check if there's an active order for the linked customer
+        const hasLinkedOrder = activeOrders.some(o => o.customernumber === linkedNum);
+        if (hasLinkedOrder) {
+          set.add(order.customernumber || '');
+          set.add(linkedNum);
+        }
+      }
+    });
+    
+    return set;
+  }, [activeOrders, linkedCustomersMap]);
 
   // Add query for warehouse messages (only for user 4)
   const { data: warehouseMessages = [] } = useQuery({
@@ -1173,6 +1212,7 @@ const Distribution = () => {
           onDeleteItem={handleDeleteItem}
           multiOrderActiveCustomerList={multiOrderActiveCustomerList}
           dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
+          linkedCustomersWithBothOrders={linkedCustomersWithBothOrders}
           customerSupplyMap={customerSupplyMap}
           customerCoordinatesMap={customerCoordinatesMap}
           onSirenToggle={handleSirenToggle}
@@ -1200,6 +1240,7 @@ const Distribution = () => {
               getZoneState={getZoneState}
               multiOrderActiveCustomerList={multiOrderActiveCustomerList}
               dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
+              linkedCustomersWithBothOrders={linkedCustomersWithBothOrders}
               customerSupplyMap={customerSupplyMap}
               customerCoordinatesMap={customerCoordinatesMap}
               onSirenToggle={handleSirenToggle}

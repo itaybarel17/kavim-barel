@@ -283,6 +283,78 @@ export const getCustomerReplacementMap = (
 /**
  * Gets the area for a city from the cities table
  */
+// ============ Linked Customers Utilities ============
+
+/**
+ * Get all linked customer numbers (both main and candy)
+ */
+export const getLinkedCustomerNumbers = (
+  mainCustomerNumber: string,
+  candyCustomerNumber: string | null
+): string[] => {
+  const linked = [mainCustomerNumber];
+  if (candyCustomerNumber) {
+    linked.push(candyCustomerNumber);
+  }
+  return linked;
+};
+
+/**
+ * Check if two customers are linked
+ */
+export const areCustomersLinked = (
+  customerNumber1: string,
+  customerNumber2: string,
+  linkedCustomersMap: Map<string, string>
+): boolean => {
+  return (
+    linkedCustomersMap.get(customerNumber1) === customerNumber2 ||
+    linkedCustomersMap.get(customerNumber2) === customerNumber1
+  );
+};
+
+/**
+ * Create a bidirectional map of linked customers from customerlist
+ */
+export const createLinkedCustomersMap = (
+  customerLinks: Array<{ customernumber: string; linked_candy_customernumber?: string | null }>
+): Map<string, string> => {
+  const map = new Map<string, string>();
+  
+  customerLinks.forEach(link => {
+    if (link.linked_candy_customernumber) {
+      // Bidirectional mapping
+      map.set(link.customernumber, link.linked_candy_customernumber);
+      map.set(link.linked_candy_customernumber, link.customernumber);
+    }
+  });
+  
+  return map;
+};
+
+/**
+ * Count unique customers considering linked pairs as one
+ */
+export const countUniqueCustomersWithLinks = (
+  customerNumbers: string[],
+  linkedCustomersMap: Map<string, string>
+): number => {
+  const counted = new Set<string>();
+  
+  customerNumbers.forEach(customerNum => {
+    const linkedNum = linkedCustomersMap.get(customerNum);
+    
+    // Use the smaller number as the unique key for the pair
+    const uniqueKey = linkedNum 
+      ? [customerNum, linkedNum].sort()[0]
+      : customerNum;
+    
+    counted.add(uniqueKey);
+  });
+  
+  return counted.size;
+};
+
 export const getCityArea = async (cityName: string): Promise<string> => {
   if (!cityName) return '';
   
