@@ -46,12 +46,12 @@ const CityTag: React.FC<{
       <div className="flex gap-2 mt-1.5">
         {customer_count > 0 && (
           <Badge variant="secondary" className="text-xs px-2 py-0.5 h-5 bg-white/95 text-gray-900 font-bold">
-            לקוחות: {customer_count}
+            {customer_count}
           </Badge>
         )}
         {averagesupplyweek !== undefined && averagesupplyweek > 0 && (
           <Badge variant="outline" className="text-xs px-2 py-0.5 h-5 bg-white/95 text-gray-900 border-gray-300 font-bold">
-            אספקה: {averagesupplyweek.toFixed(1)}
+            {averagesupplyweek.toFixed(1)}
           </Badge>
         )}
       </div>
@@ -118,27 +118,24 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
     { value: 'ה', label: 'ה' },
   ];
 
-  // Fetch customer data to get area assignments
-  const { data: customers = [] } = useQuery({
-    queryKey: ['customers-for-areas', selectedAgent],
+  // Fetch cities data to get area assignments
+  const { data: citiesData = [] } = useQuery({
+    queryKey: ['cities-for-areas'],
     queryFn: async () => {
-      if (!selectedAgent) return [];
       const { data, error } = await supabase
-        .from('customerlist')
-        .select('city, newarea')
-        .eq('agentnumber', selectedAgent);
+        .from('cities')
+        .select('city, area');
       
       if (error) throw error;
-      return data as { city: string; newarea: string | null }[];
+      return data as { city: string; area: string | null }[];
     },
-    enabled: !!selectedAgent,
   });
 
   // Create a map of city to area for color coding
   const cityAreaMap = new Map<string, string>();
-  customers.forEach(customer => {
-    if (customer.newarea && !cityAreaMap.has(customer.city)) {
-      cityAreaMap.set(customer.city, customer.newarea);
+  citiesData.forEach(cityData => {
+    if (cityData.area) {
+      cityAreaMap.set(cityData.city, cityData.area);
     }
   });
 
