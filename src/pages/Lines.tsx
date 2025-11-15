@@ -8,10 +8,10 @@ import { Button } from '@/components/ui/button';
 import { TruckGrid } from '@/components/lines/TruckGrid';
 import { CityPool } from '@/components/lines/CityPool';
 import { AreaSchedule } from '@/components/lines/AreaSchedule';
-import { AreaPool } from '@/components/lines/AreaPool';
-import { WeeklyAreaKanban } from '@/components/lines/WeeklyAreaKanban';
-import { AreaPoolVisit } from '@/components/lines/AreaPoolVisit';
-import { WeeklyAreaKanbanVisit } from '@/components/lines/WeeklyAreaKanbanVisit';
+import { UnassignedAreasPool } from '@/components/lines/UnassignedAreasPool';
+import { DaysAreaKanban } from '@/components/lines/DaysAreaKanban';
+import { UnassignedAreasPoolVisit } from '@/components/lines/UnassignedAreasPoolVisit';
+import { DaysAreaKanbanVisit } from '@/components/lines/DaysAreaKanbanVisit';
 import { MapComponent } from '@/components/lines/MapComponent';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -54,9 +54,6 @@ const Lines = () => {
         .order('orderlabelinkavim', { ascending: true, nullsFirst: false });
       
       if (error) throw error;
-      console.log('Lines distribution groups fetched:', data);
-      console.log('Lines distribution groups length:', data?.length);
-      console.log('Lines distribution groups first item:', data?.[0]);
       return data as any as DistributionGroup[];
     }
   });
@@ -78,9 +75,9 @@ const Lines = () => {
     }
   });
 
-  // Update area assignment
+  // Area to day assignment mutations
   const updateAreaDaysMutation = useMutation({
-    mutationFn: async ({ groupId, newDays }: { groupId: number; newDays: string[] }) => {
+    mutationFn: async ({ groupId, newDays }: { groupId: number; newDays: string[] | null }) => {
       const { error } = await supabase
         .from('distribution_groups')
         .update({ days: newDays })
@@ -107,7 +104,7 @@ const Lines = () => {
 
   // Update area visit assignment
   const updateAreaDayVisitMutation = useMutation({
-    mutationFn: async ({ groupId, newDays }: { groupId: number; newDays: string[] }) => {
+    mutationFn: async ({ groupId, newDays }: { groupId: number; newDays: string[] | null }) => {
       const { error } = await supabase
         .from('distribution_groups')
         .update({ dayvisit: newDays } as any)
@@ -413,81 +410,25 @@ const Lines = () => {
     });
   };
 
-  // Handle area assignment to day
-  const handleAreaAssign = (area: string, day: string, isDayToDay: boolean = false, groupId?: number) => {
-    if (isDayToDay && groupId) {
-      // For day-to-day moves with specific groupId, update only that group
-      updateAreaDaysMutation.mutate({ groupId, newDays: [day] });
-    } else {
-      // For pool-to-day moves
-      const groupsForArea = distributionGroups.filter(group => {
-        if (!group.separation) return false;
-        const mainArea = group.separation.replace(/\s+\d+$/, '').trim();
-        return mainArea === area;
-      });
-
-      groupsForArea.forEach(group => {
-        const currentDays = group.days || [];
-        // Add day only if not already present
-        if (!currentDays.includes(day)) {
-          const newDays = [...currentDays, day];
-          updateAreaDaysMutation.mutate({ groupId: group.groups_id, newDays });
-        }
-      });
-    }
-  };
-
-  // Handle area removal from day
-  const handleAreaRemove = (area: string, day: string) => {
-    const groupsForArea = distributionGroups.filter(group => {
-      if (!group.separation) return false;
-      const mainArea = group.separation.replace(/\s+\d+$/, '').trim();
-      return mainArea === area;
-    });
-
-    groupsForArea.forEach(group => {
-      const currentDays = group.days || [];
-      const newDays = currentDays.filter(d => d !== day);
-      updateAreaDaysMutation.mutate({ groupId: group.groups_id, newDays });
+  // Handlers for delivery areas (days)
+  const handleDeliveryAreaDrop = (area: string, day: string | null) => {
+    const group = distributionGroups?.find(g => g.separation === area);
+    if (!group) return;
+    
+    updateAreaDaysMutation.mutate({
+      groupId: group.groups_id,
+      newDays: day ? [day] : null
     });
   };
 
-  // Handle area visit assignment to day
-  const handleAreaAssignVisit = (area: string, day: string, isDayToDay: boolean = false, groupId?: number) => {
-    if (isDayToDay && groupId) {
-      // For day-to-day moves with specific groupId, update only that group
-      updateAreaDayVisitMutation.mutate({ groupId, newDays: [day] });
-    } else {
-      // For pool-to-day moves
-      const groupsForArea = distributionGroups.filter(group => {
-        if (!group.separation) return false;
-        const mainArea = group.separation.replace(/\s+\d+$/, '').trim();
-        return mainArea === area;
-      });
-
-      groupsForArea.forEach(group => {
-        const currentDays = group.dayvisit || [];
-        // Add day only if not already present
-        if (!currentDays.includes(day)) {
-          const newDays = [...currentDays, day];
-          updateAreaDayVisitMutation.mutate({ groupId: group.groups_id, newDays });
-        }
-      });
-    }
-  };
-
-  // Handle area visit removal from day
-  const handleAreaRemoveVisit = (area: string, day: string) => {
-    const groupsForArea = distributionGroups.filter(group => {
-      if (!group.separation) return false;
-      const mainArea = group.separation.replace(/\s+\d+$/, '').trim();
-      return mainArea === area;
-    });
-
-    groupsForArea.forEach(group => {
-      const currentDays = group.dayvisit || [];
-      const newDays = currentDays.filter(d => d !== day);
-      updateAreaDayVisitMutation.mutate({ groupId: group.groups_id, newDays });
+  // Handlers for visit areas (dayvisit)
+  const handleVisitAreaDrop = (area: string, day: string | null) => {
+    const group = distributionGroups?.find(g => g.separation === area);
+    if (!group) return;
+    
+    updateAreaDayVisitMutation.mutate({
+      groupId: group.groups_id,
+      newDays: day ? [day] : null
     });
   };
 
@@ -589,35 +530,29 @@ const Lines = () => {
           {isMobile && <p className="text-sm text-muted-foreground">שיוך ערים לימי הפצה</p>}
         </div>
 
-        {/* Area Pool */}
-        <AreaPool 
-          distributionGroups={distributionGroups}
-          onAreaAssign={handleAreaAssign}
-        />
-
-        {/* Weekly Area Kanban */}
-        <div className={`border rounded-lg ${isMobile ? 'p-3' : 'p-4'} bg-card`}>
-          <h2 className={`${isMobile ? 'text-lg' : 'text-xl'} font-semibold mb-4`}>שיוך אזורים לימים</h2>
-          <WeeklyAreaKanban 
+        {/* Area Management - Delivery */}
+        <div className="space-y-6">
+          <UnassignedAreasPool
             distributionGroups={distributionGroups}
-            onAreaAssign={handleAreaAssign}
-            onAreaRemove={handleAreaRemove}
+            onAreaDrop={handleDeliveryAreaDrop}
+          />
+          
+          <DaysAreaKanban
+            distributionGroups={distributionGroups}
+            onAreaDrop={handleDeliveryAreaDrop}
           />
         </div>
 
-        {/* Area Pool Visit */}
-        <AreaPoolVisit 
-          distributionGroups={distributionGroups}
-          onAreaAssign={handleAreaAssignVisit}
-        />
-
-        {/* Weekly Area Kanban Visit */}
-        <div className={`border rounded-lg ${isMobile ? 'p-3' : 'p-4'} bg-card`}>
-          <h2 className={`${isMobile ? 'text-lg' : 'text-xl'} font-semibold mb-4`}>שיוך אזורים לימים (ביקורים)</h2>
-          <WeeklyAreaKanbanVisit 
+        {/* Area Management - Visits */}
+        <div className="space-y-6 mt-8">
+          <UnassignedAreasPoolVisit
             distributionGroups={distributionGroups}
-            onAreaAssign={handleAreaAssignVisit}
-            onAreaRemove={handleAreaRemoveVisit}
+            onAreaDrop={handleVisitAreaDrop}
+          />
+
+          <DaysAreaKanbanVisit
+            distributionGroups={distributionGroups}
+            onAreaDrop={handleVisitAreaDrop}
           />
         </div>
 
