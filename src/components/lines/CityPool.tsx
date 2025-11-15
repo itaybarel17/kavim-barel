@@ -4,6 +4,7 @@ import { Plus, ChevronUp, ChevronDown } from 'lucide-react';
 import { CityTag } from './CityTag';
 import { getAreaColor } from '@/utils/areaColors';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -141,7 +142,9 @@ export const CityPool: React.FC<CityPoolProps> = ({
       <CardContent>
         <div 
           ref={drop}
-          className={`space-y-4 ${isOver ? 'bg-muted/50 rounded-lg p-2' : ''}`}
+          className={`space-y-4 transition-colors duration-200 ${
+            isOver ? 'bg-primary/10 ring-2 ring-primary/30 rounded-lg p-2' : ''
+          }`}
         >
           {Object.entries(citiesByArea).map(([area, areaCities], index) => {
             const allAreas = Object.keys(citiesByArea);
@@ -181,10 +184,13 @@ export const CityPool: React.FC<CityPoolProps> = ({
                 <CollapsibleTrigger asChild>
                   <Button
                     variant="ghost"
-                    className={`w-full justify-between p-3 h-auto ${getAreaColor(area)} ${onAreaOrderChange ? 'pl-12' : ''}`}
+                    className={`w-full justify-between p-3 h-auto hover:bg-accent rounded-lg ${getAreaColor(area)} ${onAreaOrderChange ? 'pl-12' : ''}`}
                   >
-                    <span className="font-medium">
-                      {area}
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-base">{area}</span>
+                      <span className="text-sm text-muted-foreground">
+                        ({areaCities.length} ערים)
+                      </span>
                       {(() => {
                         // Find totalsupplyspots for this area
                         const areaGroup = distributionGroups.find(group => 
@@ -193,15 +199,13 @@ export const CityPool: React.FC<CityPoolProps> = ({
                         const totalsupplyspots = areaGroup?.totalsupplyspots || 0;
                         
                         return (
-                          <span className="text-xs text-muted-foreground ml-1">
-                            ({totalsupplyspots})
-                          </span>
+                          <Badge variant="secondary" className="bg-white/90 text-gray-800 font-bold">
+                            {totalsupplyspots}
+                          </Badge>
                         );
                       })()}
-                    </span>
-                    <span className="text-xs">
-                      {areaCities.length} עירים
-                    </span>
+                    </div>
+                    {openAreas[area] ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                   </Button>
                 </CollapsibleTrigger>
                 
