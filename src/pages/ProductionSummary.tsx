@@ -376,36 +376,34 @@ const ProductionSummary = () => {
   });
 
   // Group linked customers together
-  const groupedCustomers = React.useMemo(() => {
-    const groups: Array<{
-      mainEntry: CustomerEntry;
-      linkedEntry?: CustomerEntry;
-      isLinkedPair: boolean;
-    }> = [];
+  const groups: Array<{
+    mainEntry: CustomerEntry;
+    linkedEntry?: CustomerEntry;
+    isLinkedPair: boolean;
+  }> = [];
+  
+  const processed = new Set<string>();
+  
+  sortedCustomers.forEach(entry => {
+    const customerNum = entry.customernumber || '';
+    if (processed.has(customerNum)) return;
     
-    const processed = new Set<string>();
+    const linkedNum = linkedCustomersMap.get(customerNum);
+    const linkedEntry = linkedNum 
+      ? sortedCustomers.find(e => e.customernumber === linkedNum)
+      : undefined;
     
-    sortedCustomers.forEach(entry => {
-      const customerNum = entry.customernumber || '';
-      if (processed.has(customerNum)) return;
-      
-      const linkedNum = linkedCustomersMap.get(customerNum);
-      const linkedEntry = linkedNum 
-        ? sortedCustomers.find(e => e.customernumber === linkedNum)
-        : undefined;
-      
-      groups.push({
-        mainEntry: entry,
-        linkedEntry: linkedEntry,
-        isLinkedPair: !!linkedEntry
-      });
-      
-      processed.add(customerNum);
-      if (linkedNum) processed.add(linkedNum);
+    groups.push({
+      mainEntry: entry,
+      linkedEntry: linkedEntry,
+      isLinkedPair: !!linkedEntry
     });
     
-    return groups;
-  }, [sortedCustomers, linkedCustomersMap]);
+    processed.add(customerNum);
+    if (linkedNum) processed.add(linkedNum);
+  });
+  
+  const groupedCustomers = groups;
 
   // Calculate total unique customers (נקודות) - count linked pairs as 1
   const totalPoints = groupedCustomers.length + (customerReplacements?.some(r => r.correctcustomer === 'פלקסמור מסחר בע"מ') ? 1 : 0);
