@@ -21,6 +21,7 @@ import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import CustomerList from "./pages/CustomerList";
 import CustomerLinks from "./pages/CustomerLinks";
+import AgentVisits from "./pages/AgentVisits";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { NavBar } from "@/components/layout/NavBar";
 
@@ -91,6 +92,9 @@ function App() {
                       </ProtectedRoute>} />
                     <Route path="/lines" element={<ProtectedRoute adminOnly>
                         <Lines />
+                      </ProtectedRoute>} />
+                    <Route path="/agent-visits" element={<ProtectedRoute adminOnly>
+                        <AgentVisits />
                       </ProtectedRoute>} />
                     <Route path="/map-fullscreen" element={<MapFullscreen />} />
                     <Route path="/customer-list" element={<ProtectedRoute>
