@@ -80,6 +80,9 @@ export const UnassignedAreasPoolVisit: React.FC<UnassignedAreasPoolVisitProps> =
     }))
     .sort((a, b) => a.orderlabelinkavim - b.orderlabelinkavim);
 
+  console.log('UnassignedAreasPoolVisit - distributionGroups:', distributionGroups);
+  console.log('UnassignedAreasPoolVisit - unassignedAreas:', unassignedAreas);
+
   return (
     <Card>
       <CardHeader>

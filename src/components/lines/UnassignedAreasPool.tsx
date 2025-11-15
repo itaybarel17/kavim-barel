@@ -73,6 +73,9 @@ export const UnassignedAreasPool: React.FC<UnassignedAreasPoolProps> = ({
     }))
     .sort((a, b) => a.orderlabelinkavim - b.orderlabelinkavim);
 
+  console.log('UnassignedAreasPool - distributionGroups:', distributionGroups);
+  console.log('UnassignedAreasPool - unassignedAreas:', unassignedAreas);
+
   return (
     <Card>
       <CardHeader>

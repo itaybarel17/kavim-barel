@@ -129,6 +129,8 @@ export const DaysAreaKanbanVisit: React.FC<DaysAreaKanbanVisitProps> = ({
   const days = ['א', 'ב', 'ג', 'ד', 'ה'];
   const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי'];
 
+  console.log('DaysAreaKanbanVisit - distributionGroups:', distributionGroups);
+
   const getAreasForDay = (targetDay: string) => {
     return distributionGroups
       .filter(
@@ -151,6 +153,8 @@ export const DaysAreaKanbanVisit: React.FC<DaysAreaKanbanVisitProps> = ({
   const handleRemove = (area: string) => {
     onAreaDrop(area, null);
   };
+
+  console.log('DaysAreaKanbanVisit - areas for א:', getAreasForDay('א'));
 
   return (
     <div className="space-y-4">
