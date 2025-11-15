@@ -22,7 +22,8 @@ export const NavBar: React.FC = () => {
     { path: "/messages", label: "הודעות", color: "purple" },
     ...(isAdmin ? [
       { path: "/archive", label: "ארכיון", color: "red" },
-      { path: "/lines", label: "קווים", color: "cyan" }
+      { path: "/lines", label: "קווים", color: "cyan" },
+      { path: "/agent-visits", label: "ביקורי סוכנים", color: "blue" }
     ] : [])
   ];
 
