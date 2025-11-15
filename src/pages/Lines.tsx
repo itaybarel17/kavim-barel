@@ -247,6 +247,30 @@ const Lines = () => {
     }
   });
 
+  // Helper function to normalize days from JSONB format
+  const normalizeDaysArray = (days: any): string[] => {
+    if (!days) return [];
+    
+    let parsedDays = days;
+    if (typeof days === 'string') {
+      try {
+        parsedDays = JSON.parse(days);
+      } catch {
+        return [];
+      }
+    }
+    
+    if (Array.isArray(parsedDays)) {
+      return parsedDays
+        .filter(entry => entry && typeof entry === 'string')
+        .flatMap(entry => entry.split(','))
+        .map(day => day.trim())
+        .filter(day => ['א', 'ב', 'ג', 'ד', 'ה'].includes(day));
+    }
+    
+    return [];
+  };
+
   // Calculate which areas appear in which weeks and days
   const areaSchedule = useMemo(() => {
     const schedule: Record<number, Record<string, string[]>> = {
@@ -260,15 +284,16 @@ const Lines = () => {
       if (!group.days || !group.freq || !group.separation) return;
       
       const mainArea = getMainAreaFromSeparation(group.separation);
+      const normalizedDays = normalizeDaysArray(group.days);
       
-      group.days.forEach(day => {
-        if (['א', 'ב', 'ג', 'ד', 'ה'].includes(day)) {
-          group.freq.forEach(week => {
-            if ([1, 2, 3, 4].includes(week)) {
+      normalizedDays.forEach(day => {
+        group.freq.forEach(week => {
+          if ([1, 2, 3, 4].includes(week)) {
+            if (!schedule[week][day].includes(mainArea)) {
               schedule[week][day].push(mainArea);
             }
-          });
-        }
+          }
+        });
       });
     });
 
