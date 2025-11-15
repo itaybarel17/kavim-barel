@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowRight, Package, RotateCcw, User, Calendar, Printer, AlertCircle } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
-import { getOrdersByScheduleId, getReturnsByScheduleId, isItemModified, getOriginalScheduleId, getNewScheduleId, isTransferredItem, getTransferredFromScheduleId, getReplacementCustomerDetails, getCustomerReplacementMap, type OrderWithSchedule, type ReturnWithSchedule, type CustomerReplacement } from '@/utils/scheduleUtils';
+import { getOrdersByScheduleId, getReturnsByScheduleId, isItemModified, getOriginalScheduleId, getNewScheduleId, isTransferredItem, getTransferredFromScheduleId, getReplacementCustomerDetails, getCustomerReplacementMap, createLinkedCustomersMap, countUniqueCustomersWithLinks, type OrderWithSchedule, type ReturnWithSchedule, type CustomerReplacement } from '@/utils/scheduleUtils';
 interface CustomerDetails {
   customernumber: string;
   mobile?: string;
@@ -151,6 +151,24 @@ const ProductionSummary = () => {
   // Filter orders and returns for this schedule using scheduleUtils
   const orders = scheduleId ? getOrdersByScheduleId(allOrders, parseInt(scheduleId)) : [];
   const returns = scheduleId ? getReturnsByScheduleId(allReturns, parseInt(scheduleId)) : [];
+
+  // Fetch customer links
+  const { data: customerLinks = [] } = useQuery({
+    queryKey: ['customer-links-production', scheduleId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('customerlist')
+        .select('customernumber, linked_candy_customernumber')
+        .not('linked_candy_customernumber', 'is', null);
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const linkedCustomersMap = React.useMemo(() => 
+    createLinkedCustomersMap(customerLinks), 
+    [customerLinks]
+  );
 
   // Fetch customer replacement data
   const {
@@ -357,8 +375,40 @@ const ProductionSummary = () => {
     return a.customername.localeCompare(b.customername, 'he');
   });
 
-  // Calculate total unique customers (נקודות) - include פלקסמור if exists
-  const totalPoints = sortedCustomers.length + (customerReplacements?.some(r => r.correctcustomer === 'פלקסמור מסחר בע"מ') ? 1 : 0);
+  // Group linked customers together
+  const groupedCustomers = React.useMemo(() => {
+    const groups: Array<{
+      mainEntry: CustomerEntry;
+      linkedEntry?: CustomerEntry;
+      isLinkedPair: boolean;
+    }> = [];
+    
+    const processed = new Set<string>();
+    
+    sortedCustomers.forEach(entry => {
+      const customerNum = entry.customernumber || '';
+      if (processed.has(customerNum)) return;
+      
+      const linkedNum = linkedCustomersMap.get(customerNum);
+      const linkedEntry = linkedNum 
+        ? sortedCustomers.find(e => e.customernumber === linkedNum)
+        : undefined;
+      
+      groups.push({
+        mainEntry: entry,
+        linkedEntry: linkedEntry,
+        isLinkedPair: !!linkedEntry
+      });
+      
+      processed.add(customerNum);
+      if (linkedNum) processed.add(linkedNum);
+    });
+    
+    return groups;
+  }, [sortedCustomers, linkedCustomersMap]);
+
+  // Calculate total unique customers (נקודות) - count linked pairs as 1
+  const totalPoints = groupedCustomers.length + (customerReplacements?.some(r => r.correctcustomer === 'פלקסמור מסחר בע"מ') ? 1 : 0);
 
   // Helper function to get agent number for a customer
   const getCustomerAgent = (customer: CustomerEntry) => {
@@ -428,63 +478,110 @@ const ProductionSummary = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sortedCustomers.map((customer, index) => {
-                  // Check if this customer has orders or returns from agent 99
-                  const hasAgent99Items = [...customer.orders, ...customer.returns].some(item => item.agentnumber === "99");
-
-                  // Check if this customer has ALL items transferred from other schedules
-                  const allCustomerItems = [...customer.orders, ...customer.returns];
-                  const isCompletelyTransferred = allCustomerItems.length > 0 && allCustomerItems.every(item => isTransferredItem(item, parseInt(scheduleId!)));
-                  return <TableRow key={index} className="text-xs border-b h-8">
+                    {groupedCustomers.map((group, groupIndex) => {
+                      if (group.isLinkedPair) {
+                        // Render linked pair with border
+                        return (
+                          <React.Fragment key={`group-${groupIndex}`}>
+                            <tr>
+                              <td colSpan={10} className="p-0">
+                                <div className="border-2 border-blue-400 rounded-lg my-1">
+                                  {[group.mainEntry, group.linkedEntry!].map((customer, idx) => {
+                                    const hasAgent99Items = [...customer.orders, ...customer.returns].some(item => item.agentnumber === "99");
+                                    const allCustomerItems = [...customer.orders, ...customer.returns];
+                                    const isCompletelyTransferred = allCustomerItems.length > 0 && allCustomerItems.every(item => isTransferredItem(item, parseInt(scheduleId!)));
+                                    
+                                    return (
+                                      <table key={customer.customernumber} className="w-full">
+                                        <tbody>
+                                          <TableRow className={`text-xs ${idx === 0 ? 'bg-blue-50' : 'bg-pink-50'}`}>
+                                            <TableCell className={`font-medium p-1 text-left text-xs ${isCompletelyTransferred ? 'line-through' : ''}`}>
+                                              <div className="flex items-center gap-1">
+                                                <span>{customer.customername}</span>
+                                                {hasAgent99Items && <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 bg-blue-50 text-blue-700 border-blue-300">קנדי+</Badge>}
+                                              </div>
+                                            </TableCell>
+                                            <TableCell className="p-1 text-left text-xs w-12">{getCustomerAgent(customer)}</TableCell>
+                                            <TableCell className={`p-1 text-left text-xs ${isCompletelyTransferred ? 'line-through' : ''}`}>{customer.address}</TableCell>
+                                            <TableCell className={`p-1 text-left text-xs ${isCompletelyTransferred ? 'line-through' : ''}`}>{customer.city}</TableCell>
+                                            <TableCell className="p-1 text-left text-xs">{customer.mobile || '-'}</TableCell>
+                                            <TableCell className="p-1 text-left text-xs">{customer.phone || '-'}</TableCell>
+                                            <TableCell className="p-1 text-left text-xs">{customer.supplydetails || '-'}</TableCell>
+                                            <TableCell className="p-1 text-left">
+                                              {customer.orders.length > 0 && <div className="space-y-0.5">
+                                                {customer.orders.map(order => <div key={order.ordernumber} className="text-xs flex items-center gap-1">
+                                                  <span>#{order.ordernumber}</span>
+                                                  {isTransferredItem(order, parseInt(scheduleId!)) && <span className="bg-orange-100 text-orange-700 px-1 text-[8px] rounded-sm border border-orange-300">עבר #{getTransferredFromScheduleId(order)}</span>}
+                                                  {order.icecream && <div className="text-blue-600 text-xs">{order.icecream}</div>}
+                                                </div>)}
+                                              </div>}
+                                            </TableCell>
+                                            <TableCell className="p-1 text-left">
+                                              {customer.returns.length > 0 && <div className="space-y-0.5">
+                                                {customer.returns.map(returnItem => <div key={returnItem.returnnumber} className="text-xs flex items-center gap-1">
+                                                  <span>#{returnItem.returnnumber}</span>
+                                                  {isTransferredItem(returnItem, parseInt(scheduleId!)) && <span className="bg-orange-100 text-orange-700 px-1 text-[8px] rounded-sm border border-orange-300">עבר #{getTransferredFromScheduleId(returnItem)}</span>}
+                                                  {returnItem.icecream && <div className="text-blue-600 text-xs">{returnItem.icecream}</div>}
+                                                </div>)}
+                                              </div>}
+                                            </TableCell>
+                                            <TableCell className="p-1 text-left">
+                                              {customer.shotefnumber === 5 && <div className="text-red-600 font-bold text-xs">נהג, נא לקחת מזומן</div>}
+                                            </TableCell>
+                                          </TableRow>
+                                        </tbody>
+                                      </table>
+                                    );
+                                  })}
+                                </div>
+                              </td>
+                            </tr>
+                          </React.Fragment>
+                        );
+                      } else {
+                        // Render single customer without border
+                        const customer = group.mainEntry;
+                        const hasAgent99Items = [...customer.orders, ...customer.returns].some(item => item.agentnumber === "99");
+                        const allCustomerItems = [...customer.orders, ...customer.returns];
+                        const isCompletelyTransferred = allCustomerItems.length > 0 && allCustomerItems.every(item => isTransferredItem(item, parseInt(scheduleId!)));
+                        
+                        return <TableRow key={`single-${groupIndex}`} className="text-xs border-b h-8">
                           <TableCell className={`font-medium p-1 text-left text-xs ${isCompletelyTransferred ? 'line-through' : ''}`}>
                             <div className="flex items-center gap-1">
                               <span>{customer.customername}</span>
-                              {hasAgent99Items && <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 bg-blue-50 text-blue-700 border-blue-300">
-                                  קנדי+
-                                </Badge>}
+                              {hasAgent99Items && <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 bg-blue-50 text-blue-700 border-blue-300">קנדי+</Badge>}
                             </div>
                           </TableCell>
-                          <TableCell className="p-1 text-left text-xs w-12">
-                            {getCustomerAgent(customer)}
-                          </TableCell>
-                          <TableCell className={`p-1 text-left text-xs ${isCompletelyTransferred ? 'line-through' : ''}`}>
-                            {customer.address}
-                          </TableCell>
-                          <TableCell className={`p-1 text-left text-xs ${isCompletelyTransferred ? 'line-through' : ''}`}>
-                            {customer.city}
-                          </TableCell>
+                          <TableCell className="p-1 text-left text-xs w-12">{getCustomerAgent(customer)}</TableCell>
+                          <TableCell className={`p-1 text-left text-xs ${isCompletelyTransferred ? 'line-through' : ''}`}>{customer.address}</TableCell>
+                          <TableCell className={`p-1 text-left text-xs ${isCompletelyTransferred ? 'line-through' : ''}`}>{customer.city}</TableCell>
                           <TableCell className="p-1 text-left text-xs">{customer.mobile || '-'}</TableCell>
                           <TableCell className="p-1 text-left text-xs">{customer.phone || '-'}</TableCell>
                           <TableCell className="p-1 text-left text-xs">{customer.supplydetails || '-'}</TableCell>
                           <TableCell className="p-1 text-left">
                             {customer.orders.length > 0 && <div className="space-y-0.5">
-                                {customer.orders.map(order => <div key={order.ordernumber} className="text-xs flex items-center gap-1">
-                                    <span>#{order.ordernumber}</span>
-                                    {isTransferredItem(order, parseInt(scheduleId!)) && <span className="bg-orange-100 text-orange-700 px-1 text-[8px] rounded-sm border border-orange-300">
-                                        עבר #{getTransferredFromScheduleId(order)}
-                                      </span>}
-                                    {order.icecream && <div className="text-blue-600 text-xs">{order.icecream}</div>}
-                                  </div>)}
-                              </div>}
+                              {customer.orders.map(order => <div key={order.ordernumber} className="text-xs flex items-center gap-1">
+                                <span>#{order.ordernumber}</span>
+                                {isTransferredItem(order, parseInt(scheduleId!)) && <span className="bg-orange-100 text-orange-700 px-1 text-[8px] rounded-sm border border-orange-300">עבר #{getTransferredFromScheduleId(order)}</span>}
+                                {order.icecream && <div className="text-blue-600 text-xs">{order.icecream}</div>}
+                              </div>)}
+                            </div>}
                           </TableCell>
                           <TableCell className="p-1 text-left">
                             {customer.returns.length > 0 && <div className="space-y-0.5">
-                                {customer.returns.map(returnItem => <div key={returnItem.returnnumber} className="text-xs flex items-center gap-1">
-                                    <span>#{returnItem.returnnumber}</span>
-                                    {isTransferredItem(returnItem, parseInt(scheduleId!)) && <span className="bg-orange-100 text-orange-700 px-1 text-[8px] rounded-sm border border-orange-300">
-                                        עבר #{getTransferredFromScheduleId(returnItem)}
-                                      </span>}
-                                    {returnItem.icecream && <div className="text-blue-600 text-xs">{returnItem.icecream}</div>}
-                                  </div>)}
-                              </div>}
+                              {customer.returns.map(returnItem => <div key={returnItem.returnnumber} className="text-xs flex items-center gap-1">
+                                <span>#{returnItem.returnnumber}</span>
+                                {isTransferredItem(returnItem, parseInt(scheduleId!)) && <span className="bg-orange-100 text-orange-700 px-1 text-[8px] rounded-sm border border-orange-300">עבר #{getTransferredFromScheduleId(returnItem)}</span>}
+                                {returnItem.icecream && <div className="text-blue-600 text-xs">{returnItem.icecream}</div>}
+                              </div>)}
+                            </div>}
                           </TableCell>
                           <TableCell className="p-1 text-left">
-                            {customer.shotefnumber === 5 && <div className="text-red-600 font-bold text-xs">
-                                נהג, נא לקחת מזומן
-                              </div>}
+                            {customer.shotefnumber === 5 && <div className="text-red-600 font-bold text-xs">נהג, נא לקחת מזומן</div>}
                           </TableCell>
                         </TableRow>;
-                })}
+                      }
+                    })}
                   </TableBody>
                 </Table>}
             </div>

@@ -23,6 +23,7 @@ import {
 import {
   getReplacementCustomerDetails,
   getCustomerReplacementMap,
+  createLinkedCustomersMap,
   type CustomerReplacement
 } from '@/utils/scheduleUtils';
 
@@ -50,6 +51,24 @@ const ZoneReport = () => {
 
   // Properly destructure customerSupplyMap with default empty object
   const { zoneNumber, scheduleId, groupName, driverName, orders, returns, customerSupplyMap = {} } = reportData;
+
+  // Fetch customer links
+  const { data: customerLinks = [] } = useQuery({
+    queryKey: ['customer-links-zone', scheduleId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('customerlist')
+        .select('customernumber, linked_candy_customernumber')
+        .not('linked_candy_customernumber', 'is', null);
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const linkedCustomersMap = useMemo(() => 
+    createLinkedCustomersMap(customerLinks), 
+    [customerLinks]
+  );
 
   // Fetch customer replacement data
   const { data: customerReplacements = [] } = useQuery({
@@ -141,10 +160,32 @@ const ZoneReport = () => {
     });
   }, [returns, replacementMap]);
 
-  // Process data with sorting and numbering using processed orders/returns
+  // Process data with smart numbering for linked customers
   const sortedOrders = sortOrdersByLocationAndCustomer(processedOrders);
   const sortedReturns = sortReturnsByLocationAndCustomer(processedReturns);
-  const numberedOrders = createNumberedOrdersList(sortedOrders);
+  
+  // Smart numbering: linked pairs - first gets number, second doesn't
+  const numberedOrders = useMemo(() => {
+    let displayNumber = 1;
+    const processed = new Set<string>();
+    
+    return sortedOrders.map(order => {
+      const customerNum = order.customernumber || '';
+      const linkedNum = linkedCustomersMap.get(customerNum);
+      
+      // Check if this is the second item of a linked pair
+      const isSecondOfPair = linkedNum && processed.has(linkedNum);
+      
+      // Mark this customer as processed
+      processed.add(customerNum);
+      
+      return {
+        ...order,
+        displayIndex: isSecondOfPair ? undefined : displayNumber++
+      };
+    });
+  }, [sortedOrders, linkedCustomersMap]);
+  
   const numberedOrdersCount = numberedOrders.filter(order => order.displayIndex).length;
   const combinedItems = createCombinedItemsList(numberedOrders, sortedReturns);
   const { totalOrdersAmount, totalReturnsAmount, netTotal } = calculateTotals(processedOrders, processedReturns);
