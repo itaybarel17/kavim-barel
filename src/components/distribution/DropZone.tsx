@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Toggle } from '@/components/ui/toggle';
-import { X, Printer, Map } from 'lucide-react';
+import { X, Printer, Map as MapIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderCard } from './OrderCard';
@@ -15,6 +15,7 @@ import { ScheduleResetConfirmDialog } from './ScheduleResetConfirmDialog';
 import { ImportantMessageBadge } from './ImportantMessageBadge';
 import { getAreaColor, getMainAreaFromSeparation } from '@/utils/areaColors';
 import { formatDistributionDays } from '@/utils/dateUtils';
+import { countUniqueCustomersWithLinks } from '@/utils/scheduleUtils';
 
 interface Order {
   ordernumber: number;
@@ -101,6 +102,7 @@ interface DropZoneProps {
   multiOrderActiveCustomerList?: any[];
   dualActiveOrderReturnCustomers?: any[];
   linkedCustomersWithBothOrders?: Set<string>; // NEW: for linked customers
+  linkedCustomersMap?: Map<string, string>; // NEW: mapping of linked customers
   // new props for supply details - removed agentNameMap
   customerSupplyMap?: Record<string, string>;
   customerCoordinatesMap?: Record<string, { lat: number; lng: number }>;
@@ -156,6 +158,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
   multiOrderActiveCustomerList = [],
   dualActiveOrderReturnCustomers = [],
   linkedCustomersWithBothOrders = new Set(),
+  linkedCustomersMap,
   customerSupplyMap = {},
   customerCoordinatesMap = {},
   onSirenToggle,
@@ -217,25 +220,28 @@ export const DropZone: React.FC<DropZoneProps> = ({
            assignedReturns.some(returnItem => returnItem.alert_status === true);
   }, [assignedOrders, assignedReturns]);
 
-  // Calculate unique customer points (נקודות)
+  // Calculate unique customer points (נקודות) - count linked pairs as 1
   const uniqueCustomerPoints = useMemo(() => {
-    const uniqueCustomers = new Set<string>();
+    const allCustomerNumbers: string[] = [];
 
     // Add customer numbers from orders
     assignedOrders.forEach(order => {
       if (order.customernumber) {
-        uniqueCustomers.add(order.customernumber);
+        allCustomerNumbers.push(order.customernumber);
       }
     });
 
     // Add customer numbers from returns
     assignedReturns.forEach(returnItem => {
       if (returnItem.customernumber) {
-        uniqueCustomers.add(returnItem.customernumber);
+        allCustomerNumbers.push(returnItem.customernumber);
       }
     });
-    return uniqueCustomers.size;
-  }, [assignedOrders, assignedReturns]);
+    
+    // Count unique customers, treating linked pairs as one
+    const emptyMap = new Map<string, string>();
+    return countUniqueCustomersWithLinks(allCustomerNumbers, linkedCustomersMap || emptyMap);
+  }, [assignedOrders, assignedReturns, linkedCustomersMap]);
 
 // State to track local changes to end_picking_time
   const [localCompletedOrders, setLocalCompletedOrders] = useState<Set<number>>(new Set());
@@ -511,7 +517,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
                 className="h-8 w-8"
                 title="הצג מפה"
               >
-                <Map className="h-4 w-4" />
+                <MapIcon className="h-4 w-4" />
               </Button>
             )}
             {scheduleId && (assignedOrders.length > 0 || assignedReturns.length > 0) && (

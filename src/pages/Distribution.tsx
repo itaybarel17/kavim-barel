@@ -1241,6 +1241,7 @@ const Distribution = () => {
               multiOrderActiveCustomerList={multiOrderActiveCustomerList}
               dualActiveOrderReturnCustomers={dualActiveOrderReturnCustomers}
               linkedCustomersWithBothOrders={linkedCustomersWithBothOrders}
+              linkedCustomersMap={linkedCustomersMap}
               customerSupplyMap={customerSupplyMap}
               customerCoordinatesMap={customerCoordinatesMap}
               onSirenToggle={handleSirenToggle}
