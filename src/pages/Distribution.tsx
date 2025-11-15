@@ -1101,7 +1101,7 @@ const Distribution = () => {
 
   // Create sorted drop zones (pinned first, then regular order)
   const dropZones = useMemo(() => {
-    const allZones = Array.from({ length: 12 }, (_, index) => index + 1);
+    const allZones = Array.from({ length: 16 }, (_, index) => index + 1);
     
     return allZones.sort((a, b) => {
       const zoneStateA = getZoneState(a);
