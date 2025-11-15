@@ -58,6 +58,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({ cities, fullscreen =
       mapTypeControl: false,
       streetViewControl: false,
       fullscreenControl: false,
+      gestureHandling: 'greedy',
     });
 
     mapInstanceRef.current = map;
