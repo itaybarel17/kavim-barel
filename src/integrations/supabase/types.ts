@@ -269,6 +269,7 @@ export type Database = {
       city_agent_visit_schedule: {
         Row: {
           agentnumber: string
+          averagesupply: number | null
           city: string
           created_at: string | null
           customer_count: number | null
@@ -278,6 +279,7 @@ export type Database = {
         }
         Insert: {
           agentnumber: string
+          averagesupply?: number | null
           city: string
           created_at?: string | null
           customer_count?: number | null
@@ -287,6 +289,7 @@ export type Database = {
         }
         Update: {
           agentnumber?: string
+          averagesupply?: number | null
           city?: string
           created_at?: string | null
           customer_count?: number | null
