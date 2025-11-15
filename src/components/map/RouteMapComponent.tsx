@@ -114,6 +114,7 @@ export const RouteMapComponent = forwardRef<any, RouteMapComponentProps>(({
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
+        gestureHandling: 'greedy',
       });
 
       // Fit map to show all customers and depot

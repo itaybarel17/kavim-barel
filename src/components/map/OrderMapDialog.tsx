@@ -835,6 +835,7 @@ export const OrderMapDialog: React.FC<OrderMapDialogProps> = ({
           center: { lat: currentLat, lng: currentLng },
           zoom: mapError ? 8 : 15, // Use lower zoom for fallback coordinates
           mapTypeId: window.google.maps.MapTypeId.ROADMAP,
+          gestureHandling: 'greedy',
           styles: [
             {
               featureType: 'poi',
