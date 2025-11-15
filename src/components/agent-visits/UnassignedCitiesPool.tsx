@@ -9,6 +9,7 @@ interface CitySchedule {
   agentnumber: string;
   visit_day: string | null;
   customer_count: number;
+  averagesupplyweek?: number;
 }
 
 interface UnassignedCitiesPoolProps {
