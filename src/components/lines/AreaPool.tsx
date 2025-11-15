@@ -30,6 +30,9 @@ export const AreaPool: React.FC<AreaPoolProps> = ({
     }))
     .sort((a, b) => a.orderlabelinkavim - b.orderlabelinkavim);
 
+  console.log('AreaPool - distributionGroups:', distributionGroups);
+  console.log('AreaPool - areasWithOrder:', areasWithOrder);
+
   return (
     <Card>
       <CardHeader>
