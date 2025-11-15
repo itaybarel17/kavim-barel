@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getAreaColor, getMainAreaFromSeparation } from '@/utils/areaColors';
-import { Loader2, Users } from 'lucide-react';
+import { Loader2, Users, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { TruckGrid } from '@/components/lines/TruckGrid';
@@ -549,7 +549,23 @@ const Lines = () => {
           <div className="flex items-center justify-between mb-2">
             <div className="flex-1" />
             <h1 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold flex-1 text-center`}>ניהול קווי הפצה</h1>
-            <div className="flex-1 flex justify-end">
+            <div className="flex-1 flex justify-end gap-2">
+              <Button 
+                onClick={() => {
+                  refetchCities();
+                  queryClient.invalidateQueries({ queryKey: ['lines-distribution-groups'] });
+                  toast({
+                    title: "מרענן נתונים",
+                    description: "הנתונים מתעדכנים...",
+                  });
+                }}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                {!isMobile && 'רענן'}
+              </Button>
               <Button 
                 onClick={() => navigate('/customer-list')}
                 variant="outline"
@@ -592,7 +608,7 @@ const Lines = () => {
         </div>
 
         {/* Map Component */}
-        <MapComponent cities={cities} onRefresh={() => refetchCities()} />
+        <MapComponent cities={cities} />
 
         {/* City Pool */}
         <CityPool 
